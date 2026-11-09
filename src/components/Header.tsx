@@ -30,7 +30,7 @@ const rolesList: UserRole[] = [
   'Accounts Manager',
   'Senior Accountant',
   'Accountant',
-  'Auditor (read-only)',
+  'Auditor',
 ]
 
 export default function Header({
@@ -56,7 +56,7 @@ export default function Header({
       case 'Accounts Manager': return 'bg-blue-100 text-blue-800 border-blue-200'
       case 'Senior Accountant': return 'bg-emerald-100 text-emerald-800 border-emerald-200'
       case 'Accountant': return 'bg-amber-100 text-amber-800 border-amber-200'
-      case 'Auditor (read-only)': return 'bg-slate-100 text-slate-700 border-slate-300'
+      case 'Auditor': return 'bg-slate-100 text-slate-700 border-slate-300'
     }
   }
 
@@ -77,7 +77,7 @@ export default function Header({
           </div>
         </div>
 
-        {/* Center / Right Controls: Multi-Company, Role, Fiscal Lock, Profile */}
+        {/* Center / Right Controls: Multi-Company, Role, Profile */}
         <div className="flex items-center gap-2.5 flex-wrap justify-end">
           {/* Multi-Company Switcher */}
           <div className="relative">
@@ -95,7 +95,7 @@ export default function Header({
             {showCompanyMenu && (
               <div className="absolute right-0 mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50 animate-in fade-in slide-in-from-top-1">
                 <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                  Select Legal Entity (5 Active Companies)
+                  Select Legal Entity
                 </div>
                 {mockCompanies.map(c => (
                   <button
@@ -114,12 +114,12 @@ export default function Header({
             )}
           </div>
 
-          {/* User Role & Segregation of Duties Switcher */}
+          {/* User Role Switcher */}
           <div className="relative">
             <button
               onClick={() => { setShowRoleMenu(!showRoleMenu); setShowCompanyMenu(false); }}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${getRoleBadgeColor(currentRole)}`}
-              title="Simulate Role & Segregation of Duties"
+              title="Switch Active Role"
             >
               <ShieldCheck size={14} />
               <span>{currentRole}</span>
@@ -129,7 +129,7 @@ export default function Header({
             {showRoleMenu && (
               <div className="absolute right-0 mt-1.5 w-60 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50">
                 <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase">
-                  Switch Active Role (Segregation of Duties)
+                  Switch Active Role
                 </div>
                 {rolesList.map(r => (
                   <button
@@ -143,15 +143,6 @@ export default function Header({
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Fiscal Lock Indicator */}
-          <div
-            className="hidden lg:flex items-center gap-1.5 bg-amber-50 border border-amber-200/80 text-amber-900 px-2 py-1 rounded-md text-[11px] font-medium"
-            title="Fiscal Period Status: Postings on or before hard lock date are locked."
-          >
-            <Lock size={12} className="text-amber-700" />
-            <span>Hard Lock: <strong>{fiscalConfig.periodLockDate}</strong></span>
           </div>
 
           {/* Multi-Currency Rate Quick Pill */}
@@ -211,13 +202,13 @@ export default function Header({
             </div>
             <div className="py-3">
               <p className="text-xs text-slate-500 mb-3">
-                All accounting reports default to company base currency (SAR). Transactions in foreign currencies are converted at document date.
+                All accounting reports default to company base currency SAR. Transactions in foreign currencies are converted at document date.
               </p>
               <div className="space-y-2">
                 {mockCurrencies.map(c => (
                   <div key={c.currency} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs">
                     <div>
-                      <span className="font-bold text-slate-800">{c.currency}</span> ({c.name})
+                      <span className="font-bold text-slate-800">{c.currency}</span> — {c.name}
                     </div>
                     <div className="font-mono font-semibold text-emerald-700">
                       1 {c.currency} = {c.rateToBase.toFixed(2)} SAR

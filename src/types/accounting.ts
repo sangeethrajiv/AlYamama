@@ -12,11 +12,11 @@ export interface Company {
 }
 
 export type UserRole = 
-  | 'Finance Director'      // account.group_account_manager + lock overrides & final approval
-  | 'Accounts Manager'      // account.group_account_manager + approvals, reconcile, advance lock
-  | 'Senior Accountant'     // account.group_account_user + create/post, register payment, JEs
-  | 'Accountant'            // account.group_account_invoice + create/edit draft only
-  | 'Auditor (read-only)'   // custom group + read-only access to all records & audit log
+  | 'Finance Director'
+  | 'Accounts Manager'
+  | 'Senior Accountant'
+  | 'Accountant'
+  | 'Auditor'
 
 export type TabId = 
   | 'dashboard'

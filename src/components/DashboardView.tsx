@@ -106,7 +106,7 @@ export default function DashboardView({
           className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-blue-300 transition cursor-pointer group"
         >
           <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-            <span>Customer Receivables (AR)</span>
+            <span>Customer Receivables</span>
             <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition">
               <FileText size={15} />
             </div>
@@ -130,7 +130,7 @@ export default function DashboardView({
           className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-amber-300 transition cursor-pointer group"
         >
           <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-            <span>Supplier Payables (AP)</span>
+            <span>Supplier Payables</span>
             <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition">
               <Receipt size={15} />
             </div>

@@ -91,7 +91,7 @@ export default function App() {
     const newLog: AuditLogEntry = {
       id: `log_${Date.now()}_${Math.random().toString(36).substring(7)}`,
       timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
-      user: `${currentRole} (Active Session)`,
+      user: currentRole,
       recordType,
       recordId,
       recordName,
@@ -130,19 +130,19 @@ export default function App() {
     const updated: Invoice = {
       ...target,
       state: 'open',
-      validatedBy: `${currentRole} (Verified)`,
+      validatedBy: currentRole,
       validatedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
       approvalStatus: 'approved',
     }
 
-    // Auto-generate Journal Entry (§4.1.1 INV-007)
+    // Auto-generate Journal Entry
     const newJE: JournalEntry = {
       id: `je_inv_${target.id}`,
       entryNumber: `${target.number}-JE`,
       companyId: target.companyId,
       entryDate: target.dateInvoice,
       journalId: 'jour_sale',
-      journalName: 'Customer Invoices (Sales)',
+      journalName: 'Customer Invoices',
       reference: target.number,
       state: 'posted',
       narration: `Automated journal entry for customer invoice ${target.number} - ${target.partner}`,
@@ -214,7 +214,7 @@ export default function App() {
         'auto_intercompany',
         '—',
         'open',
-        `Auto-generated inter-company vendor bill in Company B from posted invoice ${target.number} (MC-005)`
+        `Auto-generated inter-company vendor bill in Company B from posted invoice ${target.number}`
       )
     }
 
@@ -337,7 +337,7 @@ export default function App() {
       'approvalStatus',
       target.approvalStatus,
       'approved',
-      `Approved by ${currentRole} in accordance with threshold authorization matrix (§19)`
+      `Approved by ${currentRole}`
     )
   }
 
@@ -599,7 +599,7 @@ export default function App() {
       'reverse_entry',
       orig.entryNumber,
       'posted',
-      `Reversal entry posted counterbalancing ${orig.entryNumber} (JE-007)`
+      `Reversal entry posted counterbalancing ${orig.entryNumber}`
     )
   }
 
@@ -650,7 +650,7 @@ export default function App() {
       'cheque_bounced',
       target.status,
       'bounced',
-      `Cheque marked bounced: "${reason}". Reversed payment voucher and recorded bank return charge (BANK-007).`
+      `Cheque marked bounced: "${reason}". Reversed payment voucher and recorded bank return charge.`
     )
   }
 

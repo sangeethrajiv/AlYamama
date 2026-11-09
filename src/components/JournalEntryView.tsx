@@ -114,12 +114,12 @@ export default function JournalEntryView({
 
   const handlePostEntry = () => {
     if (!isBalanced) {
-      alert('Total Debits must exactly equal Total Credits (JE-004 & BR-004).')
+      alert('Total Debits must exactly equal Total Credits.')
       return
     }
 
     if (incomeOrExpenseMissingAnalytic) {
-      alert('Analytic Account is mandatory for all Income and Expense GL accounts (BR-015 / ANA-004).')
+      alert('Cost Centre is mandatory for all Income and Expense accounts.')
       return
     }
 
@@ -160,7 +160,7 @@ export default function JournalEntryView({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Journal Entries (General Ledger)</h1>
+            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Journal Entries</h1>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
             Double-entry bookkeeping journal. System strictly enforces Total Debit = Total Credit and mandatory cost centres.
@@ -237,7 +237,7 @@ export default function JournalEntryView({
                         <button
                           onClick={() => onReverseEntry(entry.id)}
                           className="px-2 py-1 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 rounded text-[11px] font-bold flex items-center gap-1 transition ml-auto"
-                          title="Reverse Posted Entry (JE-007 creates counter-entry)"
+                          title="Reverse Posted Entry"
                         >
                           <RotateCcw size={12} />
                           <span>Reverse</span>
@@ -269,7 +269,7 @@ export default function JournalEntryView({
                 </div>
                 <div>
                   <h3 className="font-extrabold text-sm">
-                    {viewEntry ? `Journal Entry: ${viewEntry.entryNumber}` : 'New Manual Journal Entry (Double-Entry)'}
+                    {viewEntry ? `Journal Entry: ${viewEntry.entryNumber}` : 'New Manual Journal Entry'}
                   </h3>
                   <p className="text-[11px] text-slate-400">
                     General Ledger Entry
@@ -358,11 +358,11 @@ export default function JournalEntryView({
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
-                        <th className="py-2.5 px-3">Account (Chart of Accounts)</th>
+                        <th className="py-2.5 px-3">Account</th>
                         <th className="py-2.5 px-3">Label / Description</th>
                         <th className="py-2.5 px-3">Cost Centre</th>
-                        <th className="py-2.5 px-3 text-right w-28">Debit (SAR)</th>
-                        <th className="py-2.5 px-3 text-right w-28">Credit (SAR)</th>
+                        <th className="py-2.5 px-3 text-right w-28">Debit</th>
+                        <th className="py-2.5 px-3 text-right w-28">Credit</th>
                         {!viewEntry && <th className="py-2.5 px-2 w-10"></th>}
                       </tr>
                     </thead>

@@ -92,7 +92,7 @@ export default function InvoicePdfModal({ invoice, onClose }: InvoicePdfModalPro
             {/* Customer Box */}
             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                Billed To (Customer Details)
+                Billed To
               </div>
               <div className="font-bold text-sm text-slate-900">{invoice.partner}</div>
               {invoice.customerVat && (
@@ -137,11 +137,11 @@ export default function InvoicePdfModal({ invoice, onClose }: InvoicePdfModalPro
             <div className="flex justify-end mb-6">
               <div className="w-72 bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
-                  <span>Subtotal (Untaxed):</span>
+                  <span>Subtotal:</span>
                   <span className="font-mono font-semibold">{moneyFormat(invoice.amountUntaxed, invoice.currency)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
-                  <span>VAT Amount (15%):</span>
+                  <span>VAT Amount:</span>
                   <span className="font-mono font-semibold">{moneyFormat(invoice.amountTax, invoice.currency)}</span>
                 </div>
                 <div className="pt-2 border-t border-slate-300 flex justify-between font-bold text-sm text-slate-900">

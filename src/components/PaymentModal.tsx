@@ -65,7 +65,7 @@ export default function PaymentModal({
   const handleSave = () => {
     // PAY-007: System shall prevent posting payment with amount = 0
     if (amount <= 0) {
-      alert('Payment amount must be strictly greater than 0 (PAY-007).')
+      alert('Payment amount must be greater than zero.')
       return
     }
 
@@ -148,7 +148,7 @@ export default function PaymentModal({
 
             <div>
               <label className="block text-slate-600 font-bold mb-1">
-                Amount (SAR) *
+                Amount *
               </label>
               <input
                 type="number"
@@ -184,7 +184,7 @@ export default function PaymentModal({
                 onChange={e => setPaymentMethod(e.target.value as PaymentMethod)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-medium"
               >
-                <option value="Bank Transfer">Bank Transfer (SARIE/Wire)</option>
+                <option value="Bank Transfer">Bank Transfer</option>
                 <option value="Mada Debit">Mada Debit POS</option>
                 <option value="Corporate Cheque">Corporate Cheque</option>
                 <option value="Cash">Petty Cash</option>

@@ -1,15 +1,12 @@
 import { useState } from 'react'
 import {
-  Settings,
-  Lock,
+  Calendar,
   Building2,
   Coins,
   ShieldCheck,
   CheckCircle2,
-  AlertTriangle,
   FileCheck2,
-  Database,
-  ArrowRight,
+  Lock,
 } from 'lucide-react'
 import type { CompanyId, FiscalPeriodConfig, UserRole } from '../types/accounting'
 import { mockCompanies, mockCurrencies } from '../data/mockAccountingData'
@@ -27,23 +24,17 @@ export default function SettingsAndLockView({
   onAdvanceLockDate,
   currentRole,
 }: SettingsAndLockViewProps) {
-  const [activeTab, setActiveTab] = useState<'lock' | 'companies' | 'currencies' | 'thresholds' | 'migration'>('lock')
+  const [activeTab, setActiveTab] = useState<'periods' | 'companies' | 'currencies' | 'thresholds' | 'migration'>('periods')
 
-  // Close period wizard state (§15.1 FY-011)
+  // Close period wizard state
   const [showWizard, setShowWizard] = useState(false)
   const [chkEntriesPosted, setChkEntriesPosted] = useState(true)
   const [chkUnreconciled, setChkUnreconciled] = useState(true)
   const [chkTbBalanced, setChkTbBalanced] = useState(true)
   const [chkRetainedEarnings, setChkRetainedEarnings] = useState(true)
 
-  const [newHardLockDate, setNewHardLockDate] = useState('2026-10-31')
-  const [newSoftLockDate, setNewSoftLockDate] = useState('2026-11-30')
+  const [newClosingDate, setNewClosingDate] = useState('2026-10-31')
 
-  // Permission check based on §15.4 Lock-Date Permission Matrix:
-  // Accountant: ❌
-  // Accounts Manager: ✅
-  // Finance Director: ✅
-  // Sys Admin: ✅
   const canAdvanceLock =
     currentRole === 'Finance Director' ||
     currentRole === 'Accounts Manager'
@@ -53,14 +44,14 @@ export default function SettingsAndLockView({
 
   const handleExecuteClosePeriod = () => {
     if (!canAdvanceLock) {
-      alert('Access Denied: Only Accounts Manager or Finance Director can advance the lock date (§15.4).')
+      alert('Access Denied: Only Accounts Manager or Finance Director can update the closing date.')
       return
     }
     if (!allChecklistPassed) {
       alert('All items in the period-close checklist must be verified before locking.')
       return
     }
-    onAdvanceLockDate(newHardLockDate, newSoftLockDate)
+    onAdvanceLockDate(newClosingDate, newClosingDate)
     setShowWizard(false)
   }
 
@@ -77,7 +68,7 @@ export default function SettingsAndLockView({
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage fiscal lock dates, 5-company inter-company pairs, foreign currencies, and approval thresholds.
+            Manage accounting periods, legal entities, foreign currency rates, and approval limits.
           </p>
         </div>
       </div>
@@ -85,12 +76,12 @@ export default function SettingsAndLockView({
       {/* Tabs */}
       <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold overflow-x-auto">
         <button
-          onClick={() => setActiveTab('lock')}
+          onClick={() => setActiveTab('periods')}
           className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap ${
-            activeTab === 'lock' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            activeTab === 'periods' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Fiscal Year & Lock Period
+          Fiscal Periods
         </button>
         <button
           onClick={() => setActiveTab('companies')}
@@ -98,7 +89,7 @@ export default function SettingsAndLockView({
             activeTab === 'companies' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Multi-Company Setup
+          Multi-Company
         </button>
         <button
           onClick={() => setActiveTab('currencies')}
@@ -106,7 +97,7 @@ export default function SettingsAndLockView({
             activeTab === 'currencies' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Multi-Currency & Rates
+          Currencies & Rates
         </button>
         <button
           onClick={() => setActiveTab('thresholds')}
@@ -114,7 +105,7 @@ export default function SettingsAndLockView({
             activeTab === 'thresholds' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Approval Thresholds
+          Approval Limits
         </button>
         <button
           onClick={() => setActiveTab('migration')}
@@ -122,18 +113,18 @@ export default function SettingsAndLockView({
             activeTab === 'migration' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Data Migration & Opening Balances
+          Opening Balances
         </button>
       </div>
 
-      {/* 1. FISCAL YEAR & LOCK PERIOD TAB */}
-      {activeTab === 'lock' && (
+      {/* 1. FISCAL PERIODS TAB */}
+      {activeTab === 'periods' && (
         <div className="space-y-4">
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6 text-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
                 <h2 className="text-base font-extrabold text-slate-900">
-                  Fiscal Periods & Accounting Lock Dates
+                  Fiscal Year & Accounting Period
                 </h2>
                 <p className="text-slate-500">
                   Current Entity: <strong className="text-slate-800">{activeCompany.name}</strong>
@@ -143,101 +134,75 @@ export default function SettingsAndLockView({
               <button
                 onClick={() => setShowWizard(true)}
                 disabled={!canAdvanceLock}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-lg font-bold flex items-center gap-1.5 shadow-sm transition"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg font-bold flex items-center gap-1.5 shadow-sm transition"
               >
-                <Lock size={15} />
-                <span>Advance Lock Date (Close Period Wizard)</span>
+                <Calendar size={15} />
+                <span>Update Accounting Period</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Hard Lock Card */}
-              <div className="p-4 rounded-xl border border-rose-200 bg-rose-50/50">
-                <div className="flex items-center gap-2 text-rose-800 font-bold mb-1">
-                  <Lock size={16} />
-                  <span>Hard Lock Date (Period Lock)</span>
+            {/* Clean summary cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <div className="text-slate-500 font-bold mb-1">Fiscal Year</div>
+                <div className="text-xl font-black font-mono text-slate-900 my-1">
+                  Year 2026
                 </div>
-                <div className="text-2xl font-black font-mono text-rose-900 my-2">
-                  {fiscalConfig.periodLockDate}
-                </div>
-                <p className="text-[11px] text-rose-700">
-                  Blocks <strong>ALL</strong> users (including Accountants and Accounts Managers) from posting, modifying, or reversing any journal entry on or before this date. Only Finance Director has emergency override capability with audit log tracking.
+                <p className="text-[11px] text-slate-500">
+                  Starts January 01 • Ends December 31
                 </p>
               </div>
 
-              {/* Soft Lock Card */}
-              <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/50">
-                <div className="flex items-center gap-2 text-amber-800 font-bold mb-1">
-                  <ShieldCheck size={16} />
-                  <span>Soft Lock Date (Review Period)</span>
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <div className="text-slate-500 font-bold mb-1">Active Accounting Period</div>
+                <div className="text-xl font-black font-mono text-emerald-800 my-1 flex items-center gap-2">
+                  <span>Q4 2026</span>
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    OPEN
+                  </span>
                 </div>
-                <div className="text-2xl font-black font-mono text-amber-900 my-2">
-                  {fiscalConfig.fiscalYearLockDate}
+                <p className="text-[11px] text-slate-500">
+                  Transactions and invoices can be posted freely
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <div className="text-slate-500 font-bold mb-1">Period Closing Date</div>
+                <div className="text-xl font-black font-mono text-slate-900 my-1">
+                  {fiscalConfig.periodLockDate}
                 </div>
-                <p className="text-[11px] text-amber-700">
-                  Blocks draft invoice creation for past periods. Allows Senior Accountants and Accounts Managers to review and make period adjustments before hard lock.
+                <p className="text-[11px] text-slate-500">
+                  Historical entries on or before this date are finalized
                 </p>
               </div>
             </div>
 
-            {/* Lock Date Permission Matrix Table */}
-            <div>
-              <h3 className="font-bold text-slate-800 uppercase tracking-wider mb-2">
-                Lock-Date Permission Matrix
-              </h3>
-              <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 font-bold text-slate-700 border-b border-slate-200">
-                    <tr>
-                      <th className="py-2.5 px-3">Accounting Action</th>
-                      <th className="py-2.5 px-3 text-center">Accountant</th>
-                      <th className="py-2.5 px-3 text-center">Accounts Mgr</th>
-                      <th className="py-2.5 px-3 text-center">Finance Dir</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    <tr>
-                      <td className="py-2 px-3">Set / advance hard lock date</td>
-                      <td className="py-2 px-3 text-center text-rose-600 font-bold">❌</td>
-                      <td className="py-2 px-3 text-center text-emerald-600 font-bold">✅</td>
-                      <td className="py-2 px-3 text-center text-emerald-600 font-bold">✅</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-3">Post entry in open period</td>
-                      <td className="py-2 px-3 text-center text-emerald-600 font-bold">✅</td>
-                      <td className="py-2 px-3 text-center text-emerald-600 font-bold">✅</td>
-                      <td className="py-2 px-3 text-center text-emerald-600 font-bold">✅</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-3">Post entry after soft lock (tax override)</td>
-                      <td className="py-2 px-3 text-center text-rose-600 font-bold">❌</td>
-                      <td className="py-2 px-3 text-center text-emerald-600 font-bold">✅</td>
-                      <td className="py-2 px-3 text-center text-emerald-600 font-bold">✅</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-3">Post entry after hard lock (emergency)</td>
-                      <td className="py-2 px-3 text-center text-rose-600 font-bold">❌</td>
-                      <td className="py-2 px-3 text-center text-rose-600 font-bold">❌</td>
-                      <td className="py-2 px-3 text-center text-emerald-600 font-bold">✅ (Audited)</td>
-                    </tr>
-                  </tbody>
-                </table>
+            {/* Information panel */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700 mt-0.5">
+                <CheckCircle2 size={16} />
+              </div>
+              <div>
+                <div className="font-bold text-slate-800">Automated Accounting Controls</div>
+                <p className="text-slate-500 mt-0.5 text-[11px]">
+                  All transactions, customer billing, and supplier payments automatically validate against the active fiscal period. Closing dates advance periodically after month-end financial reviews.
+                </p>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 2. MULTI-COMPANY SETUP TAB (§10) */}
+      {/* 2. MULTI-COMPANY SETUP TAB */}
       {activeTab === 'companies' && (
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4 text-xs">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <h2 className="text-base font-extrabold text-slate-900">
-                Multi-Company Scope (5 Companies Configured)
+                Multi-Company Configuration
               </h2>
               <p className="text-slate-500">
-                Isolated accounting books per entity with automatic inter-company lifecycle (§23).
+                Isolated accounting books per legal entity with automatic inter-company synchronization.
               </p>
             </div>
           </div>
@@ -259,9 +224,9 @@ export default function SettingsAndLockView({
                 <div className="text-slate-500">{c.legalName}</div>
                 <div className="mt-3 pt-2 border-t border-slate-100 font-mono text-[11px] space-y-1 text-slate-600">
                   <div>Commercial Reg: <strong>{c.crNumber}</strong></div>
-                  <div>ZATCA VAT ID: <strong>{c.vatNumber}</strong></div>
-                  <div>Base Currency: <strong>{c.baseCurrency}</strong> (Saudi Riyal)</div>
-                  <div>Inter-Company Sync: <strong className="text-emerald-700">Enabled (Auto-Vendor Bill)</strong></div>
+                  <div>Tax ID: <strong>{c.vatNumber}</strong></div>
+                  <div>Base Currency: <strong>{c.baseCurrency}</strong></div>
+                  <div>Inter-Company Sync: <strong className="text-emerald-700">Enabled</strong></div>
                 </div>
               </div>
             ))}
@@ -269,7 +234,7 @@ export default function SettingsAndLockView({
         </div>
       )}
 
-      {/* 3. MULTI-CURRENCY TAB (§11) */}
+      {/* 3. MULTI-CURRENCY TAB */}
       {activeTab === 'currencies' && (
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4 text-xs">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -278,11 +243,11 @@ export default function SettingsAndLockView({
                 Active Foreign Currencies & Exchange Rates
               </h2>
               <p className="text-slate-500">
-                Maintained in `res.currency.rate`. Monetary amounts stored in both transaction and base currency.
+                Monetary amounts are tracked in transaction currency and converted to base currency for financial reporting.
               </p>
             </div>
             <button
-              onClick={() => alert('Fetching latest daily rates from SAMA FX Gateway...')}
+              onClick={() => alert('Fetching latest daily exchange rates...')}
               className="px-3.5 py-1.5 bg-emerald-700 text-white rounded-lg font-bold"
             >
               Fetch Daily Rates
@@ -296,8 +261,8 @@ export default function SettingsAndLockView({
                   <th className="py-2.5 px-3">Currency Code</th>
                   <th className="py-2.5 px-3">Currency Name</th>
                   <th className="py-2.5 px-3">Symbol</th>
-                  <th className="py-2.5 px-3 text-right">Rate to SAR (Base)</th>
-                  <th className="py-2.5 px-3">Last Effective Date</th>
+                  <th className="py-2.5 px-3 text-right">Rate to SAR</th>
+                  <th className="py-2.5 px-3">Effective Date</th>
                   <th className="py-2.5 px-3 text-center">Status</th>
                 </tr>
               </thead>
@@ -324,51 +289,51 @@ export default function SettingsAndLockView({
         </div>
       )}
 
-      {/* 4. APPROVAL THRESHOLDS TAB (§19) */}
+      {/* 4. APPROVAL THRESHOLDS TAB */}
       {activeTab === 'thresholds' && (
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4 text-xs">
           <div className="border-b border-slate-100 pb-3">
             <h2 className="text-base font-extrabold text-slate-900">
-              Approval Thresholds & Segregation of Duties (§19)
+              Approval Thresholds
             </h2>
             <p className="text-slate-500">
-              Configured per company. Documents above threshold require managerial approval.
+              Configured per company. Documents exceeding threshold require manager approval.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-              <div className="text-slate-500 font-bold mb-1">Level 1 Threshold (Accounts Manager)</div>
+              <div className="text-slate-500 font-bold mb-1">Accounts Manager Approval Limit</div>
               <div className="text-2xl font-mono font-extrabold text-blue-900">
                 50,000.00 SR
               </div>
               <p className="text-[11px] text-slate-500 mt-2">
-                Invoices, Vendor Bills, and manual JEs at or above SAR 50,000 require Accounts Manager approval before posting.
+                Invoices and supplier bills above SAR 50,000 require manager approval before posting.
               </p>
             </div>
 
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-              <div className="text-slate-500 font-bold mb-1">Level 2 Threshold (Finance Director)</div>
+              <div className="text-slate-500 font-bold mb-1">Finance Director Approval Limit</div>
               <div className="text-2xl font-mono font-extrabold text-purple-900">
                 200,000.00 SR
               </div>
               <p className="text-[11px] text-slate-500 mt-2">
-                High-value documents at or above SAR 200,000 require final Finance Director approval. Creator cannot approve own document (SoD).
+                High-value documents above SAR 200,000 require director approval.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* 5. DATA MIGRATION TAB (§20) */}
+      {/* 5. DATA MIGRATION TAB */}
       {activeTab === 'migration' && (
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4 text-xs">
           <div className="border-b border-slate-100 pb-3">
             <h2 className="text-base font-extrabold text-slate-900">
-              Data Migration & Opening Balances (§20)
+              Opening Balances
             </h2>
             <p className="text-slate-500">
-              Cut-off balance migration, open invoices import, and Trial Balance Reconciliation report.
+              Opening balance migration and Trial Balance Reconciliation report.
             </p>
           </div>
 
@@ -377,35 +342,35 @@ export default function SettingsAndLockView({
               <div>
                 <div className="font-bold text-emerald-900 text-sm">Opening Balance Journal Reconciled</div>
                 <div className="text-[11px] text-emerald-700">
-                  Cut-off date: Dec 31, 2025. Trial Balance Debits = Credits confirmed by Finance Director sign-off (MIG-008).
+                  Cut-off date: Dec 31, 2025. Trial Balance verified and confirmed.
                 </div>
               </div>
               <span className="px-3 py-1 bg-emerald-600 text-white font-bold rounded-lg text-xs">
-                SIGNED OFF
+                COMPLETED
               </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Close Period Wizard Modal */}
+      {/* Period Close Modal */}
       {showWizard && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 border border-slate-200 text-xs">
-            <div className="flex items-center gap-2.5 text-amber-600 mb-2">
-              <Lock size={20} />
+            <div className="flex items-center gap-2.5 text-emerald-700 mb-2">
+              <Calendar size={20} />
               <h3 className="font-black text-sm text-slate-900">
-                Period-Close Wizard & Checklist
+                Update Accounting Period
               </h3>
             </div>
             <p className="text-slate-500 mb-4">
-              Closing a period is irreversible; the lock date can only move forward, never backward.
+              Advance the accounting cut-off date after confirming that all entries for the period are complete.
             </p>
 
             {/* Checklist */}
             <div className="space-y-2.5 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                Mandatory Period-Close Checklist
+                Period Verification Checklist
               </div>
               <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
                 <input
@@ -414,7 +379,7 @@ export default function SettingsAndLockView({
                   onChange={e => setChkEntriesPosted(e.target.checked)}
                   className="rounded text-emerald-600 focus:ring-emerald-500"
                 />
-                <span>All required customer invoices and supplier bills posted</span>
+                <span>Customer invoices and supplier bills posted</span>
               </label>
 
               <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
@@ -424,7 +389,7 @@ export default function SettingsAndLockView({
                   onChange={e => setChkUnreconciled(e.target.checked)}
                   className="rounded text-emerald-600 focus:ring-emerald-500"
                 />
-                <span>Unreconciled bank statement items reviewed</span>
+                <span>Bank transactions and receipts reviewed</span>
               </label>
 
               <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
@@ -434,7 +399,7 @@ export default function SettingsAndLockView({
                   onChange={e => setChkTbBalanced(e.target.checked)}
                   className="rounded text-emerald-600 focus:ring-emerald-500"
                 />
-                <span>Trial Balance checked (Total Debits = Total Credits)</span>
+                <span>Trial Balance balanced</span>
               </label>
 
               <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
@@ -448,27 +413,15 @@ export default function SettingsAndLockView({
               </label>
             </div>
 
-            {/* Date Pickers */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">New Hard Lock Date</label>
-                <input
-                  type="date"
-                  value={newHardLockDate}
-                  onChange={e => setNewHardLockDate(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">New Soft Lock Date</label>
-                <input
-                  type="date"
-                  value={newSoftLockDate}
-                  onChange={e => setNewSoftLockDate(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5"
-                />
-              </div>
+            {/* Date Picker */}
+            <div className="mb-5">
+              <label className="block text-slate-700 font-bold mb-1">New Accounting Closing Date</label>
+              <input
+                type="date"
+                value={newClosingDate}
+                onChange={e => setNewClosingDate(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-medium"
+              />
             </div>
 
             {/* Actions */}
@@ -482,9 +435,9 @@ export default function SettingsAndLockView({
               <button
                 onClick={handleExecuteClosePeriod}
                 disabled={!allChecklistPassed}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-lg font-bold shadow-xs transition"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg font-bold shadow-xs transition"
               >
-                Confirm & Lock Period
+                Confirm Closing Date
               </button>
             </div>
           </div>
@@ -493,4 +446,3 @@ export default function SettingsAndLockView({
     </div>
   )
 }
-

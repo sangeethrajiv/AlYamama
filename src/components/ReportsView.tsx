@@ -157,7 +157,7 @@ export default function ReportsView({
               activeReport === 'pnl' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Profit & Loss (P&L)
+            Profit & Loss
           </button>
           <button
             onClick={() => setActiveReport('balance_sheet')}
@@ -189,7 +189,7 @@ export default function ReportsView({
               activeReport === 'gl' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            General Ledger (GL)
+            General Ledger
           </button>
         </div>
 
@@ -218,7 +218,7 @@ export default function ReportsView({
           <div className="border-b border-slate-200 pb-3 flex justify-between items-end">
             <div>
               <h2 className="text-base font-extrabold text-slate-900">Statement of Profit & Loss</h2>
-              <p className="text-xs text-slate-400">For the period Jan 01, 2026 to Nov 06, 2026 (Expressed in SAR)</p>
+              <p className="text-xs text-slate-400">For the period Jan 01, 2026 to Nov 06, 2026</p>
             </div>
             <div className="text-right">
               <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded font-mono">
@@ -232,7 +232,7 @@ export default function ReportsView({
             <div>
               <div className="bg-slate-50 px-3 py-2 font-bold text-slate-700 uppercase tracking-wider rounded-lg flex justify-between">
                 <span>Operating Revenue / Income</span>
-                <span>Amount (SAR)</span>
+                <span>Amount</span>
               </div>
               <div className="divide-y divide-slate-100 mt-1">
                 {incomeAccounts.map(acc => (
@@ -255,7 +255,7 @@ export default function ReportsView({
             <div>
               <div className="bg-slate-50 px-3 py-2 font-bold text-slate-700 uppercase tracking-wider rounded-lg flex justify-between">
                 <span>Cost of Goods Sold & Operating Expenses</span>
-                <span>Amount (SAR)</span>
+                <span>Amount</span>
               </div>
               <div className="divide-y divide-slate-100 mt-1">
                 {expenseAccounts.map(acc => (
@@ -278,7 +278,7 @@ export default function ReportsView({
             <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-4 rounded-xl flex items-center justify-between shadow-xs">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wider opacity-80">
-                  Net Operating Profit / (Loss)
+                  Net Operating Profit
                 </div>
                 <div className="text-xl font-black font-mono mt-0.5">
                   {moneyFormat(netProfit)}
@@ -298,10 +298,10 @@ export default function ReportsView({
         <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-6 space-y-6 text-xs">
           <div className="border-b border-slate-200 pb-3 flex justify-between items-end">
             <div>
-              <h2 className="text-base font-extrabold text-slate-900">Balance Sheet (Statement of Financial Position)</h2>
-              <p className="text-xs text-slate-400">As of November 06, 2026 (SAR)</p>
+              <h2 className="text-base font-extrabold text-slate-900">Balance Sheet</h2>
+              <p className="text-xs text-slate-400">As of November 06, 2026</p>
             </div>
-            {/* Equation Check (§9.2 RPT-007) */}
+            {/* Equation Check */}
             <div>
               {balanceSheetEquationBalanced ? (
                 <span className="bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5 text-xs">
@@ -320,7 +320,7 @@ export default function ReportsView({
             <div className="space-y-4">
               <div className="bg-slate-50 p-2.5 rounded-lg font-bold text-slate-800 uppercase tracking-wider flex justify-between">
                 <span>Assets</span>
-                <span>Amount (SAR)</span>
+                <span>Amount</span>
               </div>
               <div className="divide-y divide-slate-100">
                 {assetAccounts.map(acc => (
@@ -343,7 +343,7 @@ export default function ReportsView({
             <div className="space-y-4">
               <div className="bg-slate-50 p-2.5 rounded-lg font-bold text-slate-800 uppercase tracking-wider flex justify-between">
                 <span>Liabilities & Equity</span>
-                <span>Amount (SAR)</span>
+                <span>Amount</span>
               </div>
 
               <div>
@@ -374,7 +374,7 @@ export default function ReportsView({
                     </div>
                   ))}
                   <div className="py-2 px-2 flex justify-between text-emerald-700 font-semibold">
-                    <span>Current Year Net Profit (P&L):</span>
+                    <span>Current Year Net Profit:</span>
                     <span className="font-mono font-bold">{moneyFormat(netProfit)}</span>
                   </div>
                 </div>
@@ -389,19 +389,19 @@ export default function ReportsView({
         </div>
       )}
 
-      {/* 3. TRIAL BALANCE VIEW (§21.1) */}
+      {/* 3. TRIAL BALANCE VIEW */}
       {activeReport === 'trial_balance' && (
         <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden text-xs">
           <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h2 className="text-base font-extrabold text-slate-900">Trial Balance Verification</h2>
               <p className="text-[11px] text-slate-500">
-                Validates Total Debits = Total Credits across all GL accounts (RPT-TB-002).
+                Validates Total Debits = Total Credits across all GL accounts.
               </p>
             </div>
             {tbVariance === 0 ? (
               <span className="bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5 text-xs self-start">
-                <CheckCircle2 size={14} /> Total Debits = Total Credits (0 Variance)
+                <CheckCircle2 size={14} /> Total Debits = Total Credits
               </span>
             ) : (
               <span className="bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5 text-xs self-start">
@@ -455,13 +455,13 @@ export default function ReportsView({
         </div>
       )}
 
-      {/* 4. AGED RECEIVABLES VIEW (§9.3) */}
+      {/* 4. AGED RECEIVABLES VIEW */}
       {activeReport === 'aged_ar' && (
         <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden text-xs">
           <div className="p-4 border-b border-slate-200">
             <h2 className="text-base font-extrabold text-slate-900">Aged Receivables Summary</h2>
             <p className="text-[11px] text-slate-500">
-              Bucketed aging intervals: Current, 1–30 days, 31–60 days, 61–90 days, 90+ days overdue (RPT-011).
+              Bucketed aging intervals: Current, 1–30 days, 31–60 days, 61–90 days, 90+ days overdue.
             </p>
           </div>
 
@@ -513,14 +513,14 @@ export default function ReportsView({
         </div>
       )}
 
-      {/* 5. GENERAL LEDGER (GL) VIEW (§21.2) */}
+      {/* 5. GENERAL LEDGER VIEW */}
       {activeReport === 'gl' && (
         <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-5 space-y-4 text-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
             <div>
               <h2 className="text-base font-extrabold text-slate-900">General Ledger Drilldown</h2>
               <p className="text-[11px] text-slate-400">
-                Detailed transaction lines and running balance for specific accounts (RPT-GL-001).
+                Detailed transaction lines and running balance for specific accounts.
               </p>
             </div>
 
@@ -559,8 +559,8 @@ export default function ReportsView({
                   <th className="py-2.5 px-3">Entry Number</th>
                   <th className="py-2.5 px-3">Partner</th>
                   <th className="py-2.5 px-3">Label / Description</th>
-                  <th className="py-2.5 px-3 text-right">Debit (SAR)</th>
-                  <th className="py-2.5 px-3 text-right">Credit (SAR)</th>
+                  <th className="py-2.5 px-3 text-right">Debit</th>
+                  <th className="py-2.5 px-3 text-right">Credit</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

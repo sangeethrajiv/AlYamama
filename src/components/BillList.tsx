@@ -74,7 +74,7 @@ export default function BillList({
       case 'draft':
         return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">Draft</span>
       case 'open':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Open (Posted)</span>
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Open</span>
       case 'in_payment':
         return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">In Payment</span>
       case 'paid':
@@ -102,7 +102,7 @@ export default function BillList({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Expenses & Vendor Bills (Purchases)</h1>
+            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Vendor Bills</h1>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
             Manage supplier invoices, purchase orders, approval thresholds, duplicate detection, and disbursements.
@@ -137,7 +137,7 @@ export default function BillList({
                 <th className="py-3 px-3">Bill Date</th>
                 <th className="py-3 px-3">Vendor</th>
                 <th className="py-3 px-3">Due Date</th>
-                <th className="py-3 px-3 text-right">Tax (15%)</th>
+                <th className="py-3 px-3 text-right">Tax 15%</th>
                 <th className="py-3 px-3 text-right">Total Amount</th>
                 <th className="py-3 px-3 text-right">Amount Due</th>
                 <th className="py-3 px-3 text-center">Status</th>

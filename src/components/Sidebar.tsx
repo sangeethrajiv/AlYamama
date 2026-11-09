@@ -199,7 +199,7 @@ export default function Sidebar({
         >
           <div className="flex items-center gap-3">
             <FileText size={17} />
-            <span>Invoices (Customers)</span>
+            <span>Invoices</span>
           </div>
           {invoicesCount > 0 && (
             <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-mono">
@@ -214,7 +214,7 @@ export default function Sidebar({
         >
           <div className="flex items-center gap-3">
             <Receipt size={17} />
-            <span>Expenses (Vendor Bills)</span>
+            <span>Vendor Bills</span>
           </div>
           {billsCount > 0 && (
             <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full font-mono">
@@ -255,7 +255,7 @@ export default function Sidebar({
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold transition ${activeTab === 'journals' ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}
         >
           <Scale size={17} />
-          <span>Journal Entries (GL)</span>
+          <span>Journal Entries</span>
         </button>
 
         <button
@@ -299,7 +299,7 @@ export default function Sidebar({
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold transition ${activeTab === 'settings' ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}
         >
           <Settings size={17} />
-          <span>Settings & Period Lock</span>
+          <span>Settings</span>
         </button>
       </nav>
 
