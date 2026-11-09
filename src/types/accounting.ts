@@ -49,31 +49,64 @@ export type InvoiceCategory = 'cash' | 'credit' | 'proforma' | 'progressive'
 
 export interface InvoiceLine {
   id: string
+  mainTask?: string
+  category?: string
+  showSeparately?: boolean
+  showLine?: boolean
+  showMainQuantity?: boolean
+  partnerNumberType?: string
+  productSubType?: string
   product: string
   description: string
+  accountId?: string
+  accountCode?: string
+  accountName?: string
+  analyticAccountId?: string
+  analyticAccountName?: string
+  mainQuantity?: number
   quantity: number
+  unitOfMeasure?: string // EA, PCS, etc.
   unitPrice: number
   taxRate: number // e.g. 0.15 for 15% VAT
+  taxesApplied?: string // e.g. 'VAT 15%'
+  discount?: number
   subtotal: number
   taxAmount: number
   total: number
-  analyticAccountId?: string
 }
 
 export interface Invoice {
   id: string
-  number: string // Sequence e.g. INV/2026/0042
+  number: string // Sequence e.g. INV/2026/0042, CRH2026-10551
   companyId: CompanyId
   partner: string // Customer
+  customerAddress?: string
   customerVat?: string
+  isSubscriptionInvoice?: boolean
+  project?: string
+  contactPerson?: string
+  paymentTerms: string
+  showDiscount?: boolean
+  vendorProjectName?: string
+  prNumber?: string
+  poNumber?: string
+  invoiceDateWithTime?: string
   dateInvoice: string // YYYY-MM-DD
   dateDue: string // YYYY-MM-DD
-  paymentTerms: string
+  salesperson?: string
+  equipmentGroupTask?: string
+  sourceDocument?: string
+  companySeal?: boolean
+  showOutFromStock?: boolean
+  isProgressive?: boolean
+  salesTeam?: string
   journalId: string
   currency: string
   currencyRate: number // e.g. 1.0 for SAR, 3.75 for USD
   reference?: string // Customer PO / ref
   lines: InvoiceLine[]
+  amountWithoutDiscount?: number
+  discountTotal?: number
   amountUntaxed: number
   amountTax: number
   amountTotal: number
