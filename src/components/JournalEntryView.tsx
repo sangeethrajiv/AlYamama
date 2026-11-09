@@ -445,14 +445,6 @@ export default function JournalEntryView({
               <span className="text-slate-400">|</span>
               <span>Showing {allJournalItems.length} lines</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border border-slate-200 shadow-xs">
-                Filters
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border border-slate-200 shadow-xs">
-                Group By
-              </span>
-            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -524,14 +516,6 @@ export default function JournalEntryView({
               <span className="font-semibold text-slate-700">Analytic Cost Entries</span>
               <span className="text-slate-400">|</span>
               <span>Showing {filteredAnalyticItems.length} lines</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border border-slate-200 shadow-xs">
-                Filters
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border border-slate-200 shadow-xs">
-                Group By
-              </span>
             </div>
           </div>
 
@@ -1159,10 +1143,6 @@ export default function JournalEntryView({
                     <div>
                       <span className="text-slate-500 font-medium block">Analytic Account</span>
                       <span className="font-semibold text-slate-800">{selectedAnalyticItem.analyticAccountName}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 font-medium block">Tags</span>
-                      <span className="text-slate-400">-</span>
                     </div>
                     <div>
                       <span className="text-slate-500 font-medium block">Ref.</span>
