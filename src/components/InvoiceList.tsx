@@ -136,11 +136,13 @@ export default function InvoiceList({
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => onOpenInvoiceModal()}
+            onClick={() => onOpenInvoiceModal(undefined, categoryFilter === 'all' ? undefined : categoryFilter)}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
           >
             <Plus size={16} />
-            <span>Create Invoice</span>
+            <span>
+              Create {({ cash: 'Cash ', credit: 'Credit ', proforma: 'Proforma ', progressive: 'Progressive ' } as Record<string, string>)[categoryFilter] || ''}Invoice
+            </span>
           </button>
         </div>
       </div>
