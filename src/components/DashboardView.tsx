@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { CheckCircle2, Plus } from 'lucide-react'
-import type { Invoice, Bill, Payment, Account, TabId, DrawerType } from '../types/accounting'
+import type { Invoice, Bill, Payment, Account, TabId, DrawerType, UserRole } from '../types/accounting'
 import { moneyFormat } from '../data/mockAccountingData'
 
 interface DashboardViewProps {
@@ -7,6 +8,7 @@ interface DashboardViewProps {
   bills: Bill[]
   payments: Payment[]
   accounts: Account[]
+  currentRole?: UserRole
   onSelectTab: (tab: TabId) => void
   onOpenDrawer: (drawer: DrawerType) => void
   onOpenInvoiceModal: (invoice: Invoice) => void
@@ -17,6 +19,7 @@ export default function DashboardView({
   bills,
   payments,
   accounts,
+  currentRole,
   onSelectTab,
   onOpenDrawer,
   onOpenInvoiceModal,
@@ -31,6 +34,35 @@ export default function DashboardView({
 
   const bankAccounts = accounts.filter(a => a.type === 'Bank and Cash')
   const totalCash = bankAccounts.reduce((sum, a) => sum + (a.currency === 'USD' ? a.balance * 3.75 : a.balance), 0)
+
+  // Role-based perspective: owners see the money picture, accountants see the work queue
+  const [view, setView] = useState<'owner' | 'accountant'>(currentRole === 'Finance Director' ? 'owner' : 'accountant')
+  const [lastRole, setLastRole] = useState(currentRole)
+  if (lastRole !== currentRole) {
+    setLastRole(currentRole)
+    setView(currentRole === 'Finance Director' ? 'owner' : 'accountant')
+  }
+  const booked = invoices.filter(i => i.state !== 'draft' && i.state !== 'cancel' && (i.category || 'credit') !== 'proforma')
+  const totalRevenue = booked.reduce((s, i) => s + i.amountUntaxed * (i.currencyRate || 1), 0)
+  const totalExpenses = bills
+    .filter(b => b.state !== 'draft' && b.state !== 'cancel')
+    .reduce((s, b) => s + b.amountUntaxed * (b.currencyRate || 1), 0)
+  const pendingPayments = openInvoices.length + openBills.length
+  const pendingReconciliation = payments.filter(p => p.state === 'posted' && p.partnerType === 'customer').length
+  const kpis: { label: string; value: string; note: string; tab: TabId; tone?: string }[] =
+    view === 'owner'
+      ? [
+          { label: 'Total Revenue', value: moneyFormat(totalRevenue, 'SAR'), note: `${booked.length} invoices booked (excl. VAT)`, tab: 'reports' },
+          { label: 'Total Expenses', value: moneyFormat(totalExpenses, 'SAR'), note: 'Vendor bills (excl. VAT)', tab: 'bills' },
+          { label: 'Net Profit', value: moneyFormat(totalRevenue - totalExpenses, 'SAR'), note: totalRevenue ? `${(((totalRevenue - totalExpenses) / totalRevenue) * 100).toFixed(1)}% margin` : '—', tab: 'reports', tone: totalRevenue >= totalExpenses ? 'text-emerald-800' : 'text-rose-600' },
+          { label: 'Cash Available', value: moneyFormat(totalCash, 'SAR'), note: 'All bank & cash journals', tab: 'banking' },
+        ]
+      : [
+          { label: 'Pending Payments', value: String(pendingPayments), note: `${openInvoices.length} invoices to collect · ${openBills.length} bills to pay`, tab: 'payments' },
+          { label: 'Awaiting Reconciliation', value: String(pendingReconciliation), note: 'Posted payments not yet matched', tab: 'reconcile', tone: pendingReconciliation ? 'text-amber-600' : undefined },
+          { label: 'Bills to Approve', value: String(pendingApprovalBills.length), note: 'Waiting on manager / director', tab: 'bills' },
+          { label: 'Overdue Invoices', value: String(overdueInvoices.length), note: moneyFormat(overdueInvoices.reduce((s, i) => s + i.residual, 0), 'SAR') + ' outstanding', tab: 'invoices', tone: overdueInvoices.length ? 'text-rose-600' : undefined },
+        ]
 
   return (
     <div className="space-y-6">
@@ -62,6 +94,41 @@ export default function DashboardView({
           >
             Reconcile Payments
           </button>
+        </div>
+      </div>
+
+      {/* Role-based KPIs */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-extrabold text-slate-800">
+            {view === 'owner' ? 'Owner view: business performance' : 'Accountant view: work queue'}
+          </h2>
+          <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-semibold" role="tablist">
+            {(['owner', 'accountant'] as const).map(v => (
+              <button
+                key={v}
+                role="tab"
+                aria-selected={view === v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1 rounded-md transition ${view === v ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                {v === 'owner' ? 'Owner' : 'Accountant'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {kpis.map(k => (
+            <button
+              key={k.label}
+              onClick={() => onSelectTab(k.tab)}
+              className="text-left bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-emerald-300 transition"
+            >
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{k.label}</div>
+              <div className={`text-2xl font-black font-mono ${k.tone || 'text-slate-900'}`}>{k.value}</div>
+              <div className="text-[11px] text-slate-500 mt-2">{k.note}</div>
+            </button>
+          ))}
         </div>
       </div>
 
