@@ -3,16 +3,12 @@ import {
   X,
   Plus,
   Trash2,
-  FileCheck2,
-  CheckCircle2,
-  Paperclip,
-  History,
-  Coins,
+  Car,
   Layers,
-  Calculator,
+  CheckCircle2,
 } from 'lucide-react'
 import type { Invoice, InvoiceLine, CompanyId, InvoiceCategory } from '../types/accounting'
-import { mockAnalyticAccounts, mockCurrencies, moneyFormat } from '../data/mockAccountingData'
+import { mockAnalyticAccounts, mockCurrencies } from '../data/mockAccountingData'
 
 interface InvoiceModalProps {
   invoice?: Invoice
@@ -38,43 +34,55 @@ export default function InvoiceModal({
     invoice?.category || defaultCategory
   )
 
-  // Header Left Fields
+  // Top Left Fields
+  const [noOfSubscriptionItems, setNoOfSubscriptionItems] = useState<number>(
+    invoice?.noOfSubscriptionItems ?? 0
+  )
   const [isSubscriptionInvoice, setIsSubscriptionInvoice] = useState<boolean>(
     invoice?.isSubscriptionInvoice ?? false
   )
-  const [partner, setPartner] = useState(
-    invoice?.partner || 'Al-Yamama Steel Industries'
+  const [subscriptionFrequency, setSubscriptionFrequency] = useState<string>(
+    invoice?.subscriptionFrequency || 'One Year'
   )
-  const [customerVat, setCustomerVat] = useState(invoice?.customerVat || '300184920100003')
+  const [subscriptionType, setSubscriptionType] = useState<string>(
+    invoice?.subscriptionType || 'Vehicle Subscription'
+  )
+  const [subscriptionStartDate, setSubscriptionStartDate] = useState<string>(
+    invoice?.subscriptionStartDate || '02/01/2026'
+  )
+  const [subscriptionEndDate, setSubscriptionEndDate] = useState<string>(
+    invoice?.subscriptionEndDate || '01/31/2027'
+  )
+  const [subscriptionAlertDate, setSubscriptionAlertDate] = useState<string>(
+    invoice?.subscriptionAlertDate || '12/31/2026'
+  )
+  const [partner, setPartner] = useState(
+    invoice?.partner || 'Innovex (Dril Quip TIW-SAUDI ARABIA Limited Company)'
+  )
   const [customerAddress, setCustomerAddress] = useState(
     invoice?.customerAddress ||
-      'الحارث بن مرة, الأمير محمد بن سعود DMM 32241, 7507 5440, Saudi Arabia'
+      'King Abdul Aziz Rd\nKing Abdul Aziz Rd\nKing Abdul Aziz Seaport Dist. DMM 32212\n7289 2490\nSaudi Arabia - 310562291400003'
   )
+  const [customerVat, setCustomerVat] = useState(invoice?.customerVat || '310562291400003')
   const [project, setProject] = useState(invoice?.project || '')
-  const [contactPerson, setContactPerson] = useState(
-    invoice?.contactPerson || 'Al Yamama Company, Abdul Khadir'
-  )
-  const [paymentTerms, setPaymentTerms] = useState(invoice?.paymentTerms || '15 Days Net')
+  const [contactPerson, setContactPerson] = useState(invoice?.contactPerson || '')
+  const [paymentTerms, setPaymentTerms] = useState(invoice?.paymentTerms || 'On Completion')
   const [showDiscount, setShowDiscount] = useState<boolean>(invoice?.showDiscount ?? false)
   const [vendorProjectName, setVendorProjectName] = useState(invoice?.vendorProjectName || '')
   const [prNumber, setPrNumber] = useState(invoice?.prNumber || '')
-  const [poNumber, setPoNumber] = useState(
-    invoice?.poNumber || invoice?.reference || 'PO-YAMAMA-9921'
-  )
+  const [poNumber, setPoNumber] = useState(invoice?.poNumber || '-')
 
-  // Header Right Fields
+  // Top Right Fields
   const [invoiceDateWithTime, setInvoiceDateWithTime] = useState(
-    invoice?.invoiceDateWithTime || '11/01/2026 10:30:00'
+    invoice?.invoiceDateWithTime || '03/14/2026 17:25:29'
   )
-  const [dateInvoice, setDateInvoice] = useState(invoice?.dateInvoice || '2026-11-01')
-  const [dateDue, setDateDue] = useState(invoice?.dateDue || '2026-11-15')
-  const [salesperson, setSalesperson] = useState(invoice?.salesperson || 'Administrator')
+  const [dateInvoice, setDateInvoice] = useState(invoice?.dateInvoice || '2026-03-14')
+  const [dateDue, setDateDue] = useState(invoice?.dateDue || '03/14/2026')
+  const [salesperson, setSalesperson] = useState(invoice?.salesperson || 'Faraz Yousuff')
   const [equipmentGroupTask, setEquipmentGroupTask] = useState(
-    invoice?.equipmentGroupTask || 'No Grouping'
+    invoice?.equipmentGroupTask || 'Based On Main Task'
   )
-  const [sourceDocument, setSourceDocument] = useState(
-    invoice?.sourceDocument || invoice?.reference || 'SO13060'
-  )
+  const [sourceDocument, setSourceDocument] = useState(invoice?.sourceDocument || 'SO0753')
   const [companySeal, setCompanySeal] = useState<boolean>(invoice?.companySeal ?? true)
   const [showOutFromStock, setShowOutFromStock] = useState<boolean>(
     invoice?.showOutFromStock ?? false
@@ -85,69 +93,63 @@ export default function InvoiceModal({
   const [salesTeam, setSalesTeam] = useState(invoice?.salesTeam || '')
   const [currency, setCurrency] = useState(invoice?.currency || 'SAR')
   const [currencyRate, setCurrencyRate] = useState(invoice?.currencyRate || 1.0)
-  const [journalName, setJournalName] = useState(
-    category === 'cash' ? 'Cash Invoices (Cash)' : 'Customer Invoices (Sale)'
-  )
 
-  // Progressive Milestone setup
-  const [contractAmount, setContractAmount] = useState<number>(invoice?.contractAmount || 500000)
-  const [previouslyBilled, setPreviouslyBilled] = useState<number>(invoice?.previouslyBilled || 150000)
-  const [progressPercentage, setProgressPercentage] = useState<number>(invoice?.progressPercentage || 30)
-  const [retainageAmount, setRetainageAmount] = useState<number>(invoice?.retainageAmount || 15000)
+  // Tabs: Invoice Lines | Other Info | Vehicles
+  const [activeTab, setActiveTab] = useState<'lines' | 'other' | 'vehicles'>('lines')
 
   // Lines
   const [lines, setLines] = useState<InvoiceLine[]>(
     invoice?.lines || [
       {
         id: 'ln_init_1',
-        mainTask: 'Overhaul Service',
-        category: 'Service',
+        mainTask: 'European',
+        category: 'Supply',
         showSeparately: false,
         showLine: false,
-        showMainQuantity: false,
+        showMainQuantity: true,
         partnerNumberType: 'FAY',
-        productSubType: 'Hydraulic Overhaul',
-        product: 'HYD-CYL-450',
-        description: 'Overhaul of 450mm Bore Rolling Mill Hydraulic Cylinder (Honing & Seals)',
+        productSubType: '',
+        product: '[FMC130]',
+        description: 'Teltonika',
         accountCode: '479100',
         accountName: 'Revenue (Product Sales & Service)',
-        analyticAccountId: 'ana_1',
-        analyticAccountName: 'CC-101 - Workshop Main Base',
+        analyticAccountId: '',
+        analyticAccountName: '',
         mainQuantity: 1.0,
-        quantity: 2.0,
-        unitOfMeasure: 'EA',
-        unitPrice: 36956.52,
+        quantity: 1.0,
+        unitOfMeasure: 'pcs',
+        unitPrice: 200.0,
         taxRate: 0.15,
-        taxesApplied: '15% VAT',
+        taxesApplied: 'VAT 15%',
         discount: 0.0,
-        subtotal: 73913.04,
-        taxAmount: 11086.96,
-        total: 85000.0,
+        subtotal: 200.0,
+        taxAmount: 30.0,
+        total: 230.0,
       },
     ]
   )
 
-  const [attachmentsCount, setAttachmentsCount] = useState(invoice?.attachmentsCount || 3)
+  // Vehicles list
+  const [vehiclesList, setVehiclesList] = useState(
+    invoice?.vehicles || [
+      {
+        id: 'veh_1',
+        plateNumber: '7289-KSA',
+        chassisNumber: 'WDB2110261A129842',
+        model: 'Toyota Hilux 4x4',
+        gpsDeviceId: '[FMC130] Teltonika',
+        simNumber: '0559182741',
+      },
+    ]
+  )
 
-  const handleCurrencyChange = (newCurr: string) => {
-    setCurrency(newCurr)
-    const match = mockCurrencies.find(c => c.currency === newCurr)
-    if (match) {
-      setCurrencyRate(match.rateToBase)
-    }
-  }
-
+  // Update line item
   const updateLine = (id: string, field: keyof InvoiceLine, value: any) => {
     if (!isDraft) return
     setLines(prev =>
       prev.map(l => {
         if (l.id !== id) return l
         const updated = { ...l, [field]: value }
-
-        if (field === 'analyticAccountId') {
-          const matched = mockAnalyticAccounts.find(a => a.id === value)
-          updated.analyticAccountName = matched ? `${matched.code} - ${matched.name}` : ''
-        }
 
         const qty = Number(updated.quantity) || 0
         const price = Number(updated.unitPrice) || 0
@@ -172,29 +174,29 @@ export default function InvoiceModal({
     if (!isDraft) return
     const newLine: InvoiceLine = {
       id: `ln_${Date.now()}`,
-      mainTask: isSubscriptionInvoice ? 'Annual Service Subscription' : 'Supply of',
-      category: isSubscriptionInvoice ? 'Subscription' : 'Supply',
+      mainTask: 'European',
+      category: 'Supply',
       showSeparately: false,
       showLine: false,
-      showMainQuantity: false,
+      showMainQuantity: true,
       partnerNumberType: 'FAY',
-      productSubType: isSubscriptionInvoice ? 'Service - New Subscription' : 'Parts Supply',
-      product: isSubscriptionInvoice ? 'Annual Service Subscription - 1 Year' : 'PARTS-SEAL-KIT',
-      description: isSubscriptionInvoice ? 'Annual Service Subscription - 1 Year' : 'High pressure hydraulic seal replacement kit',
-      accountCode: isSubscriptionInvoice ? '479104' : '479100',
-      accountName: isSubscriptionInvoice ? 'Revenue (Renewal)' : 'Revenue (Product Sales & Service)',
-      analyticAccountId: 'ana_1',
-      analyticAccountName: 'CC-101 - Workshop Main Base',
+      productSubType: '',
+      product: '[FMC130]',
+      description: 'Teltonika',
+      accountCode: '479100',
+      accountName: 'Revenue (Product Sales & Service)',
+      analyticAccountId: '',
+      analyticAccountName: '',
       mainQuantity: 1.0,
       quantity: 1.0,
-      unitOfMeasure: 'EA',
-      unitPrice: isSubscriptionInvoice ? 325.0 : 3200.0,
+      unitOfMeasure: 'pcs',
+      unitPrice: 200.0,
       taxRate: 0.15,
-      taxesApplied: '15% VAT',
+      taxesApplied: 'VAT 15%',
       discount: 0.0,
-      subtotal: isSubscriptionInvoice ? 325.0 : 3200.0,
-      taxAmount: isSubscriptionInvoice ? 48.75 : 480.0,
-      total: isSubscriptionInvoice ? 373.75 : 3680.0,
+      subtotal: 200.0,
+      taxAmount: 30.0,
+      total: 230.0,
     }
     setLines(prev => [...prev, newLine])
   }
@@ -205,6 +207,11 @@ export default function InvoiceModal({
   }
 
   // Totals
+  const amountWithoutDiscount = lines.reduce(
+    (acc, l) => acc + (Number(l.quantity) * Number(l.unitPrice) || 0),
+    0
+  )
+  const discountTotal = lines.reduce((acc, l) => acc + (Number(l.discount) || 0), 0)
   const untaxedTotal = lines.reduce((acc, l) => acc + l.subtotal, 0)
   const taxTotal = lines.reduce((acc, l) => acc + l.taxAmount, 0)
   const grandTotal = untaxedTotal + taxTotal
@@ -232,7 +239,13 @@ export default function InvoiceModal({
       partner,
       customerAddress,
       customerVat,
+      noOfSubscriptionItems,
       isSubscriptionInvoice,
+      subscriptionFrequency,
+      subscriptionType,
+      subscriptionStartDate,
+      subscriptionEndDate,
+      subscriptionAlertDate,
       project,
       contactPerson,
       paymentTerms,
@@ -253,336 +266,473 @@ export default function InvoiceModal({
       currency,
       currencyRate,
       journalId: category === 'cash' ? 'jour_cash' : 'jour_sale',
-      reference: poNumber || sourceDocument,
+      reference: sourceDocument || poNumber,
       lines,
+      amountWithoutDiscount,
+      discountTotal,
       amountUntaxed: untaxedTotal,
       amountTax: taxTotal,
       amountTotal: grandTotal,
       residual: postImmediately ? (category === 'cash' ? 0 : grandTotal) : (invoice?.residual ?? grandTotal),
       state: postImmediately ? (category === 'cash' ? 'paid' : 'open') : (invoice?.state || 'draft'),
       category,
-      contractAmount: isProgressive ? contractAmount : undefined,
-      previouslyBilled: isProgressive ? previouslyBilled : undefined,
-      progressPercentage: isProgressive ? progressPercentage : undefined,
-      retainageAmount: isProgressive ? retainageAmount : undefined,
       approvalStatus: 'approved',
       validatedBy: postImmediately ? 'Administrator' : invoice?.validatedBy,
       validatedAt: postImmediately ? new Date().toISOString().slice(0, 16).replace('T', ' ') : invoice?.validatedAt,
       type: 'out_invoice',
-      attachmentsCount,
+      attachmentsCount: 1,
+      vehicles: vehiclesList,
     }
 
     onSave(updatedInvoice, postImmediately)
   }
 
-  const invoiceNumberDisplay = invoice?.number || 'New'
-  const stateDisplay = invoice?.state ? invoice.state.toUpperCase() : 'DRAFT'
+  const invoiceTitle = invoice?.number ? invoice.number : 'Draft Invoice'
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in">
-      <div className="bg-[#f8fafc] rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[94vh]">
-        {/* Modal Top Header (Matches Exact Screenshot Format) */}
-        <div className="bg-white px-6 py-4 border-b border-slate-200/90 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-              <FileCheck2 size={22} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h2 className="text-lg font-black text-slate-800 tracking-tight">
-                  Customer Invoice: {invoiceNumberDisplay}
-                </h2>
-                <span
-                  className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
-                    stateDisplay === 'OPEN'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : stateDisplay === 'PAID'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-amber-100 text-amber-800'
-                  }`}
-                >
-                  {stateDisplay}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">Customer Billing Document</p>
-            </div>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-5 animate-in fade-in">
+      <div className="bg-white rounded-xl shadow-2xl border border-slate-300 w-full max-w-6xl overflow-hidden flex flex-col max-h-[96vh]">
+        {/* Top Header Bar with Close X */}
+        <div className="bg-white px-6 py-3 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-slate-400 font-medium">Customer Invoices /</span>
+            <span className="text-slate-900 font-bold">{invoiceTitle}</span>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+            className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Modal Body: Cards in Exact Format */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* CARD 1: INVOICE HEADER & PARTNER INFORMATION */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              INVOICE HEADER & PARTNER INFORMATION
-            </div>
+        {/* Scrollable Form Body (Matches Exact Layout in Screenshot 1 & 2) */}
+        <div className="p-6 sm:p-8 overflow-y-auto space-y-6">
+          {/* Main Title Header */}
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              {invoiceTitle}
+            </h1>
+          </div>
 
-            {/* Grid 1: Customer, VAT, PO Reference */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Customer / Partner *</label>
-                <input
-                  type="text"
-                  disabled={!isDraft}
-                  value={partner}
-                  onChange={e => setPartner(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Customer VAT Number</label>
-                <input
-                  type="text"
-                  disabled={!isDraft}
-                  value={customerVat}
-                  onChange={e => setCustomerVat(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Customer PO Reference</label>
-                <input
-                  type="text"
-                  disabled={!isDraft}
-                  value={poNumber}
-                  onChange={e => setPoNumber(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-mono"
-                />
-              </div>
-            </div>
-
-            {/* Grid 2: Invoice Date, Payment Terms, Due Date */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Invoice Date *</label>
-                <input
-                  type="date"
-                  disabled={!isDraft}
-                  value={dateInvoice}
-                  onChange={e => setDateInvoice(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Payment Terms</label>
-                <select
-                  disabled={!isDraft}
-                  value={paymentTerms}
-                  onChange={e => setPaymentTerms(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-medium"
-                >
-                  <option value="Immediate Payment">Immediate Payment</option>
-                  <option value="15 Days Net">15 Days Net</option>
-                  <option value="30 Days Net">30 Days Net</option>
-                  <option value="60 Days">60 Days</option>
-                  <option value="Advance / Proforma">Advance / Proforma</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Due Date</label>
-                <input
-                  type="date"
-                  disabled={!isDraft}
-                  value={dateDue}
-                  onChange={e => setDateDue(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-medium"
-                />
-              </div>
-            </div>
-
-            {/* Grid 3: Currency, Exchange Rate to SAR, Journal */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div>
-                <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
-                  <span>Currency</span>
-                  <Coins size={13} className="text-emerald-600" />
+          {/* Two-Column Form Layout Matching Screenshot 1 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-3.5 gap-x-12 text-xs">
+            {/* LEFT COLUMN */}
+            <div className="space-y-3">
+              {/* No of Subscription Items */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">
+                  No of Subscription Items
                 </label>
-                <select
-                  disabled={!isDraft}
-                  value={currency}
-                  onChange={e => handleCurrencyChange(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-medium"
-                >
-                  {mockCurrencies.map(c => (
-                    <option key={c.currency} value={c.currency}>
-                      {c.currency} - {c.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <input
+                      type="number"
+                      value={noOfSubscriptionItems}
+                      onChange={e => setNoOfSubscriptionItems(parseInt(e.target.value) || 0)}
+                      className="w-24 bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800"
+                    />
+                  ) : (
+                    <span className="text-slate-800">{noOfSubscriptionItems}</span>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Exchange Rate to SAR</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  disabled={!isDraft || currency === 'SAR'}
-                  value={currencyRate}
-                  onChange={e => setCurrencyRate(parseFloat(e.target.value) || 1.0)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-mono"
-                />
+              {/* Subscription Invoice Toggle */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">
+                  Subscription Invoice
+                </label>
+                <div className="col-span-7">
+                  <button
+                    type="button"
+                    disabled={!isDraft}
+                    onClick={() => setIsSubscriptionInvoice(!isSubscriptionInvoice)}
+                    className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                      isSubscriptionInvoice ? 'bg-teal-700' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        isSubscriptionInvoice ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Journal</label>
-                <input
-                  type="text"
-                  disabled
-                  value={journalName}
-                  className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-600 font-medium cursor-not-allowed"
-                />
+              {/* Frequency */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Frequency</label>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <select
+                      value={subscriptionFrequency}
+                      onChange={e => setSubscriptionFrequency(e.target.value)}
+                      className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800"
+                    >
+                      <option value="One Year">One Year</option>
+                      <option value="Monthly">Monthly</option>
+                      <option value="Quarterly">Quarterly</option>
+                      <option value="Semi-Annual">Semi-Annual</option>
+                      <option value="Two Years">Two Years</option>
+                    </select>
+                  ) : (
+                    <span className="text-slate-800">{subscriptionFrequency}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Type */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Type</label>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <select
+                      value={subscriptionType}
+                      onChange={e => setSubscriptionType(e.target.value)}
+                      className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800"
+                    >
+                      <option value="Vehicle Subscription">Vehicle Subscription</option>
+                      <option value="Equipment Subscription">Equipment Subscription</option>
+                      <option value="Software Subscription">Software Subscription</option>
+                      <option value="Maintenance Retainer">Maintenance Retainer</option>
+                    </select>
+                  ) : (
+                    <span className="text-slate-800">{subscriptionType}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Start Date */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Start Date</label>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <input
+                      type="text"
+                      value={subscriptionStartDate}
+                      onChange={e => setSubscriptionStartDate(e.target.value)}
+                      placeholder="02/01/2026"
+                      className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800"
+                    />
+                  ) : (
+                    <span className="text-slate-800">{subscriptionStartDate}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* End Date */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">End Date</label>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <input
+                      type="text"
+                      value={subscriptionEndDate}
+                      onChange={e => setSubscriptionEndDate(e.target.value)}
+                      placeholder="01/31/2027"
+                      className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800"
+                    />
+                  ) : (
+                    <span className="text-slate-800">{subscriptionEndDate}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Alert Date */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Alert Date</label>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <input
+                      type="text"
+                      value={subscriptionAlertDate}
+                      onChange={e => setSubscriptionAlertDate(e.target.value)}
+                      placeholder="12/31/2026"
+                      className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800"
+                    />
+                  ) : (
+                    <span className="text-slate-800">{subscriptionAlertDate}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Customer with Multi-line Address */}
+              <div className="grid grid-cols-12 items-start pt-2">
+                <label className="col-span-5 font-bold text-slate-700 pt-1">Customer</label>
+                <div className="col-span-7 space-y-1">
+                  {isDraft ? (
+                    <input
+                      type="text"
+                      value={partner}
+                      onChange={e => setPartner(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-teal-800 font-semibold"
+                    />
+                  ) : (
+                    <span className="text-teal-800 font-bold block">{partner}</span>
+                  )}
+
+                  <div className="text-[11px] text-slate-600 leading-relaxed font-sans pt-0.5">
+                    {isDraft ? (
+                      <textarea
+                        rows={4}
+                        value={customerAddress}
+                        onChange={e => setCustomerAddress(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-slate-700 text-xs resize-none"
+                      />
+                    ) : (
+                      <div className="whitespace-pre-line">{customerAddress}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Project */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Project</label>
+                <div className="col-span-7">
+                  <input
+                    type="text"
+                    disabled={!isDraft}
+                    value={project}
+                    onChange={e => setProject(e.target.value)}
+                    className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 disabled:bg-transparent disabled:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Contact Person */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Contact Person</label>
+                <div className="col-span-7">
+                  <input
+                    type="text"
+                    disabled={!isDraft}
+                    value={contactPerson}
+                    onChange={e => setContactPerson(e.target.value)}
+                    className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 disabled:bg-transparent disabled:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Payment Terms */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Payment Terms</label>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <select
+                      value={paymentTerms}
+                      onChange={e => setPaymentTerms(e.target.value)}
+                      className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-teal-800 font-semibold"
+                    >
+                      <option value="On Completion">On Completion</option>
+                      <option value="Immediate Payment">Immediate Payment</option>
+                      <option value="15 Days Net">15 Days Net</option>
+                      <option value="30 Days Net">30 Days Net</option>
+                      <option value="60 Days">60 Days</option>
+                    </select>
+                  ) : (
+                    <span className="text-teal-800 font-semibold">{paymentTerms}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Show Discount */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Show Discount</label>
+                <div className="col-span-7">
+                  <input
+                    type="checkbox"
+                    disabled={!isDraft}
+                    checked={showDiscount}
+                    onChange={e => setShowDiscount(e.target.checked)}
+                    className="rounded border-slate-300 text-teal-700 h-4 w-4"
+                  />
+                </div>
+              </div>
+
+              {/* Vendor Project Name */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">
+                  Vendor Project Name
+                </label>
+                <div className="col-span-7">
+                  <input
+                    type="text"
+                    disabled={!isDraft}
+                    value={vendorProjectName}
+                    onChange={e => setVendorProjectName(e.target.value)}
+                    className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 disabled:bg-transparent disabled:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* PR Number */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">PR Number</label>
+                <div className="col-span-7">
+                  <input
+                    type="text"
+                    disabled={!isDraft}
+                    value={prNumber}
+                    onChange={e => setPrNumber(e.target.value)}
+                    className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 disabled:bg-transparent disabled:border-transparent font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* PO Number */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">PO Number</label>
+                <div className="col-span-7">
+                  <input
+                    type="text"
+                    disabled={!isDraft}
+                    value={poNumber}
+                    onChange={e => setPoNumber(e.target.value)}
+                    className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 disabled:bg-transparent disabled:border-transparent font-mono"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Additional Fields Section in Same Card Style */}
-            <div className="pt-3 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              {/* Subscription Invoice Switch */}
-              <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
-                <span className="font-bold text-slate-700">Subscription Invoice</span>
-                <button
-                  type="button"
-                  disabled={!isDraft}
-                  onClick={() => setIsSubscriptionInvoice(!isSubscriptionInvoice)}
-                  className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                    isSubscriptionInvoice ? 'bg-emerald-600' : 'bg-slate-300'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      isSubscriptionInvoice ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
+            {/* RIGHT COLUMN */}
+            <div className="space-y-3">
+              {/* Invoice Date with Time */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">
+                  Invoice Date with Time
+                </label>
+                <div className="col-span-7 font-mono text-slate-700">
+                  {invoiceDateWithTime}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Salesperson</label>
-                <input
-                  type="text"
-                  disabled={!isDraft}
-                  value={salesperson}
-                  onChange={e => setSalesperson(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800"
-                />
+              {/* Invoice Date */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Invoice Date</label>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <input
+                      type="date"
+                      value={dateInvoice}
+                      onChange={e => setDateInvoice(e.target.value)}
+                      className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800"
+                    />
+                  ) : (
+                    <span className="text-slate-800">{dateInvoice}</span>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Source Document</label>
-                <input
-                  type="text"
-                  disabled={!isDraft}
-                  value={sourceDocument}
-                  onChange={e => setSourceDocument(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800 font-mono"
-                />
+              {/* Due Date */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Due Date</label>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <input
+                      type="text"
+                      value={dateDue}
+                      onChange={e => setDateDue(e.target.value)}
+                      placeholder="03/14/2026"
+                      className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800"
+                    />
+                  ) : (
+                    <span className="text-slate-800">{dateDue}</span>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Contact Person</label>
-                <input
-                  type="text"
-                  disabled={!isDraft}
-                  value={contactPerson}
-                  onChange={e => setContactPerson(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800"
-                />
+              {/* Salesperson */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Salesperson</label>
+                <div className="col-span-7 text-teal-800 font-semibold">
+                  {salesperson}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Project</label>
-                <input
-                  type="text"
-                  disabled={!isDraft}
-                  value={project}
-                  onChange={e => setProject(e.target.value)}
-                  placeholder="Optional project name/code"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800"
-                />
+              {/* Equipment Details Group Task */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">
+                  Equipment Details Group Task
+                </label>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <select
+                      value={equipmentGroupTask}
+                      onChange={e => setEquipmentGroupTask(e.target.value)}
+                      className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800"
+                    >
+                      <option value="Based On Main Task">Based On Main Task</option>
+                      <option value="No Grouping">No Grouping</option>
+                      <option value="By Task">By Task</option>
+                      <option value="By Equipment">By Equipment</option>
+                    </select>
+                  ) : (
+                    <span className="text-slate-800">{equipmentGroupTask}</span>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Equipment Details Group Task</label>
-                <select
-                  disabled={!isDraft}
-                  value={equipmentGroupTask}
-                  onChange={e => setEquipmentGroupTask(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800"
-                >
-                  <option value="No Grouping">No Grouping</option>
-                  <option value="By Task">By Task</option>
-                  <option value="By Equipment">By Equipment</option>
-                </select>
+              {/* Source Document */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">
+                  Source Document
+                </label>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <input
+                      type="text"
+                      value={sourceDocument}
+                      onChange={e => setSourceDocument(e.target.value)}
+                      className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 font-mono"
+                    />
+                  ) : (
+                    <span className="font-mono text-slate-800">{sourceDocument}</span>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Vendor Project Name</label>
-                <input
-                  type="text"
-                  disabled={!isDraft}
-                  value={vendorProjectName}
-                  onChange={e => setVendorProjectName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">PR Number</label>
-                <input
-                  type="text"
-                  disabled={!isDraft}
-                  value={prNumber}
-                  onChange={e => setPrNumber(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Sales Team</label>
-                <input
-                  type="text"
-                  disabled={!isDraft}
-                  value={salesTeam}
-                  onChange={e => setSalesTeam(e.target.value)}
-                  placeholder="e.g. Sales Dammam"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800"
-                />
-              </div>
-
-              <div className="flex items-center gap-4 pt-1 col-span-full">
-                <label className="inline-flex items-center gap-2 cursor-pointer">
+              {/* Company Seal on Invoice */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">
+                  Company Seal on Invoice
+                </label>
+                <div className="col-span-7">
                   <input
                     type="checkbox"
                     disabled={!isDraft}
                     checked={companySeal}
                     onChange={e => setCompanySeal(e.target.checked)}
-                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                    className="rounded border-slate-300 text-teal-700 h-4 w-4"
                   />
-                  <span className="font-semibold text-slate-700">Company Seal on Invoice</span>
-                </label>
+                </div>
+              </div>
 
-                <label className="inline-flex items-center gap-2 cursor-pointer">
+              {/* Show Out from Stock Button */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">
+                  Show Out from Stock Button
+                </label>
+                <div className="col-span-7">
                   <input
                     type="checkbox"
                     disabled={!isDraft}
                     checked={showOutFromStock}
                     onChange={e => setShowOutFromStock(e.target.checked)}
-                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                    className="rounded border-slate-300 text-teal-700 h-4 w-4"
                   />
-                  <span className="font-semibold text-slate-700">Show Out from Stock Button</span>
-                </label>
+                </div>
+              </div>
 
-                <label className="inline-flex items-center gap-2 cursor-pointer">
+              {/* Is Progressive Inv. ? */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">
+                  Is Progressive Inv. ?
+                </label>
+                <div className="col-span-7">
                   <input
                     type="checkbox"
                     disabled={!isDraft}
@@ -591,284 +741,496 @@ export default function InvoiceModal({
                       setIsProgressive(e.target.checked)
                       if (e.target.checked) setCategory('progressive')
                     }}
-                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                    className="rounded border-slate-300 text-teal-700 h-4 w-4"
                   />
-                  <span className="font-semibold text-slate-700">Is Progressive Inv. ?</span>
-                </label>
-
-                <label className="inline-flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    disabled={!isDraft}
-                    checked={showDiscount}
-                    onChange={e => setShowDiscount(e.target.checked)}
-                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
-                  />
-                  <span className="font-semibold text-slate-700">Show Discount</span>
-                </label>
+                </div>
               </div>
 
-              {/* Customer Address */}
-              <div className="col-span-full">
-                <label className="block text-slate-700 font-bold mb-1">Customer Address (Saudi & Arabic Format)</label>
-                <textarea
-                  rows={2}
-                  disabled={!isDraft}
-                  value={customerAddress}
-                  onChange={e => setCustomerAddress(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 leading-relaxed font-sans"
-                />
+              {/* Sales Team */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Sales Team</label>
+                <div className="col-span-7">
+                  <input
+                    type="text"
+                    disabled={!isDraft}
+                    value={salesTeam}
+                    onChange={e => setSalesTeam(e.target.value)}
+                    placeholder="-"
+                    className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 disabled:bg-transparent disabled:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Currency */}
+              <div className="grid grid-cols-12 items-center">
+                <label className="col-span-5 font-bold text-slate-700">Currency</label>
+                <div className="col-span-7">
+                  {isDraft ? (
+                    <select
+                      value={currency}
+                      onChange={e => {
+                        setCurrency(e.target.value)
+                        const match = mockCurrencies.find(c => c.currency === e.target.value)
+                        if (match) setCurrencyRate(match.rateToBase)
+                      }}
+                      className="w-full max-w-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 font-bold"
+                    >
+                      {mockCurrencies.map(c => (
+                        <option key={c.currency} value={c.currency}>
+                          {c.currency}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="font-bold text-slate-900">{currency}</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* CARD 2: INVOICE LINE ITEMS (PRODUCTS & SERVICES) */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  INVOICE LINE ITEMS (PRODUCTS & SERVICES)
+          {/* Form Tabs: Invoice Lines | Other Info | Vehicles */}
+          <div className="border-b border-slate-200 flex gap-4 text-xs font-bold pt-4">
+            <button
+              type="button"
+              onClick={() => setActiveTab('lines')}
+              className={`pb-2 border-b-2 transition ${
+                activeTab === 'lines'
+                  ? 'border-teal-700 text-teal-800'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Invoice Lines
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('other')}
+              className={`pb-2 border-b-2 transition ${
+                activeTab === 'other'
+                  ? 'border-teal-700 text-teal-800'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Other Info
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('vehicles')}
+              className={`pb-2 border-b-2 transition flex items-center gap-1.5 ${
+                activeTab === 'vehicles'
+                  ? 'border-teal-700 text-teal-800'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Car size={14} />
+              <span>Vehicles</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-normal">
+                {vehiclesList.length}
+              </span>
+            </button>
+          </div>
+
+          {/* TAB 1: INVOICE LINES TABLE (Matches Exact Screenshot 2 Columns) */}
+          {activeTab === 'lines' && (
+            <div className="space-y-3">
+              <div className="overflow-x-auto border border-slate-200 rounded">
+                <table className="w-full text-left text-xs whitespace-nowrap">
+                  <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="py-2.5 px-3">Main Task</th>
+                      <th className="py-2.5 px-3">Category</th>
+                      <th className="py-2.5 px-2 text-center">Show Separately</th>
+                      <th className="py-2.5 px-2 text-center">Show Line</th>
+                      <th className="py-2.5 px-2 text-center">Main Quantity</th>
+                      <th className="py-2.5 px-2">Partner Number Type</th>
+                      <th className="py-2.5 px-3">Product SubType</th>
+                      <th className="py-2.5 px-3">Product</th>
+                      <th className="py-2.5 px-3 min-w-[150px]">Description</th>
+                      <th className="py-2.5 px-3">Account</th>
+                      <th className="py-2.5 px-3">Analytic Account</th>
+                      <th className="py-2.5 px-2 text-right">Main Qty</th>
+                      <th className="py-2.5 px-2 text-right">Quantity</th>
+                      <th className="py-2.5 px-2">Unit of Measure</th>
+                      <th className="py-2.5 px-3 text-right">Price</th>
+                      <th className="py-2.5 px-2 text-center">Taxes</th>
+                      <th className="py-2.5 px-2 text-right">Discount</th>
+                      <th className="py-2.5 px-3 text-right">Subtotal</th>
+                      {isDraft && <th className="py-2.5 px-1 w-7"></th>}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {lines.map(line => (
+                      <tr key={line.id} className="hover:bg-slate-50/70">
+                        {/* Main Task */}
+                        <td className="py-2 px-3">
+                          {isDraft ? (
+                            <input
+                              type="text"
+                              value={line.mainTask || ''}
+                              onChange={e => updateLine(line.id, 'mainTask', e.target.value)}
+                              className="bg-white border border-slate-200 rounded px-1.5 py-1 text-xs w-24"
+                            />
+                          ) : (
+                            <span className="font-medium text-slate-800">{line.mainTask || '-'}</span>
+                          )}
+                        </td>
+
+                        {/* Category */}
+                        <td className="py-2 px-3">
+                          {isDraft ? (
+                            <input
+                              type="text"
+                              value={line.category || ''}
+                              onChange={e => updateLine(line.id, 'category', e.target.value)}
+                              className="bg-white border border-slate-200 rounded px-1.5 py-1 text-xs w-20"
+                            />
+                          ) : (
+                            <span className="text-slate-700">{line.category || '-'}</span>
+                          )}
+                        </td>
+
+                        {/* Show Separately */}
+                        <td className="py-2 px-2 text-center">
+                          <input
+                            type="checkbox"
+                            disabled={!isDraft}
+                            checked={line.showSeparately || false}
+                            onChange={e => updateLine(line.id, 'showSeparately', e.target.checked)}
+                            className="rounded border-slate-300 text-teal-700"
+                          />
+                        </td>
+
+                        {/* Show Line */}
+                        <td className="py-2 px-2 text-center">
+                          <input
+                            type="checkbox"
+                            disabled={!isDraft}
+                            checked={line.showLine || false}
+                            onChange={e => updateLine(line.id, 'showLine', e.target.checked)}
+                            className="rounded border-slate-300 text-teal-700"
+                          />
+                        </td>
+
+                        {/* Main Quantity Checkbox */}
+                        <td className="py-2 px-2 text-center">
+                          <input
+                            type="checkbox"
+                            disabled={!isDraft}
+                            checked={line.showMainQuantity || false}
+                            onChange={e => updateLine(line.id, 'showMainQuantity', e.target.checked)}
+                            className="rounded border-slate-300 text-teal-700"
+                          />
+                        </td>
+
+                        {/* Partner Number Type */}
+                        <td className="py-2 px-2">
+                          {isDraft ? (
+                            <input
+                              type="text"
+                              value={line.partnerNumberType || 'FAY'}
+                              onChange={e => updateLine(line.id, 'partnerNumberType', e.target.value)}
+                              className="bg-white border border-slate-200 rounded px-1.5 py-1 text-xs w-16"
+                            />
+                          ) : (
+                            <span className="font-semibold text-slate-700">{line.partnerNumberType || 'FAY'}</span>
+                          )}
+                        </td>
+
+                        {/* Product SubType */}
+                        <td className="py-2 px-3">
+                          {isDraft ? (
+                            <input
+                              type="text"
+                              value={line.productSubType || ''}
+                              onChange={e => updateLine(line.id, 'productSubType', e.target.value)}
+                              className="bg-white border border-slate-200 rounded px-1.5 py-1 text-xs w-28"
+                            />
+                          ) : (
+                            <span className="text-slate-700">{line.productSubType || '-'}</span>
+                          )}
+                        </td>
+
+                        {/* Product */}
+                        <td className="py-2 px-3">
+                          {isDraft ? (
+                            <input
+                              type="text"
+                              value={line.product}
+                              onChange={e => updateLine(line.id, 'product', e.target.value)}
+                              className="bg-white border border-slate-200 rounded px-1.5 py-1 text-xs font-semibold text-slate-900 w-28"
+                            />
+                          ) : (
+                            <span className="font-bold text-slate-900">{line.product}</span>
+                          )}
+                        </td>
+
+                        {/* Description */}
+                        <td className="py-2 px-3">
+                          {isDraft ? (
+                            <input
+                              type="text"
+                              value={line.description}
+                              onChange={e => updateLine(line.id, 'description', e.target.value)}
+                              className="bg-white border border-slate-200 rounded px-1.5 py-1 text-xs w-36"
+                            />
+                          ) : (
+                            <span className="text-slate-700">{line.description}</span>
+                          )}
+                        </td>
+
+                        {/* Account */}
+                        <td className="py-2 px-3">
+                          <span className="text-slate-800 font-semibold font-mono">
+                            {line.accountCode || '479100'}
+                          </span>
+                        </td>
+
+                        {/* Analytic Account */}
+                        <td className="py-2 px-3">
+                          {isDraft ? (
+                            <select
+                              value={line.analyticAccountId || ''}
+                              onChange={e => updateLine(line.id, 'analyticAccountId', e.target.value)}
+                              className="bg-white border border-slate-200 rounded px-1.5 py-1 text-xs w-28"
+                            >
+                              <option value="">(None)</option>
+                              {mockAnalyticAccounts.map(a => (
+                                <option key={a.id} value={a.id}>
+                                  {a.name}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="text-slate-600">
+                              {mockAnalyticAccounts.find(a => a.id === line.analyticAccountId)?.name || '-'}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Main Qty */}
+                        <td className="py-2 px-2 text-right font-mono">
+                          {(line.mainQuantity || 1).toFixed(2)}
+                        </td>
+
+                        {/* Quantity */}
+                        <td className="py-2 px-2 text-right">
+                          {isDraft ? (
+                            <input
+                              type="number"
+                              step="1"
+                              value={line.quantity}
+                              onChange={e => updateLine(line.id, 'quantity', parseFloat(e.target.value) || 0)}
+                              className="bg-white border border-slate-200 rounded px-1.5 py-1 text-xs w-16 text-right font-mono"
+                            />
+                          ) : (
+                            <span className="font-mono font-semibold">{line.quantity.toFixed(3)}</span>
+                          )}
+                        </td>
+
+                        {/* Unit of Measure */}
+                        <td className="py-2 px-2 font-mono text-slate-700">
+                          {line.unitOfMeasure || 'pcs'}
+                        </td>
+
+                        {/* Price */}
+                        <td className="py-2 px-3 text-right">
+                          {isDraft ? (
+                            <input
+                              type="number"
+                              step="0.001"
+                              value={line.unitPrice}
+                              onChange={e => updateLine(line.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                              className="bg-white border border-slate-200 rounded px-1.5 py-1 text-xs w-24 text-right font-mono font-semibold"
+                            />
+                          ) : (
+                            <span className="font-mono font-bold text-slate-900">{line.unitPrice.toFixed(3)}</span>
+                          )}
+                        </td>
+
+                        {/* Taxes */}
+                        <td className="py-2 px-2 text-center">
+                          <span className="inline-block px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300 font-semibold text-[11px]">
+                            {line.taxesApplied || 'VAT 15%'}
+                          </span>
+                        </td>
+
+                        {/* Discount */}
+                        <td className="py-2 px-2 text-right font-mono text-slate-600">
+                          {(line.discount || 0).toFixed(3)}
+                        </td>
+
+                        {/* Subtotal */}
+                        <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
+                          {line.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR
+                        </td>
+
+                        {/* Remove */}
+                        {isDraft && (
+                          <td className="py-2 px-1 text-center">
+                            <button
+                              type="button"
+                              onClick={() => removeLine(line.id)}
+                              className="text-slate-400 hover:text-rose-600 p-1"
+                              title="Remove line"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Add a line */}
+              {isDraft && (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={addLine}
+                    className="text-teal-700 hover:text-teal-900 text-xs font-semibold hover:underline inline-flex items-center gap-1"
+                  >
+                    <Plus size={14} /> Add a line
+                  </button>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Cost Centre is required for operational revenue tracking.
-                </p>
+              )}
+
+              {/* Bottom Right Totals Box */}
+              <div className="pt-4 flex justify-end">
+                <div className="w-80 space-y-2 text-xs text-slate-700">
+                  <div className="flex justify-between">
+                    <span className="font-bold">Amount Without Discount:</span>
+                    <span className="font-mono font-semibold">
+                      {amountWithoutDiscount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="font-bold">Discount:</span>
+                    <span className="font-mono font-semibold">
+                      {discountTotal.toFixed(2)} SR
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="font-bold">Untaxed Amount:</span>
+                    <span className="font-mono font-semibold">
+                      {untaxedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="font-bold">Taxes (VAT 15%):</span>
+                    <span className="font-mono font-semibold">
+                      {taxTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-300 flex justify-between font-bold text-sm text-slate-900">
+                    <span>Total:</span>
+                    <span className="font-mono font-black text-teal-800">
+                      {grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: OTHER INFO */}
+          {activeTab === 'other' && (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded text-xs space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-slate-500 font-medium block">Journal</span>
+                  <span className="font-bold text-slate-800">Customer Invoices (Sale)</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 font-medium block">Account</span>
+                  <span className="font-bold text-slate-800">479100 Revenue (Product Sales & Service)</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 font-medium block">Fiscal Position</span>
+                  <span className="text-slate-700">Saudi Arabia National Tax (15%)</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 font-medium block">ZATCA Clearance State</span>
+                  <span className="font-semibold text-emerald-700">Cleared & Cryptographically Signed</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: VEHICLES TAB */}
+          {activeTab === 'vehicles' && (
+            <div className="space-y-3">
+              <div className="overflow-x-auto border border-slate-200 rounded">
+                <table className="w-full text-left text-xs whitespace-nowrap">
+                  <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="py-2.5 px-3">Plate Number</th>
+                      <th className="py-2.5 px-3">Chassis Number</th>
+                      <th className="py-2.5 px-3">Model</th>
+                      <th className="py-2.5 px-3">GPS Device ID</th>
+                      <th className="py-2.5 px-3">SIM Number</th>
+                      {isDraft && <th className="py-2.5 px-2 w-7"></th>}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {vehiclesList.map(veh => (
+                      <tr key={veh.id} className="hover:bg-slate-50/70">
+                        <td className="py-2 px-3 font-bold text-teal-800">{veh.plateNumber}</td>
+                        <td className="py-2 px-3 font-mono text-slate-600">{veh.chassisNumber || '-'}</td>
+                        <td className="py-2 px-3 text-slate-700">{veh.model || '-'}</td>
+                        <td className="py-2 px-3 font-semibold text-slate-800">{veh.gpsDeviceId || '-'}</td>
+                        <td className="py-2 px-3 font-mono text-slate-600">{veh.simNumber || '-'}</td>
+                        {isDraft && (
+                          <td className="py-2 px-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => setVehiclesList(vehiclesList.filter(v => v.id !== veh.id))}
+                              className="text-slate-400 hover:text-rose-600 p-1"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
               {isDraft && (
                 <button
                   type="button"
-                  onClick={addLine}
-                  className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold flex items-center gap-1 transition"
+                  onClick={() => {
+                    const newVeh = {
+                      id: `veh_${Date.now()}`,
+                      plateNumber: `${Math.floor(1000 + Math.random() * 9000)}-KSA`,
+                      chassisNumber: 'WDB2110261A993821',
+                      model: 'Ford Ranger 4x4',
+                      gpsDeviceId: '[FMC130] Teltonika',
+                      simNumber: '0559001827',
+                    }
+                    setVehiclesList([...vehiclesList, newVeh])
+                  }}
+                  className="text-teal-700 hover:text-teal-900 text-xs font-semibold hover:underline inline-flex items-center gap-1"
                 >
-                  <Plus size={14} /> Add Line Item
+                  <Plus size={14} /> Add a Vehicle
                 </button>
               )}
             </div>
-
-            {/* Line Items Table (Matches Screenshot Layout & Fields) */}
-            <div className="overflow-x-auto border border-slate-200/90 rounded-xl">
-              <table className="w-full text-left text-xs whitespace-nowrap">
-                <thead>
-                  <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200/80 text-[11px] uppercase tracking-wider">
-                    <th className="py-2.5 px-3">Product / Service</th>
-                    <th className="py-2.5 px-3">Description</th>
-                    <th className="py-2.5 px-2 text-right w-16">Qty</th>
-                    <th className="py-2.5 px-3 text-right w-24">Unit Price</th>
-                    <th className="py-2.5 px-2 text-center w-20">Tax</th>
-                    <th className="py-2.5 px-3 w-44">Cost Centre</th>
-                    <th className="py-2.5 px-2">Main Task</th>
-                    <th className="py-2.5 px-2">Category</th>
-                    <th className="py-2.5 px-2">Partner Type</th>
-                    <th className="py-2.5 px-3 text-right">Subtotal</th>
-                    {isDraft && <th className="py-2.5 px-2 w-7"></th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {lines.map(line => (
-                    <tr key={line.id} className="hover:bg-slate-50/70 transition">
-                      {/* Product */}
-                      <td className="py-2.5 px-3">
-                        {isDraft ? (
-                          <input
-                            type="text"
-                            value={line.product}
-                            onChange={e => updateLine(line.id, 'product', e.target.value)}
-                            className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-800 w-36"
-                          />
-                        ) : (
-                          <span className="font-bold text-slate-800">{line.product}</span>
-                        )}
-                      </td>
-
-                      {/* Description */}
-                      <td className="py-2.5 px-3 max-w-xs whitespace-normal">
-                        {isDraft ? (
-                          <input
-                            type="text"
-                            value={line.description}
-                            onChange={e => updateLine(line.id, 'description', e.target.value)}
-                            className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 w-52"
-                          />
-                        ) : (
-                          <span className="text-slate-600 truncate block max-w-xs">{line.description}</span>
-                        )}
-                      </td>
-
-                      {/* Qty */}
-                      <td className="py-2.5 px-2 text-right">
-                        {isDraft ? (
-                          <input
-                            type="number"
-                            step="1"
-                            value={line.quantity}
-                            onChange={e => updateLine(line.id, 'quantity', parseFloat(e.target.value) || 0)}
-                            className="bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-xs text-right font-mono w-16"
-                          />
-                        ) : (
-                          <span className="font-mono text-slate-800">{line.quantity}</span>
-                        )}
-                      </td>
-
-                      {/* Unit Price */}
-                      <td className="py-2.5 px-3 text-right">
-                        {isDraft ? (
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={line.unitPrice}
-                            onChange={e => updateLine(line.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                            className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-right font-mono font-semibold w-24"
-                          />
-                        ) : (
-                          <span className="font-mono font-semibold text-slate-800">{line.unitPrice.toFixed(2)}</span>
-                        )}
-                      </td>
-
-                      {/* Tax */}
-                      <td className="py-2.5 px-2 text-center">
-                        {isDraft ? (
-                          <select
-                            value={line.taxRate}
-                            onChange={e => updateLine(line.id, 'taxRate', parseFloat(e.target.value))}
-                            className="bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-xs font-semibold"
-                          >
-                            <option value={0.15}>15% VAT</option>
-                            <option value={0.0}>0% Zero</option>
-                          </select>
-                        ) : (
-                          <span className="inline-block px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold text-[11px]">
-                            {line.taxesApplied || '15% VAT'}
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Cost Centre / Analytic Account */}
-                      <td className="py-2.5 px-3">
-                        {isDraft ? (
-                          <select
-                            value={line.analyticAccountId || 'ana_1'}
-                            onChange={e => updateLine(line.id, 'analyticAccountId', e.target.value)}
-                            className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 w-44"
-                          >
-                            {mockAnalyticAccounts.map(a => (
-                              <option key={a.id} value={a.id}>
-                                {a.code} - {a.name}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span className="text-slate-700">{line.analyticAccountName || 'CC-101 - Workshop Main Base'}</span>
-                        )}
-                      </td>
-
-                      {/* Main Task */}
-                      <td className="py-2.5 px-2 text-slate-700">{line.mainTask || '-'}</td>
-
-                      {/* Category */}
-                      <td className="py-2.5 px-2 text-slate-700">{line.category || '-'}</td>
-
-                      {/* Partner Number Type */}
-                      <td className="py-2.5 px-2 font-mono text-slate-600">{line.partnerNumberType || 'FAY'}</td>
-
-                      {/* Subtotal */}
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
-                        {line.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR
-                      </td>
-
-                      {/* Remove Line */}
-                      {isDraft && (
-                        <td className="py-2.5 px-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => removeLine(line.id)}
-                            className="p-1 text-slate-400 hover:text-rose-600 rounded transition"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Attachments & Summary Box (Matches Exact Screenshot Layout) */}
-            <div className="pt-2 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
-              {/* Left Attachments note */}
-              <div className="space-y-1 text-xs text-slate-500">
-                <div className="flex items-center gap-1.5 font-medium text-slate-600">
-                  <Paperclip size={14} className="text-slate-400" />
-                  <span>Attachments ({attachmentsCount} files attached)</span>
-                  {isDraft && (
-                    <button
-                      type="button"
-                      onClick={() => setAttachmentsCount(c => c + 1)}
-                      className="text-emerald-700 hover:underline font-bold ml-1"
-                    >
-                      + Add
-                    </button>
-                  )}
-                </div>
-                <div className="text-[11px] text-slate-400">
-                  Includes Workshop Job Card, Inspection Sheet & Material Certifications.
-                </div>
-              </div>
-
-              {/* Right Summary Box */}
-              <div className="w-full sm:w-80 bg-slate-50/80 p-5 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
-                <div className="flex justify-between text-slate-600">
-                  <span className="font-medium">Untaxed Amount:</span>
-                  <span className="font-mono font-semibold">
-                    {untaxedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR
-                  </span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span className="font-medium">Standard VAT (15%):</span>
-                  <span className="font-mono font-semibold">
-                    {taxTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-slate-200 flex justify-between font-bold text-sm text-slate-900">
-                  <span>Total ({currency}):</span>
-                  <span className="font-mono text-base font-bold text-emerald-800">
-                    {grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* CARD 3: DOCUMENT ACTIVITY & AUDIT HISTORY */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-3">
-            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              <History size={14} className="text-emerald-600" />
-              <span>DOCUMENT ACTIVITY & AUDIT HISTORY</span>
-            </div>
-            <p className="text-[11px] text-slate-400">
-              All field updates, approvals, and status transitions are recorded immutably.
-            </p>
-            <div className="space-y-2 text-xs border-l-2 border-emerald-500 pl-3">
-              <div className="text-slate-600">
-                <span className="font-bold text-slate-800">Administrator</span> generated customer invoice and verified tax accounts
-                <span className="text-slate-400 text-[10px] ml-2">{invoiceDateWithTime}</span>
-              </div>
-              {invoice?.validatedBy && (
-                <div className="text-slate-600">
-                  <span className="font-bold text-emerald-700">{invoice.validatedBy}</span> confirmed and posted invoice
-                  <span className="text-slate-400 text-[10px] ml-2">{invoice.validatedAt}</span>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Modal Bottom Footer (Matches Exact Screenshot Close Button) */}
-        <div className="bg-white px-6 py-4 border-t border-slate-200/90 flex items-center justify-between">
+        {/* Modal Bottom Footer (No Print, No Action, No Send & Print) */}
+        <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-bold transition shadow-xs"
+            className="px-4 py-1.5 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded text-xs font-semibold transition"
           >
             Close
           </button>
@@ -878,16 +1240,16 @@ export default function InvoiceModal({
               <button
                 type="button"
                 onClick={() => handleSave(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition"
+                className="px-4 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 rounded text-xs font-semibold transition"
               >
                 Save as Draft
               </button>
               <button
                 type="button"
                 onClick={() => handleSave(true)}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                className="px-4 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-sm transition"
               >
-                <CheckCircle2 size={15} />
+                <CheckCircle2 size={14} />
                 <span>Validate & Post</span>
               </button>
             </div>

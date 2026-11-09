@@ -83,6 +83,20 @@ export interface Invoice {
   customerAddress?: string
   customerVat?: string
   isSubscriptionInvoice?: boolean
+  noOfSubscriptionItems?: number
+  subscriptionFrequency?: string
+  subscriptionType?: string
+  subscriptionStartDate?: string
+  subscriptionEndDate?: string
+  subscriptionAlertDate?: string
+  vehicles?: {
+    id: string
+    plateNumber: string
+    chassisNumber?: string
+    model?: string
+    gpsDeviceId?: string
+    simNumber?: string
+  }[]
   project?: string
   contactPerson?: string
   paymentTerms: string
