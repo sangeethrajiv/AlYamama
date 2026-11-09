@@ -1,31 +1,54 @@
 import { useState } from 'react'
 import { X, Plus, Trash2, CheckCircle2 } from 'lucide-react'
-import type { Invoice, InvoiceLine, CompanyId, InvoiceCategory } from '../types/accounting'
-import { mockAnalyticAccounts, mockCurrencies } from '../data/mockAccountingData'
+import Chatter from './Chatter'
+import type { AuditLogEntry, Invoice, InvoiceLine, CompanyId, InvoiceCategory, Payment } from '../types/accounting'
+import { mockAnalyticAccounts, mockCurrencies, moneyFormat } from '../data/mockAccountingData'
 
 interface InvoiceModalProps {
   invoice?: Invoice
   companyId: CompanyId
   existingInvoices: Invoice[]
+  payments?: Payment[]
+  onUnreconcile?: (invoiceId: string, paymentId: string) => void
+  auditLogs?: AuditLogEntry[]
+  onPostNote?: (recordType: AuditLogEntry['recordType'], recordId: string, recordName: string, text: string) => void
   defaultCategory?: InvoiceCategory
+  lockedCategory?: InvoiceCategory
   onClose: () => void
   onSave: (invoice: Invoice, postImmediately?: boolean) => void
 }
 
 export default function InvoiceModal({
-  invoice,
+  invoice: invoiceProp,
   companyId,
-  existingInvoices: _existingInvoices,
+  existingInvoices,
+  payments = [],
+  onUnreconcile,
+  auditLogs = [],
+  onPostNote,
   defaultCategory = 'credit',
+  lockedCategory,
   onClose,
   onSave,
 }: InvoiceModalProps) {
+  // Live copy so status and balances refresh after unreconciling
+  const invoice = invoiceProp ? existingInvoices.find(i => i.id === invoiceProp.id) ?? invoiceProp : undefined
   const isDraft = !invoice || invoice.state === 'draft'
+  // The type picker only appears when creating from "All Invoices"
+  const showTypePicker = !invoice && !lockedCategory
+  const [confirmUnrec, setConfirmUnrec] = useState<string | null>(null)
+  const invPayments = invoice ? payments.filter(p => p.matchedInvoiceIds?.includes(invoice.id)) : []
+  const appliedTo = (p: Payment) =>
+    p.allocations?.find(a => a.invoiceId === invoice?.id)?.amount ?? Math.min(p.amount, invoice?.amountTotal ?? p.amount)
+  const settled = invoice ? Math.max(0, invoice.amountTotal - invoice.residual) : 0
+  const settledPct = invoice && invoice.amountTotal ? Math.min(100, (settled / invoice.amountTotal) * 100) : 0
 
   // Invoice Category
   const [category, setCategory] = useState<InvoiceCategory>(
     invoice?.category || defaultCategory
   )
+
+  const typeLabel = ({ cash: 'Cash Invoice', credit: 'Credit Invoice', proforma: 'Proforma Invoice', progressive: 'Progressive Invoice' } as Record<string, string>)[category] || 'Customer Invoice'
 
   // Top Left Header Fields
   const [noOfSubscriptionItems, setNoOfSubscriptionItems] = useState<number>(
@@ -328,7 +351,7 @@ export default function InvoiceModal({
             <div>
               <div className="flex items-center gap-2.5">
                 <h2 className="text-lg font-black text-slate-800 tracking-tight">
-                  {invoice ? `Customer Invoice: ${invoiceNumberDisplay}` : 'New Customer Invoice'}
+                  {invoice ? `${typeLabel}: ${invoiceNumberDisplay}` : showTypePicker ? 'New Customer Invoice' : `New ${typeLabel}`}
                 </h2>
                 <span
                   className={`text-xs font-bold px-2.5 py-0.5 rounded-full uppercase ${
@@ -356,6 +379,7 @@ export default function InvoiceModal({
         {/* Scrollable Drawer Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* 4 Invoice Types Switcher */}
+          {showTypePicker && (
           <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
               Select Invoice Type
@@ -418,6 +442,7 @@ export default function InvoiceModal({
               </button>
             </div>
           </div>
+          )}
 
           {/* CARD 1: INVOICE HEADER & PARTNER INFORMATION */}
           <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
@@ -1269,28 +1294,63 @@ export default function InvoiceModal({
             )}
           </div>
 
-          {/* CARD 3: DOCUMENT ACTIVITY & AUDIT HISTORY */}
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
-            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              
-              <span>DOCUMENT ACTIVITY & AUDIT HISTORY</span>
-            </div>
-            <p className="text-[11px] text-slate-400">
-              All field updates, approvals, and status transitions are recorded immutably.
-            </p>
-            <div className="space-y-2 text-xs border-l-2 border-emerald-500 pl-3">
-              <div className="text-slate-600">
-                <span className="font-bold text-slate-800">Faraz Yousuff</span> registered customer document and subscription lines
-                <span className="text-slate-400 text-[10px] ml-2">{invoiceDateWithTime}</span>
+          {/* CARD: PAYMENTS & RECONCILIATION */}
+          {invoice && !isDraft && invoice.state !== 'cancel' && (
+            <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Payments & Reconciliation</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${invoice.residual <= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                  {invoice.residual <= 0 ? 'Fully settled' : 'Balance open'}
+                </span>
               </div>
-              {invoice?.validatedBy && (
-                <div className="text-slate-600">
-                  <span className="font-bold text-emerald-700">{invoice.validatedBy}</span> confirmed and posted invoice
-                  <span className="text-slate-400 text-[10px] ml-2">{invoice.validatedAt}</span>
+
+              <div>
+                <div className="flex justify-between text-[11px] text-slate-500 mb-1">
+                  <span>Settled <b className="text-slate-800 font-mono">{moneyFormat(settled, invoice.currency)}</b></span>
+                  <span>Due <b className="text-slate-800 font-mono">{moneyFormat(invoice.residual, invoice.currency)}</b></span>
                 </div>
+                <div className="h-2 rounded-full bg-slate-100 overflow-hidden" role="progressbar" aria-valuenow={Math.round(settledPct)} aria-valuemin={0} aria-valuemax={100}>
+                  <div className="h-full bg-emerald-500 transition-all" style={{ width: `${settledPct}%` }} />
+                </div>
+              </div>
+
+              {invPayments.length === 0 ? (
+                <p className="text-xs text-slate-400">
+                  {invoice.residual <= 0 ? 'Settled directly (cash sale), with no separate payment to unreconcile.' : 'No payments matched yet. Use Reconciliation to match one.'}
+                </p>
+              ) : (
+                <ul className="divide-y divide-slate-100 border border-slate-100 rounded-lg">
+                  {invPayments.map(p => (
+                    <li key={p.id} className="p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="min-w-0">
+                        <div className="font-mono font-bold text-slate-800">{p.paymentNumber}</div>
+                        <div className="text-[11px] text-slate-500">{p.paymentDate} · {p.paymentMethod}{p.memo ? ` · ${p.memo}` : ''}</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono font-bold text-slate-900">{moneyFormat(appliedTo(p), invoice.currency)}</span>
+                        {onUnreconcile && (confirmUnrec === p.id ? (
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-slate-500">Reopen this amount?</span>
+                            <button type="button" onClick={() => { onUnreconcile(invoice.id, p.id); setConfirmUnrec(null) }} className="px-2 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-bold">Yes, unreconcile</button>
+                            <button type="button" onClick={() => setConfirmUnrec(null)} className="px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 font-semibold">Cancel</button>
+                          </span>
+                        ) : (
+                          <button type="button" onClick={() => setConfirmUnrec(p.id)} className="px-2.5 py-1 rounded-lg border border-slate-200 hover:border-rose-300 hover:text-rose-700 font-semibold transition">
+                            Unreconcile
+                          </button>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
-          </div>
+          )}
+
+          {/* Chatter */}
+          {invoice && onPostNote && (
+            <Chatter recordType="Invoice" recordId={invoice.id} recordName={invoice.number} logs={auditLogs} onPostNote={onPostNote} />
+          )}
         </div>
 
         {/* Modal Drawer Footer */}

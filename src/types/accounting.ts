@@ -187,6 +187,7 @@ export interface Payment {
   paymentMethod: PaymentMethod
   state: 'draft' | 'posted' | 'reconciled' | 'cancelled'
   matchedInvoiceIds?: string[]
+  allocations?: { invoiceId: string; amount: number }[]
   chequeNumber?: string
 }
 

@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { X, Plus, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react'
-import type { Bill, InvoiceLine, CompanyId } from '../types/accounting'
+import Chatter from './Chatter'
+import type { AuditLogEntry, Bill, InvoiceLine, CompanyId } from '../types/accounting'
 import { mockAnalyticAccounts, moneyFormat } from '../data/mockAccountingData'
 
 interface BillModalProps {
   bill?: Bill
   companyId: CompanyId
   existingBills: Bill[]
+  auditLogs?: AuditLogEntry[]
+  onPostNote?: (recordType: AuditLogEntry['recordType'], recordId: string, recordName: string, text: string) => void
   onClose: () => void
   onSave: (bill: Bill, postImmediately?: boolean) => void
 }
@@ -15,6 +18,8 @@ export default function BillModal({
   bill,
   companyId,
   existingBills,
+  auditLogs = [],
+  onPostNote,
   onClose,
   onSave,
 }: BillModalProps) {
@@ -423,6 +428,10 @@ export default function BillModal({
               </div>
             </div>
           </div>
+
+          {bill && onPostNote && (
+            <Chatter recordType="Vendor Bill" recordId={bill.id} recordName={bill.number} logs={auditLogs} onPostNote={onPostNote} />
+          )}
         </div>
 
         {/* Footer */}

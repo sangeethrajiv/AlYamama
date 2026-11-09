@@ -69,6 +69,8 @@ export default function App() {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | undefined>(undefined)
   const [activeInvoiceCategory, setActiveInvoiceCategory] = useState<InvoiceCategory | 'all'>('all')
   const [defaultInvoiceCategory, setDefaultInvoiceCategory] = useState<InvoiceCategory>('credit')
+  // Set when the form is opened from a specific type; undefined means the user picks the type
+  const [lockedCategory, setLockedCategory] = useState<InvoiceCategory | undefined>(undefined)
   const [pdfInvoice, setPdfInvoice] = useState<Invoice | null>(null)
   const [editingBill, setEditingBill] = useState<Bill | undefined>(undefined)
   const [paymentModalState, setPaymentModalState] = useState<{
@@ -127,15 +129,57 @@ export default function App() {
     setAuditLogs(prev => [newLog, ...prev])
   }
 
+  const handlePostNote = (recordType: AuditLogEntry['recordType'], recordId: string, recordName: string, text: string) =>
+    addAuditLog(recordType, recordId, recordName, 'note', '', '', text)
+
+  // Field-level tracking: one log row per changed field (old -> new)
+  const fmtVal = (v: unknown) => (v === undefined || v === null || v === '' ? 'empty' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v))
+  const trackChanges = <T extends object>(
+    recordType: AuditLogEntry['recordType'],
+    id: string,
+    name: string,
+    before: T,
+    after: T,
+    fields: Record<string, string>
+  ) => {
+    const b = before as Record<string, unknown>
+    const a = after as Record<string, unknown>
+    const rows: [string, string, string][] = []
+    for (const [key, label] of Object.entries(fields)) {
+      if (fmtVal(b[key]) !== fmtVal(a[key])) rows.push([label, fmtVal(b[key]), fmtVal(a[key])])
+    }
+    const bl = (b.lines as unknown[] | undefined)?.length ?? 0
+    const al = (a.lines as unknown[] | undefined)?.length ?? 0
+    if (JSON.stringify(b.lines) !== JSON.stringify(a.lines)) {
+      rows.push(['Lines', `${bl} line(s), ${fmtVal(b.amountUntaxed)} untaxed`, `${al} line(s), ${fmtVal(a.amountUntaxed)} untaxed`])
+    }
+    // Same-second entries are grouped as one edit in Chatter
+    rows.reverse().forEach(([label, from, to]) => addAuditLog(recordType, id, name, `edit:${label}`, from, to))
+    return rows.length
+  }
+  const INVOICE_FIELDS: Record<string, string> = {
+    partner: 'Customer', customerVat: 'Customer VAT', category: 'Invoice type', dateInvoice: 'Invoice date', dateDue: 'Due date',
+    paymentTerms: 'Payment terms', currency: 'Currency', project: 'Project', contactPerson: 'Contact person',
+    salesperson: 'Salesperson', sourceDocument: 'Source document', reference: 'Reference', prNumber: 'PR number', poNumber: 'PO number',
+    vendorProjectName: 'Vendor project', isSubscriptionInvoice: 'Subscription invoice', subscriptionFrequency: 'Frequency',
+    subscriptionType: 'Subscription type', subscriptionStartDate: 'Start date', subscriptionEndDate: 'End date',
+    amountTotal: 'Total',
+  }
+  const BILL_FIELDS: Record<string, string> = {
+    vendor: 'Vendor', supplierInvoiceNumber: 'Vendor reference', dateBill: 'Bill date', dateDue: 'Due date',
+    paymentTerms: 'Payment terms', currency: 'Currency', amountTotal: 'Total',
+  }
+
   // --- Invoice Operations ---
   const handleSaveInvoice = (inv: Invoice, postImmediately = false) => {
     const exists = invoices.some(i => i.id === inv.id)
     if (exists) {
       setInvoices(prev => prev.map(i => (i.id === inv.id ? inv : i)))
-      addAuditLog('Invoice', inv.id, inv.number, 'update', 'draft', inv.state, 'Invoice modified')
+      const prev = invoices.find(i => i.id === inv.id)
+      if (prev) trackChanges('Invoice', inv.id, inv.number, prev, inv, INVOICE_FIELDS)
     } else {
       setInvoices(prev => [inv, ...prev])
-      addAuditLog('Invoice', inv.id, inv.number, 'create', '—', inv.state, 'New invoice registered')
+      addAuditLog('Invoice', inv.id, inv.number, 'create', '—', postImmediately ? 'draft' : inv.state, 'Invoice created')
     }
 
     if (postImmediately) {
@@ -264,9 +308,9 @@ export default function App() {
       target.id,
       target.number,
       'state',
-      target.state,
-      'open',
-      `Invoice posted via action_invoice_open(); Journal Entry ${newJE.entryNumber} posted automatically.`
+      'draft',
+      updated.state,
+      `Invoice confirmed and posted. Journal entry ${newJE.entryNumber} was created automatically.`
     )
   }
 
@@ -365,15 +409,12 @@ export default function App() {
       setBills(prev => [b, ...prev])
     }
 
-    addAuditLog(
-      'Vendor Bill',
-      b.id,
-      b.number,
-      'save_bill',
-      b.state,
-      postImmediately ? 'open' : b.state,
-      `Vendor bill saved with supplier ref ${b.supplierInvoiceNumber}`
-    )
+    const prevBill = bills.find(item => item.id === b.id)
+    if (prevBill) {
+      trackChanges('Vendor Bill', b.id, b.number, prevBill, b, BILL_FIELDS)
+    } else {
+      addAuditLog('Vendor Bill', b.id, b.number, 'save_bill', '—', postImmediately ? 'open' : b.state, `Vendor bill created with supplier ref ${b.supplierInvoiceNumber}`)
+    }
 
     setDrawerType(null)
     setEditingBill(undefined)
@@ -429,7 +470,13 @@ export default function App() {
     allocatedInvoiceId?: string,
     allocatedBillId?: string
   ) => {
-    setPayments(prev => [payment, ...prev])
+    const allocInv = allocatedInvoiceId ? invoices.find(i => i.id === allocatedInvoiceId) : undefined
+    setPayments(prev => [
+      allocInv && allocatedInvoiceId
+        ? { ...payment, allocations: [{ invoiceId: allocatedInvoiceId, amount: Math.min(payment.amount, allocInv.residual) }] }
+        : payment,
+      ...prev,
+    ])
 
     // Generate Journal Entry for Payment
     const je: JournalEntry = {
@@ -592,6 +639,7 @@ export default function App() {
               ...p,
               state: 'reconciled',
               matchedInvoiceIds: [...(p.matchedInvoiceIds || []), invoiceId],
+              allocations: [...(p.allocations || []), { invoiceId, amount: Math.min(pay.amount, inv.residual) }],
             }
           : p
       )
@@ -606,6 +654,30 @@ export default function App() {
       'reconciled',
       `Matched and reconciled against invoice ${inv.number}. Write-off applied: SAR ${writeOffAmount}. Residual updated to ${newResidual}.`
     )
+  }
+
+  const handleUnreconcile = (invoiceId: string, paymentId: string) => {
+    const inv = invoices.find(i => i.id === invoiceId)
+    const pay = payments.find(p => p.id === paymentId)
+    if (!inv || !pay) return
+    const amt = pay.allocations?.find(a => a.invoiceId === invoiceId)?.amount ?? Math.min(pay.amount, inv.amountTotal)
+    const residual = Math.min(inv.amountTotal, Math.round((inv.residual + amt) * 100) / 100)
+    setInvoices(prev =>
+      prev.map(i => (i.id === invoiceId ? { ...i, residual, state: residual >= i.amountTotal ? 'open' : 'in_payment' } : i))
+    )
+    setPayments(prev =>
+      prev.map(p => {
+        if (p.id !== paymentId) return p
+        const matched = (p.matchedInvoiceIds || []).filter(id => id !== invoiceId)
+        return {
+          ...p,
+          matchedInvoiceIds: matched,
+          allocations: (p.allocations || []).filter(a => a.invoiceId !== invoiceId),
+          state: matched.length ? p.state : 'posted',
+        }
+      })
+    )
+    addAuditLog('Invoice', inv.id, inv.number, 'unreconcile', inv.state, residual >= inv.amountTotal ? 'open' : 'in_payment', `Payment ${pay.paymentNumber} unreconciled; ${amt.toFixed(2)} returned to the open balance.`)
   }
 
   const handleBulkReconcile = (paymentId: string, allocations: { invoiceId: string; amount: number }[]) => {
@@ -627,7 +699,7 @@ export default function App() {
     setPayments(prev =>
       prev.map(p =>
         p.id === paymentId
-          ? { ...p, state: fully ? 'reconciled' : 'posted', matchedInvoiceIds: [...(p.matchedInvoiceIds || []), ...allocations.map(a => a.invoiceId)] }
+          ? { ...p, state: fully ? 'reconciled' : 'posted', matchedInvoiceIds: [...(p.matchedInvoiceIds || []), ...allocations.map(a => a.invoiceId)], allocations: [...(p.allocations || []), ...allocations] }
           : p
       )
     )
@@ -871,6 +943,7 @@ export default function App() {
           if (drawer === 'invoice') {
             setEditingInvoice(undefined)
             if (category) setDefaultInvoiceCategory(category)
+            setLockedCategory(category)
             setDrawerType('invoice')
           } else if (drawer === 'bill') {
             setEditingBill(undefined)
@@ -909,7 +982,7 @@ export default function App() {
           onSelectRole={setCurrentRole}
           arabic={arabic}
           onToggleLanguage={() => setArabic(!arabic)}
-          onOpenQuickCreate={() => setDrawerType('invoice')}
+          onOpenQuickCreate={() => { setLockedCategory(undefined); setDrawerType('invoice') }}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onToggleSidebar={() => setMobileNavOpen(true)}
@@ -925,7 +998,7 @@ export default function App() {
               accounts={accounts}
               currentRole={currentRole}
               onSelectTab={setActiveTab}
-              onOpenDrawer={setDrawerType}
+              onOpenDrawer={d => { if (d === 'invoice') setLockedCategory(undefined); setDrawerType(d) }}
               onOpenInvoiceModal={inv => {
                 setEditingInvoice(inv)
                 setDrawerType('invoice')
@@ -939,6 +1012,7 @@ export default function App() {
               onOpenInvoiceModal={(inv, cat) => {
                 setEditingInvoice(inv)
                 if (cat) setDefaultInvoiceCategory(cat)
+                setLockedCategory(cat)
                 setDrawerType('invoice')
               }}
               onOpenPaymentModal={inv => {
@@ -1055,7 +1129,12 @@ export default function App() {
           invoice={editingInvoice}
           companyId={activeCompanyId}
           existingInvoices={invoices}
+          payments={payments}
+          onUnreconcile={handleUnreconcile}
+          auditLogs={auditLogs}
+          onPostNote={handlePostNote}
           defaultCategory={defaultInvoiceCategory}
+          lockedCategory={lockedCategory}
           onClose={() => {
             setDrawerType(null)
             setEditingInvoice(undefined)
@@ -1075,6 +1154,8 @@ export default function App() {
           bill={editingBill}
           companyId={activeCompanyId}
           existingBills={bills}
+          auditLogs={auditLogs}
+          onPostNote={handlePostNote}
           onClose={() => {
             setDrawerType(null)
             setEditingBill(undefined)
