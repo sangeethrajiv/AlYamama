@@ -5,7 +5,6 @@ import {
   Trash2,
   FileCheck2,
   CheckCircle2,
-  Paperclip,
   History,
   Coins,
   CreditCard,
@@ -1161,26 +1160,7 @@ export default function InvoiceModal({
                 </div>
 
                 {/* Calculation Summary Row */}
-                <div className="pt-2 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
-                  <div className="space-y-1 text-xs text-slate-500">
-                    <div className="flex items-center gap-1.5 font-medium text-slate-600">
-                      <Paperclip size={14} className="text-slate-400" />
-                      <span>Attachments ({attachmentsCount} files attached)</span>
-                      {isDraft && (
-                        <button
-                          type="button"
-                          onClick={() => setAttachmentsCount(c => c + 1)}
-                          className="text-emerald-700 hover:underline font-bold ml-1"
-                        >
-                          + Add
-                        </button>
-                      )}
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      Includes Workshop Job Card, Inspection Sheet & Material Certifications.
-                    </div>
-                  </div>
-
+                <div className="pt-2 flex justify-end">
                   <div className="w-full sm:w-80 bg-slate-50/80 p-5 rounded-xl border border-slate-200 space-y-2 text-xs">
                     <div className="flex justify-between text-slate-600">
                       <span className="font-medium">Amount Without Discount:</span>
