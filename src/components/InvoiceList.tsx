@@ -246,23 +246,21 @@ export default function InvoiceList({
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50/90 text-slate-600 font-bold border-b border-slate-200 select-none">
-                <th className="py-3 px-3.5">Invoice #</th>
-                <th className="py-3 px-3">Type</th>
-                <th className="py-3 px-3">Date</th>
-                <th className="py-3 px-3">Customer</th>
-                <th className="py-3 px-3">Due Date</th>
-                <th className="py-3 px-3 text-right">Tax 15%</th>
-                <th className="py-3 px-3 text-right">Total Amount</th>
-                <th className="py-3 px-3 text-right">Amount Due</th>
-                <th className="py-3 px-3 text-center">Status</th>
-                <th className="py-3 px-3 text-center">Approval</th>
-                <th className="py-3 px-3 text-right">Actions</th>
+                <th className="py-3 px-2.5">Invoice #</th>
+                <th className="py-3 px-2">Type</th>
+                <th className="py-3 px-2">Customer</th>
+                <th className="py-3 px-2">Due Date</th>
+                <th className="py-3 px-2 text-right">Total Amount</th>
+                <th className="py-3 px-2 text-right">Amount Due</th>
+                <th className="py-3 px-2 text-center">Status</th>
+                <th className="py-3 px-2 text-center">Approval</th>
+                <th className="py-3 px-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-10 text-center text-slate-400">
+                  <td colSpan={9} className="py-10 text-center text-slate-400">
                     
                     <p className="font-semibold text-slate-600">No invoices match your criteria</p>
                     <p className="text-[11px] text-slate-400">Try adjusting your search or Money Bar filter.</p>
@@ -277,7 +275,7 @@ export default function InvoiceList({
                       className="hover:bg-slate-50/70 transition-colors group cursor-pointer"
                       onClick={() => onOpenInvoiceModal(inv)}
                     >
-                      <td className="py-3 px-3.5 font-bold font-mono text-emerald-800 whitespace-nowrap">
+                      <td className="py-3 px-2.5 font-bold font-mono text-emerald-800 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           <span>{inv.number}</span>
                           {inv.attachmentsCount > 0 && (
@@ -289,11 +287,11 @@ export default function InvoiceList({
                             <span className="bg-slate-100 text-slate-700 text-[9px] px-1 rounded font-sans">Credit Note</span>
                           )}
                         </div>
-                        {inv.reference && (
-                          <div className="text-[10px] text-slate-400 font-normal font-sans">Ref: {inv.reference}</div>
-                        )}
+                        <div className="text-[10px] text-slate-400 font-normal font-sans">
+                          {inv.dateInvoice}{inv.reference ? ` · Ref: ${inv.reference}` : ''}
+                        </div>
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
+                      <td className="py-3 px-2 whitespace-nowrap">
                         {inv.category === 'cash' && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                             Cash
@@ -315,25 +313,21 @@ export default function InvoiceList({
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-slate-600 whitespace-nowrap">{inv.dateInvoice}</td>
-                      <td className="py-3 px-3 font-semibold text-slate-800">
-                        <div>{inv.partner}</div>
+                      <td className="py-3 px-2 font-semibold text-slate-800 w-[170px] max-w-[170px]">
+                        <div className="whitespace-normal break-words leading-snug" title={inv.partner}>{inv.partner}</div>
                         {inv.interCompanyBillRef && (
-                          <div className="text-[10px] text-emerald-600 flex items-center gap-1 font-mono">
+                          <div className="text-[10px] text-emerald-600 font-mono break-all whitespace-normal">
                             IC: {inv.interCompanyBillRef}
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
+                      <td className="py-3 px-2 whitespace-nowrap">
                         <span className={isOverdue ? 'text-rose-600 font-bold flex items-center gap-1' : 'text-slate-600'}>
                           {isOverdue && <AlertTriangle size={12} />}
                           {inv.dateDue}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-slate-500">
-                        {moneyFormat(inv.amountTax, inv.currency)}
-                      </td>
-                      <td className="py-3 px-3 text-right font-bold font-mono text-slate-900 whitespace-nowrap">
+                      <td className="py-3 px-2 text-right font-bold font-mono text-slate-900 whitespace-nowrap">
                         {moneyFormat(inv.amountTotal, inv.currency)}
                         {inv.currency !== 'SAR' && (
                           <div className="text-[10px] text-slate-400 font-normal">
@@ -341,15 +335,15 @@ export default function InvoiceList({
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-right font-bold font-mono whitespace-nowrap">
+                      <td className="py-3 px-2 text-right font-bold font-mono whitespace-nowrap">
                         <span className={inv.residual > 0 ? 'text-amber-700' : 'text-slate-400'}>
                           {moneyFormat(inv.residual, inv.currency)}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <td className="py-3 px-2 text-center whitespace-nowrap">
                         {getStateBadge(inv.state)}
                       </td>
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <td className="py-3 px-2 text-center whitespace-nowrap">
                         {inv.approvalStatus === 'approved' && (
                           <span className="text-[10px] text-emerald-700 font-semibold flex items-center justify-center gap-1">
                             <CheckCircle size={12} /> Approved
@@ -371,73 +365,42 @@ export default function InvoiceList({
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Proforma Convert to Tax Invoice */}
-                          {inv.category === 'proforma' && onConvertToTaxInvoice && (
-                            <button
-                              onClick={() => onConvertToTaxInvoice(inv.id)}
-                              className="px-2 py-1 bg-slate-600 hover:bg-slate-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition"
-                              title="Convert Proforma to Official Tax Invoice"
-                            >
-                              
-                              <span>Convert</span>
-                            </button>
-                          )}
+                      <td className="py-3 px-2 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        {/* Fixed slots keep every row's buttons in the same columns */}
+                        <div className="flex items-center justify-end gap-1">
+                          <div className="w-12 flex justify-end">
+                            {inv.state === 'draft' && canValidate && (
+                              <button
+                                onClick={() => onValidateInvoice(inv.id)}
+                                className="h-7 w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[11px] font-bold transition"
+                                title="Validate & Post Invoice"
+                              >
+                                Post
+                              </button>
+                            )}
+                            {(inv.state === 'open' || inv.state === 'in_payment') && (
+                              <button
+                                onClick={() => onOpenPaymentModal(inv)}
+                                className="h-7 w-full bg-slate-700 hover:bg-slate-800 text-white rounded-md text-[11px] font-bold transition"
+                                title="Register Payment / Receipt"
+                              >
+                                Pay
+                              </button>
+                            )}
+                          </div>
 
-                          {/* Validate & Post button if Draft */}
-                          {inv.state === 'draft' && canValidate && (
-                            <button
-                              onClick={() => onValidateInvoice(inv.id)}
-                              className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-bold transition"
-                              title="Validate & Post Invoice"
-                            >
-                              Post
-                            </button>
-                          )}
-
-                          {/* Register payment button if Open or In Payment */}
-                          {(inv.state === 'open' || inv.state === 'in_payment') && (
-                            <button
-                              onClick={() => onOpenPaymentModal(inv)}
-                              className="px-2.5 py-1 bg-slate-600 hover:bg-slate-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition"
-                              title="Register Payment / Receipt"
-                            >
-                              
-                              <span>Pay</span>
-                            </button>
-                          )}
-
-                          {/* Print PDF */}
-                          <button
-                            onClick={() => onOpenPdfModal(inv)}
-                            className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition"
-                            title="Preview Printable Tax Invoice (QWeb / ZATCA)"
-                          >
-                            
-                          </button>
-
-                          {/* Credit Note button */}
-                          {inv.state === 'open' && (
-                            <button
-                              onClick={() => onCreateCreditNote(inv)}
-                              className="p-1 text-slate-600 hover:bg-slate-50 rounded transition"
-                              title="Create Credit Note (out_refund)"
-                            >
-                              
-                            </button>
-                          )}
-
-                          {/* Cancel button if Open or Draft */}
-                          {(inv.state === 'draft' || inv.state === 'open') && (
-                            <button
-                              onClick={() => onCancelInvoice(inv.id)}
-                              className="p-1 text-rose-500 hover:bg-rose-50 rounded transition"
-                              title="Cancel Invoice"
-                            >
-                              <XCircle size={15} />
-                            </button>
-                          )}
+                          <div className="w-7 flex justify-center">
+                            {(inv.state === 'draft' || inv.state === 'open') && (
+                              <button
+                                onClick={() => onCancelInvoice(inv.id)}
+                                className="h-7 w-7 grid place-items-center text-rose-500 hover:bg-rose-50 rounded-md transition"
+                                title="Cancel Invoice"
+                                aria-label="Cancel invoice"
+                              >
+                                <XCircle size={15} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>
