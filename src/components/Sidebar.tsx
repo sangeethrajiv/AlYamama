@@ -15,16 +15,25 @@ import {
   ArrowRightLeft,
   FileCheck2,
   Lock,
+  Coins,
+  Layers,
+  ChevronRight,
 } from 'lucide-react'
-import type { TabId, DrawerType } from '../types/accounting'
+import type { TabId, DrawerType, InvoiceCategory } from '../types/accounting'
 
 interface SidebarProps {
   activeTab: TabId
   onSelectTab: (tab: TabId) => void
-  onOpenDrawer: (drawer: DrawerType) => void
+  onOpenDrawer: (drawer: DrawerType, category?: InvoiceCategory) => void
   invoicesCount: number
   billsCount: number
   unreconciledCount: number
+  activeInvoiceCategory?: InvoiceCategory | 'all'
+  onSelectInvoiceCategory?: (cat: InvoiceCategory | 'all') => void
+  cashCount?: number
+  creditCount?: number
+  proformaCount?: number
+  progressiveCount?: number
 }
 
 export default function Sidebar({
@@ -34,8 +43,15 @@ export default function Sidebar({
   invoicesCount,
   billsCount,
   unreconciledCount,
+  activeInvoiceCategory = 'all',
+  onSelectInvoiceCategory,
+  cashCount = 0,
+  creditCount = 0,
+  proformaCount = 0,
+  progressiveCount = 0,
 }: SidebarProps) {
   const [createMenuOpen, setCreateMenuOpen] = useState(false)
+  const [invoicesSubmenuOpen, setInvoicesSubmenuOpen] = useState(true)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -81,30 +97,53 @@ export default function Sidebar({
               {/* Customers Column */}
               <div>
                 <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5 px-1">
-                  Customers
+                  Customers & Invoicing
                 </div>
                 <div className="space-y-0.5">
                   <button
-                    onClick={() => { onOpenDrawer('invoice'); setCreateMenuOpen(false); }}
-                    className="w-full text-left px-2 py-1.5 rounded-md hover:bg-emerald-50 hover:text-emerald-700 font-medium flex items-center gap-1.5 transition"
+                    onClick={() => { onOpenDrawer('invoice', 'cash'); setCreateMenuOpen(false); }}
+                    className="w-full text-left px-2 py-1 rounded-md hover:bg-emerald-50 hover:text-emerald-700 font-medium flex items-center gap-1.5 transition"
                   >
-                    <FileText size={13} className="text-emerald-600" />
-                    <span>Customer Invoice</span>
+                    <Coins size={13} className="text-emerald-600" />
+                    <span>Cash Invoice</span>
                   </button>
                   <button
-                    onClick={() => { onOpenDrawer('payment'); setCreateMenuOpen(false); }}
-                    className="w-full text-left px-2 py-1.5 rounded-md hover:bg-emerald-50 hover:text-emerald-700 font-medium flex items-center gap-1.5 transition"
+                    onClick={() => { onOpenDrawer('invoice', 'credit'); setCreateMenuOpen(false); }}
+                    className="w-full text-left px-2 py-1 rounded-md hover:bg-emerald-50 hover:text-emerald-700 font-medium flex items-center gap-1.5 transition"
                   >
                     <CreditCard size={13} className="text-emerald-600" />
-                    <span>Receive Payment</span>
+                    <span>Credit Invoice</span>
                   </button>
                   <button
-                    onClick={() => { onOpenDrawer('invoice'); setCreateMenuOpen(false); }}
-                    className="w-full text-left px-2 py-1.5 rounded-md hover:bg-slate-100 text-slate-600 font-medium flex items-center gap-1.5 transition"
+                    onClick={() => { onOpenDrawer('invoice', 'proforma'); setCreateMenuOpen(false); }}
+                    className="w-full text-left px-2 py-1 rounded-md hover:bg-emerald-50 hover:text-emerald-700 font-medium flex items-center gap-1.5 transition"
                   >
-                    <ArrowRightLeft size={13} className="text-slate-500" />
-                    <span>Credit Note</span>
+                    <FileText size={13} className="text-emerald-600" />
+                    <span>Proforma Invoice</span>
                   </button>
+                  <button
+                    onClick={() => { onOpenDrawer('invoice', 'progressive'); setCreateMenuOpen(false); }}
+                    className="w-full text-left px-2 py-1 rounded-md hover:bg-emerald-50 hover:text-emerald-700 font-medium flex items-center gap-1.5 transition"
+                  >
+                    <Layers size={13} className="text-emerald-600" />
+                    <span>Progressive Invoice</span>
+                  </button>
+                  <div className="pt-1 mt-1 border-t border-slate-100">
+                    <button
+                      onClick={() => { onOpenDrawer('payment'); setCreateMenuOpen(false); }}
+                      className="w-full text-left px-2 py-1 rounded-md hover:bg-emerald-50 hover:text-emerald-700 font-medium flex items-center gap-1.5 transition"
+                    >
+                      <Receipt size={13} className="text-emerald-600" />
+                      <span>Receive Payment</span>
+                    </button>
+                    <button
+                      onClick={() => { onOpenDrawer('invoice'); setCreateMenuOpen(false); }}
+                      className="w-full text-left px-2 py-1 rounded-md hover:bg-slate-100 text-slate-600 font-medium flex items-center gap-1.5 transition"
+                    >
+                      <ArrowRightLeft size={13} className="text-slate-500" />
+                      <span>Credit Note</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -193,20 +232,131 @@ export default function Sidebar({
           Bookkeeping Workflows
         </div>
 
-        <button
-          onClick={() => onSelectTab('invoices')}
-          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-semibold transition ${activeTab === 'invoices' ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}
-        >
-          <div className="flex items-center gap-3">
-            <FileText size={17} />
-            <span>Invoices</span>
-          </div>
-          {invoicesCount > 0 && (
-            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-mono">
-              {invoicesCount}
-            </span>
+        {/* Invoices Group with 4 Sub-Types */}
+        <div>
+          <button
+            onClick={() => {
+              onSelectTab('invoices')
+              if (onSelectInvoiceCategory) onSelectInvoiceCategory('all')
+              setInvoicesSubmenuOpen(!invoicesSubmenuOpen)
+            }}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-semibold transition ${
+              activeTab === 'invoices' && activeInvoiceCategory === 'all'
+                ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500'
+                : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <FileText size={17} />
+              <span>Invoices</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {invoicesCount > 0 && (
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-mono">
+                  {invoicesCount}
+                </span>
+              )}
+              <ChevronDown
+                size={14}
+                className={`text-slate-400 transition-transform duration-200 ${
+                  invoicesSubmenuOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </div>
+          </button>
+
+          {invoicesSubmenuOpen && (
+            <div className="pl-6 pr-1 py-1 space-y-0.5 animate-in fade-in slide-in-from-top-1">
+              <button
+                onClick={() => {
+                  onSelectTab('invoices')
+                  if (onSelectInvoiceCategory) onSelectInvoiceCategory('cash')
+                }}
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] font-medium transition ${
+                  activeTab === 'invoices' && activeInvoiceCategory === 'cash'
+                    ? 'bg-emerald-500/20 text-emerald-300 font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Coins size={13} className="text-emerald-500" />
+                  <span>Cash Invoices</span>
+                </div>
+                {cashCount > 0 && (
+                  <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded font-mono">
+                    {cashCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => {
+                  onSelectTab('invoices')
+                  if (onSelectInvoiceCategory) onSelectInvoiceCategory('credit')
+                }}
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] font-medium transition ${
+                  activeTab === 'invoices' && activeInvoiceCategory === 'credit'
+                    ? 'bg-blue-500/20 text-blue-300 font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <CreditCard size={13} className="text-blue-400" />
+                  <span>Credit Invoices</span>
+                </div>
+                {creditCount > 0 && (
+                  <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded font-mono">
+                    {creditCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => {
+                  onSelectTab('invoices')
+                  if (onSelectInvoiceCategory) onSelectInvoiceCategory('proforma')
+                }}
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] font-medium transition ${
+                  activeTab === 'invoices' && activeInvoiceCategory === 'proforma'
+                    ? 'bg-purple-500/20 text-purple-300 font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <FileText size={13} className="text-purple-400" />
+                  <span>Proforma Invoices</span>
+                </div>
+                {proformaCount > 0 && (
+                  <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded font-mono">
+                    {proformaCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => {
+                  onSelectTab('invoices')
+                  if (onSelectInvoiceCategory) onSelectInvoiceCategory('progressive')
+                }}
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] font-medium transition ${
+                  activeTab === 'invoices' && activeInvoiceCategory === 'progressive'
+                    ? 'bg-amber-500/20 text-amber-300 font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Layers size={13} className="text-amber-400" />
+                  <span>Progressive Invoices</span>
+                </div>
+                {progressiveCount > 0 && (
+                  <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded font-mono">
+                    {progressiveCount}
+                  </span>
+                )}
+              </button>
+            </div>
           )}
-        </button>
+        </div>
 
         <button
           onClick={() => onSelectTab('bills')}

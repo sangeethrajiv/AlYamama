@@ -11,21 +11,27 @@ import {
   ArrowRightLeft,
   Building,
   AlertTriangle,
+  Coins,
+  Layers,
+  ArrowUpRight,
 } from 'lucide-react'
-import type { Invoice, InvoiceState, UserRole } from '../types/accounting'
+import type { Invoice, InvoiceState, UserRole, InvoiceCategory } from '../types/accounting'
 import { moneyFormat } from '../data/mockAccountingData'
 import MoneyBar from './MoneyBar'
 
 interface InvoiceListProps {
   invoices: Invoice[]
-  onOpenInvoiceModal: (invoice?: Invoice) => void
+  onOpenInvoiceModal: (invoice?: Invoice, defaultCategory?: InvoiceCategory) => void
   onOpenPaymentModal: (invoice: Invoice) => void
   onOpenPdfModal: (invoice: Invoice) => void
   onValidateInvoice: (invoiceId: string) => void
   onCancelInvoice: (invoiceId: string) => void
   onCreateCreditNote: (invoice: Invoice) => void
+  onConvertToTaxInvoice?: (invoiceId: string) => void
   currentRole: UserRole
   searchQuery: string
+  activeCategoryFilter?: InvoiceCategory | 'all'
+  onCategoryFilterChange?: (cat: InvoiceCategory | 'all') => void
 }
 
 export default function InvoiceList({
@@ -36,10 +42,30 @@ export default function InvoiceList({
   onValidateInvoice,
   onCancelInvoice,
   onCreateCreditNote,
+  onConvertToTaxInvoice,
   currentRole,
   searchQuery,
+  activeCategoryFilter = 'all',
+  onCategoryFilterChange,
 }: InvoiceListProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [internalCategory, setInternalCategory] = useState<InvoiceCategory | 'all'>('all')
+
+  const categoryFilter = activeCategoryFilter !== undefined && activeCategoryFilter !== 'all'
+    ? activeCategoryFilter
+    : internalCategory
+
+  const handleSelectCategory = (cat: InvoiceCategory | 'all') => {
+    setInternalCategory(cat)
+    if (onCategoryFilterChange) onCategoryFilterChange(cat)
+  }
+
+  // Counts by category
+  const allCount = invoices.length
+  const cashCount = invoices.filter(i => (i.category || 'credit') === 'cash').length
+  const creditCount = invoices.filter(i => (i.category || 'credit') === 'credit').length
+  const proformaCount = invoices.filter(i => i.category === 'proforma').length
+  const progressiveCount = invoices.filter(i => i.category === 'progressive').length
 
   // Money bar calculations
   const draftCount = invoices.filter(i => i.state === 'draft').length
@@ -67,6 +93,12 @@ export default function InvoiceList({
   ]
 
   const filteredInvoices = invoices.filter(inv => {
+    // Category filter
+    if (categoryFilter !== 'all') {
+      const cat = inv.category || 'credit'
+      if (cat !== categoryFilter) return false
+    }
+
     // Status filter
     if (statusFilter === 'draft' && inv.state !== 'draft') return false
     if (statusFilter === 'open' && inv.state !== 'open' && inv.state !== 'in_payment') return false
@@ -128,6 +160,91 @@ export default function InvoiceList({
         </div>
       </div>
 
+      {/* 4 Invoice Types Selector Bar */}
+      <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold overflow-x-auto">
+        <button
+          onClick={() => handleSelectCategory('all')}
+          className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5 ${
+            categoryFilter === 'all'
+              ? 'bg-white text-slate-900 shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span>All Invoices</span>
+          <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-mono">
+            {allCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => handleSelectCategory('cash')}
+          className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5 ${
+            categoryFilter === 'cash'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Coins size={13} />
+          <span>Cash Invoices</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+            categoryFilter === 'cash' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'
+          }`}>
+            {cashCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => handleSelectCategory('credit')}
+          className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5 ${
+            categoryFilter === 'credit'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <CreditCard size={13} />
+          <span>Credit Invoices</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+            categoryFilter === 'credit' ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'
+          }`}>
+            {creditCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => handleSelectCategory('proforma')}
+          className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5 ${
+            categoryFilter === 'proforma'
+              ? 'bg-purple-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <FileText size={13} />
+          <span>Proforma Invoices</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+            categoryFilter === 'proforma' ? 'bg-purple-700 text-white' : 'bg-slate-200 text-slate-700'
+          }`}>
+            {proformaCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => handleSelectCategory('progressive')}
+          className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5 ${
+            categoryFilter === 'progressive'
+              ? 'bg-amber-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Layers size={13} />
+          <span>Progressive Invoices</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+            categoryFilter === 'progressive' ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-700'
+          }`}>
+            {progressiveCount}
+          </span>
+        </button>
+      </div>
+
       {/* Interactive Money Bar */}
       <MoneyBar
         segments={segments}
@@ -143,6 +260,7 @@ export default function InvoiceList({
             <thead>
               <tr className="bg-slate-50/90 text-slate-600 font-bold border-b border-slate-200 select-none">
                 <th className="py-3 px-3.5">Invoice #</th>
+                <th className="py-3 px-3">Type</th>
                 <th className="py-3 px-3">Date</th>
                 <th className="py-3 px-3">Customer</th>
                 <th className="py-3 px-3">Due Date</th>
@@ -157,7 +275,7 @@ export default function InvoiceList({
             <tbody className="divide-y divide-slate-100">
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-10 text-center text-slate-400">
+                  <td colSpan={11} className="py-10 text-center text-slate-400">
                     <FileText size={32} className="mx-auto mb-2 text-slate-300" />
                     <p className="font-semibold text-slate-600">No invoices match your criteria</p>
                     <p className="text-[11px] text-slate-400">Try adjusting your search or Money Bar filter.</p>
@@ -186,6 +304,28 @@ export default function InvoiceList({
                         </div>
                         {inv.reference && (
                           <div className="text-[10px] text-slate-400 font-normal font-sans">Ref: {inv.reference}</div>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        {inv.category === 'cash' && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                            <Coins size={11} /> Cash
+                          </span>
+                        )}
+                        {(inv.category === 'credit' || !inv.category) && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                            <CreditCard size={11} /> Credit
+                          </span>
+                        )}
+                        {inv.category === 'proforma' && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                            <FileText size={11} /> Proforma
+                          </span>
+                        )}
+                        {inv.category === 'progressive' && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                            <Layers size={11} /> Progressive {inv.progressPercentage ? `${inv.progressPercentage}%` : ''}
+                          </span>
                         )}
                       </td>
                       <td className="py-3 px-3 text-slate-600 whitespace-nowrap">{inv.dateInvoice}</td>
@@ -246,6 +386,18 @@ export default function InvoiceList({
                       </td>
                       <td className="py-3 px-3 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Proforma Convert to Tax Invoice */}
+                          {inv.category === 'proforma' && onConvertToTaxInvoice && (
+                            <button
+                              onClick={() => onConvertToTaxInvoice(inv.id)}
+                              className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition"
+                              title="Convert Proforma to Official Tax Invoice"
+                            >
+                              <ArrowUpRight size={12} />
+                              <span>Convert</span>
+                            </button>
+                          )}
+
                           {/* Validate & Post button if Draft */}
                           {inv.state === 'draft' && canValidate && (
                             <button

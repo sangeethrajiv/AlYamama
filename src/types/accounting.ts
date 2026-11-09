@@ -42,8 +42,10 @@ export type DrawerType =
   | 'lock_wizard'
   | null
 
-// Odoo 12 Invoice States: draft, open, in_payment, paid, cancel
+// Invoice States: draft, open, in_payment, paid, cancel
 export type InvoiceState = 'draft' | 'open' | 'in_payment' | 'paid' | 'cancel'
+
+export type InvoiceCategory = 'cash' | 'credit' | 'proforma' | 'progressive'
 
 export interface InvoiceLine {
   id: string
@@ -77,6 +79,12 @@ export interface Invoice {
   amountTotal: number
   residual: number // Amount due
   state: InvoiceState
+  category?: InvoiceCategory
+  // Progressive / Milestone billing attributes
+  contractAmount?: number
+  previouslyBilled?: number
+  progressPercentage?: number
+  retainageAmount?: number
   approvalStatus?: 'not_required' | 'pending_manager' | 'pending_director' | 'approved' | 'rejected'
   approvalRejectReason?: string
   validatedBy?: string

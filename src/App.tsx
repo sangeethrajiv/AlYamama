@@ -5,6 +5,7 @@ import type {
   CompanyId,
   UserRole,
   Invoice,
+  InvoiceCategory,
   Bill,
   Payment,
   JournalEntry,
@@ -65,6 +66,8 @@ export default function App() {
   // Modals & Drawers
   const [drawerType, setDrawerType] = useState<DrawerType>(null)
   const [editingInvoice, setEditingInvoice] = useState<Invoice | undefined>(undefined)
+  const [activeInvoiceCategory, setActiveInvoiceCategory] = useState<InvoiceCategory | 'all'>('all')
+  const [defaultInvoiceCategory, setDefaultInvoiceCategory] = useState<InvoiceCategory>('credit')
   const [pdfInvoice, setPdfInvoice] = useState<Invoice | null>(null)
   const [editingBill, setEditingBill] = useState<Bill | undefined>(undefined)
   const [paymentModalState, setPaymentModalState] = useState<{
@@ -126,10 +129,13 @@ export default function App() {
     const target = overrideInv || invoices.find(i => i.id === invoiceId)
     if (!target) return
 
-    // Post validation: update state to 'open'
+    const isCashInvoice = target.category === 'cash'
+
+    // Post validation: update state to 'open' (or 'paid' for Cash Invoices)
     const updated: Invoice = {
       ...target,
-      state: 'open',
+      state: isCashInvoice ? 'paid' : 'open',
+      residual: isCashInvoice ? 0 : target.residual,
       validatedBy: currentRole,
       validatedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
       approvalStatus: 'approved',
@@ -258,6 +264,38 @@ export default function App() {
       target.state,
       'cancel',
       'Invoice cancelled and receivables cleared.'
+    )
+  }
+
+  const handleConvertToTaxInvoice = (invoiceId: string) => {
+    const target = invoices.find(i => i.id === invoiceId)
+    if (!target) return
+    const stamp = Math.floor(1000 + Math.random() * 9000)
+    const newSeq = `INV/2026/${stamp}`
+
+    setInvoices(prev =>
+      prev.map(i =>
+        i.id === invoiceId
+          ? {
+              ...i,
+              number: newSeq,
+              category: 'credit',
+              state: 'open',
+              paymentTerms: '15 Days Net',
+              dateDue: '2026-11-20',
+            }
+          : i
+      )
+    )
+
+    addAuditLog(
+      'Invoice',
+      target.id,
+      newSeq,
+      'convert_proforma',
+      target.number,
+      'open',
+      `Proforma invoice ${target.number} converted to official Tax Invoice ${newSeq}`
     )
   }
 
@@ -767,15 +805,22 @@ export default function App() {
   // Unreconciled count
   const unreconciledCount = payments.filter(p => p.state === 'posted' && p.partnerType === 'customer').length
 
+  // Invoice Category Counts
+  const cashInvoicesCount = invoices.filter(i => (i.category || 'credit') === 'cash').length
+  const creditInvoicesCount = invoices.filter(i => (i.category || 'credit') === 'credit').length
+  const proformaInvoicesCount = invoices.filter(i => i.category === 'proforma').length
+  const progressiveInvoicesCount = invoices.filter(i => i.category === 'progressive').length
+
   return (
     <div className={`flex min-h-screen bg-slate-100 text-slate-800 ${arabic ? 'rtl' : 'ltr'}`} dir={arabic ? 'rtl' : 'ltr'}>
       {/* Navigation Sidebar */}
       <Sidebar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        onOpenDrawer={drawer => {
+        onOpenDrawer={(drawer, category) => {
           if (drawer === 'invoice') {
             setEditingInvoice(undefined)
+            if (category) setDefaultInvoiceCategory(category)
             setDrawerType('invoice')
           } else if (drawer === 'bill') {
             setEditingBill(undefined)
@@ -795,6 +840,12 @@ export default function App() {
         invoicesCount={invoices.filter(i => i.state === 'open' || i.state === 'in_payment').length}
         billsCount={bills.filter(b => b.state === 'open' || b.state === 'in_payment').length}
         unreconciledCount={unreconciledCount}
+        activeInvoiceCategory={activeInvoiceCategory}
+        onSelectInvoiceCategory={setActiveInvoiceCategory}
+        cashCount={cashInvoicesCount}
+        creditCount={creditInvoicesCount}
+        proformaCount={proformaInvoicesCount}
+        progressiveCount={progressiveInvoicesCount}
       />
 
       {/* Main App Content Area */}
@@ -830,8 +881,9 @@ export default function App() {
           {activeTab === 'invoices' && (
             <InvoiceList
               invoices={invoices}
-              onOpenInvoiceModal={inv => {
+              onOpenInvoiceModal={(inv, cat) => {
                 setEditingInvoice(inv)
+                if (cat) setDefaultInvoiceCategory(cat)
                 setDrawerType('invoice')
               }}
               onOpenPaymentModal={inv => {
@@ -841,8 +893,11 @@ export default function App() {
               onValidateInvoice={id => handleValidateInvoice(id)}
               onCancelInvoice={id => handleCancelInvoice(id)}
               onCreateCreditNote={inv => handleCreateCreditNote(inv)}
+              onConvertToTaxInvoice={handleConvertToTaxInvoice}
               currentRole={currentRole}
               searchQuery={searchQuery}
+              activeCategoryFilter={activeInvoiceCategory}
+              onCategoryFilterChange={setActiveInvoiceCategory}
             />
           )}
 
@@ -943,6 +998,7 @@ export default function App() {
           invoice={editingInvoice}
           companyId={activeCompanyId}
           existingInvoices={invoices}
+          defaultCategory={defaultInvoiceCategory}
           onClose={() => {
             setDrawerType(null)
             setEditingInvoice(undefined)

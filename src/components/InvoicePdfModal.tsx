@@ -76,7 +76,15 @@ export default function InvoicePdfModal({ invoice, onClose }: InvoicePdfModalPro
             {/* Title & Document Meta */}
             <div className="my-5 flex justify-between items-end">
               <div>
-                <h1 className="text-xl font-black text-slate-900 tracking-tight">TAX INVOICE / فاتورة ضريبية</h1>
+                <h1 className="text-xl font-black text-slate-900 tracking-tight">
+                  {invoice.category === 'cash'
+                    ? 'CASH INVOICE / فاتورة نقدية'
+                    : invoice.category === 'proforma'
+                    ? 'PROFORMA INVOICE / فاتورة شكلية'
+                    : invoice.category === 'progressive'
+                    ? 'PROGRESSIVE TAX INVOICE / فاتورة مرحلية'
+                    : 'TAX INVOICE / فاتورة ضريبية'}
+                </h1>
                 <div className="text-xs font-mono font-bold text-emerald-800">{invoice.number}</div>
               </div>
               <div className="text-right text-[11px] space-y-1">
@@ -88,6 +96,28 @@ export default function InvoicePdfModal({ invoice, onClose }: InvoicePdfModalPro
                 )}
               </div>
             </div>
+
+            {/* Progressive Project Milestone Box */}
+            {invoice.category === 'progressive' && (
+              <div className="mb-6 p-3 rounded-lg bg-amber-50/70 border border-amber-200 grid grid-cols-4 gap-2 text-[11px]">
+                <div>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Contract Total</span>
+                  <strong className="font-mono">{moneyFormat(invoice.contractAmount || 500000, invoice.currency)}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Previously Billed</span>
+                  <strong className="font-mono">{moneyFormat(invoice.previouslyBilled || 0, invoice.currency)}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Current Progress</span>
+                  <strong className="font-mono">{invoice.progressPercentage || 30}%</strong>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Retainage</span>
+                  <strong className="font-mono">{moneyFormat(invoice.retainageAmount || 0, invoice.currency)}</strong>
+                </div>
+              </div>
+            )}
 
             {/* Customer Box */}
             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6">

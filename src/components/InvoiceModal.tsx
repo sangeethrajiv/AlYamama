@@ -9,14 +9,19 @@ import {
   CheckCircle2,
   Coins,
   History,
+  CreditCard,
+  Layers,
+  FileText,
+  Calculator,
 } from 'lucide-react'
-import type { Invoice, InvoiceLine, CompanyId } from '../types/accounting'
+import type { Invoice, InvoiceLine, CompanyId, InvoiceCategory } from '../types/accounting'
 import { mockAnalyticAccounts, mockCurrencies, moneyFormat } from '../data/mockAccountingData'
 
 interface InvoiceModalProps {
   invoice?: Invoice
   companyId: CompanyId
   existingInvoices: Invoice[]
+  defaultCategory?: InvoiceCategory
   onClose: () => void
   onSave: (invoice: Invoice, postImmediately?: boolean) => void
 }
@@ -25,22 +30,76 @@ export default function InvoiceModal({
   invoice,
   companyId,
   existingInvoices,
+  defaultCategory = 'credit',
   onClose,
   onSave,
 }: InvoiceModalProps) {
   const isEditing = Boolean(invoice)
   const isDraft = !invoice || invoice.state === 'draft'
 
+  // Invoice Category (Cash, Credit, Proforma, Progressive)
+  const [category, setCategory] = useState<InvoiceCategory>(
+    invoice?.category || defaultCategory
+  )
+
+  // Progressive Billing State
+  const [contractAmount, setContractAmount] = useState<number>(invoice?.contractAmount || 500000)
+  const [previouslyBilled, setPreviouslyBilled] = useState<number>(invoice?.previouslyBilled || 150000)
+  const [progressPercentage, setProgressPercentage] = useState<number>(invoice?.progressPercentage || 30)
+  const [retainagePercent, setRetainagePercent] = useState<number>(10)
+  const [retainageAmount, setRetainageAmount] = useState<number>(invoice?.retainageAmount || 15000)
+
   // Form State
   const [partner, setPartner] = useState(invoice?.partner || 'Al-Yamama Steel Industries')
   const [customerVat, setCustomerVat] = useState(invoice?.customerVat || '300184920100003')
   const [dateInvoice, setDateInvoice] = useState(invoice?.dateInvoice || '2026-11-06')
-  const [dateDue, setDateDue] = useState(invoice?.dateDue || '2026-11-20')
-  const [paymentTerms, setPaymentTerms] = useState(invoice?.paymentTerms || '15 Days Net')
+  const [dateDue, setDateDue] = useState(
+    invoice?.dateDue || (category === 'cash' ? '2026-11-06' : '2026-11-20')
+  )
+  const [paymentTerms, setPaymentTerms] = useState(
+    invoice?.paymentTerms || (category === 'cash' ? 'Immediate / Cash' : category === 'progressive' ? '30 Days Net' : category === 'proforma' ? 'Advance / Proforma' : '15 Days Net')
+  )
   const [reference, setReference] = useState(invoice?.reference || '')
   const [currency, setCurrency] = useState(invoice?.currency || 'SAR')
   const [currencyRate, setCurrencyRate] = useState(invoice?.currencyRate || 1.0)
   const [attachmentsCount, setAttachmentsCount] = useState(invoice?.attachmentsCount || 1)
+
+  const handleCategoryChange = (newCat: InvoiceCategory) => {
+    if (!isDraft) return
+    setCategory(newCat)
+    if (newCat === 'cash') {
+      setPaymentTerms('Immediate / Cash')
+      setDateDue(dateInvoice)
+    } else if (newCat === 'credit') {
+      setPaymentTerms('15 Days Net')
+    } else if (newCat === 'proforma') {
+      setPaymentTerms('Advance / Proforma')
+    } else if (newCat === 'progressive') {
+      setPaymentTerms('30 Days Net')
+    }
+  }
+
+  const applyProgressiveValues = () => {
+    const grossProgressAmt = contractAmount * (progressPercentage / 100)
+    const netProgressAmt = Math.max(0, grossProgressAmt - retainageAmount)
+    const untaxed = Number((netProgressAmt / 1.15).toFixed(2))
+    const tax = Number((netProgressAmt - untaxed).toFixed(2))
+
+    setLines([
+      {
+        id: `ln_prg_${Date.now()}`,
+        product: `PRG-STAGE-${progressPercentage}`,
+        description: `Project Milestone: ${progressPercentage}% progress on contract SAR ${contractAmount.toLocaleString()} less retainage SAR ${retainageAmount.toLocaleString()}`,
+        quantity: 1,
+        unitPrice: untaxed,
+        taxRate: 0.15,
+        subtotal: untaxed,
+        taxAmount: tax,
+        total: netProgressAmt,
+        analyticAccountId: 'ana_1',
+      },
+    ])
+  }
 
   // Lines
   const [lines, setLines] = useState<InvoiceLine[]>(
@@ -132,8 +191,21 @@ export default function InvoiceModal({
       return
     }
 
-    const nextSeq = invoice?.number || `INV/2026/${Math.floor(1000 + Math.random() * 9000)}`
+    let nextSeq = invoice?.number
+    if (!nextSeq) {
+      const stamp = Math.floor(1000 + Math.random() * 9000)
+      if (category === 'cash') nextSeq = `CSH/2026/${stamp}`
+      else if (category === 'proforma') nextSeq = `PRO/2026/${stamp}`
+      else if (category === 'progressive') nextSeq = `PRG/2026/${stamp}`
+      else nextSeq = `INV/2026/${stamp}`
+    }
+
     const isHighValue = grandTotal >= 200000
+    const isCashSettled = category === 'cash' && postImmediately
+    const computedState = isCashSettled ? 'paid' : (postImmediately ? 'open' : (invoice?.state || 'draft'))
+    const computedResidual = isCashSettled
+      ? 0
+      : (invoice?.residual !== undefined ? (invoice.state === 'draft' ? grandTotal : invoice.residual) : grandTotal)
 
     const updatedInvoice: Invoice = {
       id: invoice?.id || `inv_${Date.now()}`,
@@ -142,9 +214,9 @@ export default function InvoiceModal({
       partner,
       customerVat,
       dateInvoice,
-      dateDue,
+      dateDue: category === 'cash' ? dateInvoice : dateDue,
       paymentTerms,
-      journalId: 'jour_sale',
+      journalId: category === 'cash' ? 'jour_cash' : 'jour_sale',
       currency,
       currencyRate,
       reference,
@@ -152,8 +224,13 @@ export default function InvoiceModal({
       amountUntaxed: untaxedTotal,
       amountTax: taxTotal,
       amountTotal: grandTotal,
-      residual: invoice?.residual !== undefined ? (invoice.state === 'draft' ? grandTotal : invoice.residual) : grandTotal,
-      state: postImmediately ? 'open' : (invoice?.state || 'draft'),
+      residual: computedResidual,
+      state: computedState,
+      category,
+      contractAmount: category === 'progressive' ? contractAmount : undefined,
+      previouslyBilled: category === 'progressive' ? previouslyBilled : undefined,
+      progressPercentage: category === 'progressive' ? progressPercentage : undefined,
+      retainageAmount: category === 'progressive' ? retainageAmount : undefined,
       approvalStatus: isHighValue ? 'pending_director' : (grandTotal >= 50000 ? 'pending_manager' : 'approved'),
       validatedBy: postImmediately ? 'Current User' : invoice?.validatedBy,
       validatedAt: postImmediately ? new Date().toISOString().replace('T', ' ').slice(0, 16) : invoice?.validatedAt,
@@ -206,7 +283,167 @@ export default function InvoiceModal({
         )}
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* 4 Invoice Types Switcher */}
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Select Invoice Type
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                type="button"
+                disabled={!isDraft}
+                onClick={() => handleCategoryChange('cash')}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 border ${
+                  category === 'cash'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 disabled:opacity-60'
+                }`}
+              >
+                <Coins size={15} />
+                <span>Cash Invoice</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={!isDraft}
+                onClick={() => handleCategoryChange('credit')}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 border ${
+                  category === 'credit'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 disabled:opacity-60'
+                }`}
+              >
+                <CreditCard size={15} />
+                <span>Credit Invoice</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={!isDraft}
+                onClick={() => handleCategoryChange('proforma')}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 border ${
+                  category === 'proforma'
+                    ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 disabled:opacity-60'
+                }`}
+              >
+                <FileText size={15} />
+                <span>Proforma Invoice</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={!isDraft}
+                onClick={() => handleCategoryChange('progressive')}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 border ${
+                  category === 'progressive'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 disabled:opacity-60'
+                }`}
+              >
+                <Layers size={15} />
+                <span>Progressive Invoice</span>
+              </button>
+            </div>
+
+            {/* Type Information Badges */}
+            <div className="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center gap-2">
+              {category === 'cash' && (
+                <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
+                  <Coins size={13} /> Immediate cash/counter invoice. Cleared immediately with cash/bank receipt.
+                </span>
+              )}
+              {category === 'credit' && (
+                <span className="text-blue-700 font-semibold flex items-center gap-1.5">
+                  <CreditCard size={13} /> Standard credit invoice with credit terms, due date, and AR tracking.
+                </span>
+              )}
+              {category === 'proforma' && (
+                <span className="text-purple-700 font-semibold flex items-center gap-1.5">
+                  <FileText size={13} /> Commercial proforma estimate (PRO sequence). Converts to Tax Invoice on confirmation.
+                </span>
+              )}
+              {category === 'progressive' && (
+                <span className="text-amber-800 font-semibold flex items-center gap-1.5">
+                  <Layers size={13} /> Project milestone billing with contract PO, previous billing, % progress, and retainage.
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Progressive Billing Milestone Panel */}
+          {category === 'progressive' && (
+            <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 text-xs space-y-3">
+              <div className="font-bold text-amber-900 flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-xs">
+                  <Layers size={15} className="text-amber-700" />
+                  Progressive / Milestone Project Billing Setup
+                </span>
+                <button
+                  type="button"
+                  onClick={applyProgressiveValues}
+                  disabled={!isDraft}
+                  className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold flex items-center gap-1 transition shadow-xs"
+                >
+                  <Calculator size={12} />
+                  <span>Calculate & Apply Line Item</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-slate-600 font-semibold mb-1">Blanket Contract / PO</label>
+                  <input
+                    type="number"
+                    min="0"
+                    disabled={!isDraft}
+                    value={contractAmount}
+                    onChange={e => setContractAmount(Number(e.target.value))}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-mono text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 font-semibold mb-1">Previously Invoiced</label>
+                  <input
+                    type="number"
+                    min="0"
+                    disabled={!isDraft}
+                    value={previouslyBilled}
+                    onChange={e => setPreviouslyBilled(Number(e.target.value))}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-mono text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 font-semibold mb-1">Current Progress %</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    disabled={!isDraft}
+                    value={progressPercentage}
+                    onChange={e => setProgressPercentage(Number(e.target.value))}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-mono text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 font-semibold mb-1">Retainage Amount (SAR)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    disabled={!isDraft}
+                    value={retainageAmount}
+                    onChange={e => setRetainageAmount(Number(e.target.value))}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-mono text-slate-800"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Main Attributes Card */}
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
