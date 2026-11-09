@@ -1,15 +1,5 @@
 import { useState } from 'react'
-import {
-  BarChart3,
-  FileSpreadsheet,
-  Printer,
-  Calendar,
-  Filter,
-  CheckCircle2,
-  AlertCircle,
-  ArrowUpRight,
-  ChevronRight,
-} from 'lucide-react'
+import { CheckCircle2, AlertCircle } from 'lucide-react'
 import type { Account, Invoice, JournalEntry, AnalyticAccount } from '../types/accounting'
 import { mockAnalyticAccounts, moneyFormat } from '../data/mockAccountingData'
 
@@ -137,13 +127,13 @@ export default function ReportsView({
             onClick={() => window.print()}
             className="px-3 py-1.5 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-bold flex items-center gap-1.5 transition"
           >
-            <Printer size={14} /> Print Report
+            Print Report
           </button>
           <button
             onClick={() => alert('Exporting report data to Excel (.XLSX)...')}
             className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
           >
-            <FileSpreadsheet size={14} /> Export Excel
+            Export Excel
           </button>
         </div>
       </div>
@@ -195,7 +185,7 @@ export default function ReportsView({
 
         {/* Cost centre filter (§16.1 ANA-009) */}
         <div className="flex items-center gap-2 text-xs">
-          <Filter size={13} className="text-slate-400" />
+          
           <span className="text-slate-500 font-semibold">Cost Centre:</span>
           <select
             value={selectedCostCentre}
@@ -275,7 +265,7 @@ export default function ReportsView({
             </div>
 
             {/* Net Profit Banner */}
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-4 rounded-xl flex items-center justify-between shadow-xs">
+            <div className="bg-gradient-to-r from-emerald-600 to-slate-700 text-white p-4 rounded-xl flex items-center justify-between shadow-xs">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wider opacity-80">
                   Net Operating Profit
@@ -326,14 +316,14 @@ export default function ReportsView({
                 {assetAccounts.map(acc => (
                   <div key={acc.id} className="py-2 px-2 flex justify-between hover:bg-slate-50/50">
                     <span className="text-slate-700">
-                      <span className="font-mono text-blue-700 mr-2">{acc.code}</span>
+                      <span className="font-mono text-slate-700 mr-2">{acc.code}</span>
                       {acc.name}
                     </span>
                     <span className="font-mono font-bold text-slate-900">{moneyFormat(acc.balance)}</span>
                   </div>
                 ))}
               </div>
-              <div className="pt-3 border-t-2 border-slate-300 flex justify-between font-bold text-sm text-blue-900">
+              <div className="pt-3 border-t-2 border-slate-300 flex justify-between font-bold text-sm text-slate-900">
                 <span>Total Assets:</span>
                 <span className="font-mono">{moneyFormat(totalAssets)}</span>
               </div>
@@ -367,7 +357,7 @@ export default function ReportsView({
                   {equityAccounts.map(acc => (
                     <div key={acc.id} className="py-2 px-2 flex justify-between hover:bg-slate-50/50">
                       <span className="text-slate-700">
-                        <span className="font-mono text-purple-700 mr-2">{acc.code}</span>
+                        <span className="font-mono text-slate-700 mr-2">{acc.code}</span>
                         {acc.name}
                       </span>
                       <span className="font-mono font-bold text-slate-900">{moneyFormat(Math.abs(acc.balance))}</span>
@@ -574,7 +564,7 @@ export default function ReportsView({
                   glLines.map((line, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/50">
                       <td className="py-2 px-3 text-slate-600 font-mono">{line.date}</td>
-                      <td className="py-2 px-3 font-mono font-bold text-blue-800">{line.entryNumber}</td>
+                      <td className="py-2 px-3 font-mono font-bold text-slate-800">{line.entryNumber}</td>
                       <td className="py-2 px-3 text-slate-700">{line.partner}</td>
                       <td className="py-2 px-3 text-slate-600">{line.label}</td>
                       <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">

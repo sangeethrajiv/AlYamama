@@ -1,17 +1,5 @@
 import { useState } from 'react'
-import {
-  X,
-  Plus,
-  Trash2,
-  FileCheck2,
-  CheckCircle2,
-  History,
-  Coins,
-  CreditCard,
-  Layers,
-  FileText,
-  Car,
-} from 'lucide-react'
+import { X, Plus, Trash2, CheckCircle2 } from 'lucide-react'
 import type { Invoice, InvoiceLine, CompanyId, InvoiceCategory } from '../types/accounting'
 import { mockAnalyticAccounts, mockCurrencies } from '../data/mockAccountingData'
 
@@ -337,9 +325,6 @@ export default function InvoiceModal({
         {/* Right Sidebar Drawer Header */}
         <div className="bg-white px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs">
-              <FileCheck2 size={22} />
-            </div>
             <div>
               <div className="flex items-center gap-2.5">
                 <h2 className="text-lg font-black text-slate-800 tracking-tight">
@@ -350,7 +335,7 @@ export default function InvoiceModal({
                     stateDisplay === 'OPEN'
                       ? 'bg-emerald-100 text-emerald-800'
                       : stateDisplay === 'PAID'
-                      ? 'bg-blue-100 text-blue-800'
+                      ? 'bg-slate-100 text-slate-800'
                       : 'bg-amber-100 text-amber-800'
                   }`}
                 >
@@ -386,7 +371,7 @@ export default function InvoiceModal({
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 disabled:opacity-60'
                 }`}
               >
-                <Coins size={15} />
+                
                 <span>Cash Invoice</span>
               </button>
 
@@ -396,11 +381,11 @@ export default function InvoiceModal({
                 onClick={() => handleCategoryChange('credit')}
                 className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 border ${
                   category === 'credit'
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                    ? 'bg-slate-600 text-white border-slate-600 shadow-xs'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 disabled:opacity-60'
                 }`}
               >
-                <CreditCard size={15} />
+                
                 <span>Credit Invoice</span>
               </button>
 
@@ -410,11 +395,11 @@ export default function InvoiceModal({
                 onClick={() => handleCategoryChange('proforma')}
                 className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 border ${
                   category === 'proforma'
-                    ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                    ? 'bg-slate-600 text-white border-slate-600 shadow-xs'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 disabled:opacity-60'
                 }`}
               >
-                <FileText size={15} />
+                
                 <span>Proforma Invoice</span>
               </button>
 
@@ -428,7 +413,7 @@ export default function InvoiceModal({
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 disabled:opacity-60'
                 }`}
               >
-                <Layers size={15} />
+                
                 <span>Progressive Invoice</span>
               </button>
             </div>
@@ -569,7 +554,7 @@ export default function InvoiceModal({
                       disabled={!isDraft}
                       value={partner}
                       onChange={e => setPartner(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-teal-800 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                      className="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-slate-800 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-600"
                     />
                     <textarea
                       rows={3}
@@ -617,7 +602,7 @@ export default function InvoiceModal({
                       disabled={!isDraft}
                       value={paymentTerms}
                       onChange={e => setPaymentTerms(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-teal-800 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                      className="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-slate-800 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-600"
                     >
                       <option value="On Completion">On Completion</option>
                       <option value="Immediate Payment">Immediate Payment</option>
@@ -637,7 +622,7 @@ export default function InvoiceModal({
                       disabled={!isDraft}
                       checked={showDiscount}
                       onChange={e => setShowDiscount(e.target.checked)}
-                      className="rounded border-slate-300 text-teal-700 h-4 w-4"
+                      className="rounded border-slate-300 text-slate-700 h-4 w-4"
                     />
                   </div>
                 </div>
@@ -725,7 +710,7 @@ export default function InvoiceModal({
                 {/* Salesperson */}
                 <div className="grid grid-cols-5 items-center">
                   <label className="col-span-2 font-bold text-slate-700">Salesperson</label>
-                  <div className="col-span-3 text-teal-800 font-semibold">{salesperson}</div>
+                  <div className="col-span-3 text-slate-800 font-semibold">{salesperson}</div>
                 </div>
 
                 {/* Equipment Details Group Task */}
@@ -769,7 +754,7 @@ export default function InvoiceModal({
                       disabled={!isDraft}
                       checked={companySeal}
                       onChange={e => setCompanySeal(e.target.checked)}
-                      className="rounded border-slate-300 text-teal-700 h-4 w-4"
+                      className="rounded border-slate-300 text-slate-700 h-4 w-4"
                     />
                   </div>
                 </div>
@@ -783,7 +768,7 @@ export default function InvoiceModal({
                       disabled={!isDraft}
                       checked={showOutFromStock}
                       onChange={e => setShowOutFromStock(e.target.checked)}
-                      className="rounded border-slate-300 text-teal-700 h-4 w-4"
+                      className="rounded border-slate-300 text-slate-700 h-4 w-4"
                     />
                   </div>
                 </div>
@@ -800,7 +785,7 @@ export default function InvoiceModal({
                         setIsProgressive(e.target.checked)
                         if (e.target.checked) setCategory('progressive')
                       }}
-                      className="rounded border-slate-300 text-teal-700 h-4 w-4"
+                      className="rounded border-slate-300 text-slate-700 h-4 w-4"
                     />
                   </div>
                 </div>
@@ -891,7 +876,7 @@ export default function InvoiceModal({
                       : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <Car size={13} />
+                  
                   <span>Vehicles</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-normal">
                     {vehiclesList.length}
@@ -976,7 +961,7 @@ export default function InvoiceModal({
                               disabled={!isDraft}
                               checked={line.showSeparately || false}
                               onChange={e => updateLine(line.id, 'showSeparately', e.target.checked)}
-                              className="rounded border-slate-300 text-teal-700"
+                              className="rounded border-slate-300 text-slate-700"
                             />
                           </td>
 
@@ -987,7 +972,7 @@ export default function InvoiceModal({
                               disabled={!isDraft}
                               checked={line.showLine || false}
                               onChange={e => updateLine(line.id, 'showLine', e.target.checked)}
-                              className="rounded border-slate-300 text-teal-700"
+                              className="rounded border-slate-300 text-slate-700"
                             />
                           </td>
 
@@ -998,7 +983,7 @@ export default function InvoiceModal({
                               disabled={!isDraft}
                               checked={line.showMainQuantity || false}
                               onChange={e => updateLine(line.id, 'showMainQuantity', e.target.checked)}
-                              className="rounded border-slate-300 text-teal-700"
+                              className="rounded border-slate-300 text-slate-700"
                             />
                           </td>
 
@@ -1239,7 +1224,7 @@ export default function InvoiceModal({
                     <tbody className="divide-y divide-slate-100">
                       {vehiclesList.map(veh => (
                         <tr key={veh.id} className="hover:bg-slate-50/70">
-                          <td className="py-2 px-3 font-bold text-teal-800">{veh.plateNumber}</td>
+                          <td className="py-2 px-3 font-bold text-slate-800">{veh.plateNumber}</td>
                           <td className="py-2 px-3 font-mono text-slate-600">{veh.chassisNumber || '-'}</td>
                           <td className="py-2 px-3 text-slate-700">{veh.model || '-'}</td>
                           <td className="py-2 px-3 font-semibold text-slate-800">{veh.gpsDeviceId || '-'}</td>
@@ -1275,7 +1260,7 @@ export default function InvoiceModal({
                       }
                       setVehiclesList([...vehiclesList, newVeh])
                     }}
-                    className="text-teal-700 hover:text-teal-900 text-xs font-semibold hover:underline inline-flex items-center gap-1"
+                    className="text-slate-700 hover:text-slate-900 text-xs font-semibold hover:underline inline-flex items-center gap-1"
                   >
                     <Plus size={14} /> Add a Vehicle
                   </button>
@@ -1287,7 +1272,7 @@ export default function InvoiceModal({
           {/* CARD 3: DOCUMENT ACTIVITY & AUDIT HISTORY */}
           <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
             <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              <History size={14} className="text-emerald-600" />
+              
               <span>DOCUMENT ACTIVITY & AUDIT HISTORY</span>
             </div>
             <p className="text-[11px] text-slate-400">

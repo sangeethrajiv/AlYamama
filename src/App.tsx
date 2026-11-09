@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type {
   TabId,
   DrawerType,
@@ -52,6 +52,7 @@ export default function App() {
   const [currentRole, setCurrentRole] = useState<UserRole>('Accounts Manager')
   const [arabic, setArabic] = useState<boolean>(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   // Entities Data State
   const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices)
@@ -77,6 +78,26 @@ export default function App() {
     bill?: Bill
   }>({ open: false })
   const [selectedGlCode, setSelectedGlCode] = useState<string | undefined>(undefined)
+
+  // Esc closes any open modal/drawer; page scrolls to top on tab change
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (pdfInvoice) setPdfInvoice(null)
+      else if (paymentModalState.open) setPaymentModalState({ open: false })
+      else if (drawerType) {
+        setDrawerType(null)
+        setEditingInvoice(undefined)
+        setEditingBill(undefined)
+      } else setMobileNavOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [pdfInvoice, paymentModalState.open, drawerType])
+
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [activeTab])
 
   // Current company fiscal config
   const currentFiscalConfig = fiscalConfig[activeCompanyId] || fiscalConfig['co_1']
@@ -587,6 +608,35 @@ export default function App() {
     )
   }
 
+  const handleBulkReconcile = (paymentId: string, allocations: { invoiceId: string; amount: number }[]) => {
+    const pay = payments.find(p => p.id === paymentId)
+    if (!pay || allocations.length === 0) return
+    const byId = new Map(allocations.map(a => [a.invoiceId, a.amount]))
+    const refs: string[] = []
+    setInvoices(prev =>
+      prev.map(i => {
+        const amt = byId.get(i.id)
+        if (!amt) return i
+        refs.push(i.number)
+        const residual = Math.max(0, Math.round((i.residual - amt) * 100) / 100)
+        return { ...i, residual, state: residual <= 0 ? 'paid' : 'in_payment' }
+      })
+    )
+    const total = allocations.reduce((s, a) => s + a.amount, 0)
+    const fully = total >= pay.amount - 0.005
+    setPayments(prev =>
+      prev.map(p =>
+        p.id === paymentId
+          ? { ...p, state: fully ? 'reconciled' : 'posted', matchedInvoiceIds: [...(p.matchedInvoiceIds || []), ...allocations.map(a => a.invoiceId)] }
+          : p
+      )
+    )
+    addAuditLog(
+      'Payment', pay.id, pay.paymentNumber, 'bulk_reconciliation', 'posted', fully ? 'reconciled' : 'posted',
+      `Bulk payment matched against ${allocations.length} invoice(s): ${allocations.map(a => invoices.find(i => i.id === a.invoiceId)?.number).join(', ')}. Total allocated ${total.toFixed(2)}.`
+    )
+  }
+
   // --- Journal Entry Operations (§6) ---
   const handleSaveJE = (entry: JournalEntry) => {
     setJournalEntries(prev => [entry, ...prev])
@@ -842,6 +892,8 @@ export default function App() {
         unreconciledCount={unreconciledCount}
         activeInvoiceCategory={activeInvoiceCategory}
         onSelectInvoiceCategory={setActiveInvoiceCategory}
+        mobileOpen={mobileNavOpen}
+        onCloseMobile={() => setMobileNavOpen(false)}
         cashCount={cashInvoicesCount}
         creditCount={creditInvoicesCount}
         proformaCount={proformaInvoicesCount}
@@ -860,15 +912,18 @@ export default function App() {
           onOpenQuickCreate={() => setDrawerType('invoice')}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          onToggleSidebar={() => setMobileNavOpen(true)}
         />
 
-        <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto">
+          <div key={activeTab} className="page-fade">
           {activeTab === 'dashboard' && (
             <DashboardView
               invoices={invoices}
               bills={bills}
               payments={payments}
               accounts={accounts}
+              currentRole={currentRole}
               onSelectTab={setActiveTab}
               onOpenDrawer={setDrawerType}
               onOpenInvoiceModal={inv => {
@@ -934,6 +989,7 @@ export default function App() {
               invoices={invoices}
               payments={payments}
               onReconcile={handleReconcile}
+              onBulkReconcile={handleBulkReconcile}
               currentRole={currentRole}
             />
           )}
@@ -989,6 +1045,7 @@ export default function App() {
               currentRole={currentRole}
             />
           )}
+          </div>
         </main>
       </div>
 

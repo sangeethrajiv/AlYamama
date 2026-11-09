@@ -1,15 +1,5 @@
 import { useState } from 'react'
-import {
-  Receipt,
-  Plus,
-  CreditCard,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  FileDown,
-  Building,
-  Paperclip,
-} from 'lucide-react'
+import { Plus, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 import type { Bill, InvoiceState, UserRole } from '../types/accounting'
 import { moneyFormat } from '../data/mockAccountingData'
 import MoneyBar from './MoneyBar'
@@ -76,7 +66,7 @@ export default function BillList({
       case 'open':
         return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Open</span>
       case 'in_payment':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">In Payment</span>
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-300">In Payment</span>
       case 'paid':
         return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Paid</span>
       case 'cancel':
@@ -149,7 +139,7 @@ export default function BillList({
               {filteredBills.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="py-10 text-center text-slate-400">
-                    <Receipt size={32} className="mx-auto mb-2 text-slate-300" />
+                    
                     <p className="font-semibold text-slate-600">No vendor bills found</p>
                     <p className="text-[11px] text-slate-400">Try adjusting your filters or create a new bill.</p>
                   </td>
@@ -168,7 +158,7 @@ export default function BillList({
                           <span>{bill.number}</span>
                           {bill.attachmentsCount > 0 && (
                             <span className="text-[10px] text-slate-400 flex items-center" title={`${bill.attachmentsCount} files attached`}>
-                              <Paperclip size={11} /> {bill.attachmentsCount}
+                              {bill.attachmentsCount}
                             </span>
                           )}
                         </div>
@@ -181,7 +171,7 @@ export default function BillList({
                         <div>{bill.vendor}</div>
                         {bill.interCompanyOrigin && (
                           <div className="text-[10px] text-emerald-600 flex items-center gap-1 font-mono">
-                            <Building size={10} /> Auto-IC from: {bill.interCompanyOrigin}
+                            Auto-IC from: {bill.interCompanyOrigin}
                           </div>
                         )}
                       </td>
@@ -213,7 +203,7 @@ export default function BillList({
                         )}
                         {bill.approvalStatus === 'pending_manager' && (
                           <div className="flex items-center justify-center gap-1">
-                            <span className="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 font-semibold">
+                            <span className="text-[10px] text-slate-700 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200 font-semibold">
                               Pending Accts Mgr
                             </span>
                             {canApproveLevel1 && (
@@ -238,7 +228,7 @@ export default function BillList({
                         )}
                         {bill.approvalStatus === 'pending_director' && (
                           <div className="flex items-center justify-center gap-1">
-                            <span className="text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200 font-semibold">
+                            <span className="text-[10px] text-slate-700 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200 font-semibold">
                               Pending Finance Dir
                             </span>
                             {canApproveLevel2 && (
@@ -275,7 +265,7 @@ export default function BillList({
                               className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition"
                               title="Pay Vendor Bill"
                             >
-                              <CreditCard size={11} />
+                              
                               <span>Pay</span>
                             </button>
                           )}
@@ -299,7 +289,7 @@ export default function BillList({
             onClick={() => alert('Exporting Vendor Bills to XLSX...')}
             className="hover:text-emerald-700 font-semibold flex items-center gap-1"
           >
-            <FileDown size={12} /> Export CSV/XLSX
+            Export CSV/XLSX
           </button>
         </div>
       </div>

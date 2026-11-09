@@ -1,13 +1,5 @@
 import { useState } from 'react'
-import {
-  Calendar,
-  Building2,
-  Coins,
-  ShieldCheck,
-  CheckCircle2,
-  FileCheck2,
-  Lock,
-} from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import type { CompanyId, FiscalPeriodConfig, UserRole } from '../types/accounting'
 import { mockCompanies, mockCurrencies } from '../data/mockAccountingData'
 
@@ -136,7 +128,7 @@ export default function SettingsAndLockView({
                 disabled={!canAdvanceLock}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg font-bold flex items-center gap-1.5 shadow-sm transition"
               >
-                <Calendar size={15} />
+                
                 <span>Update Accounting Period</span>
               </button>
             </div>
@@ -304,7 +296,7 @@ export default function SettingsAndLockView({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
               <div className="text-slate-500 font-bold mb-1">Accounts Manager Approval Limit</div>
-              <div className="text-2xl font-mono font-extrabold text-blue-900">
+              <div className="text-2xl font-mono font-extrabold text-slate-900">
                 50,000.00 SR
               </div>
               <p className="text-[11px] text-slate-500 mt-2">
@@ -314,7 +306,7 @@ export default function SettingsAndLockView({
 
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
               <div className="text-slate-500 font-bold mb-1">Finance Director Approval Limit</div>
-              <div className="text-2xl font-mono font-extrabold text-purple-900">
+              <div className="text-2xl font-mono font-extrabold text-slate-900">
                 200,000.00 SR
               </div>
               <p className="text-[11px] text-slate-500 mt-2">
@@ -358,7 +350,7 @@ export default function SettingsAndLockView({
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 border border-slate-200 text-xs">
             <div className="flex items-center gap-2.5 text-emerald-700 mb-2">
-              <Calendar size={20} />
+              
               <h3 className="font-black text-sm text-slate-900">
                 Update Accounting Period
               </h3>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, CreditCard, Landmark, CheckCircle2, AlertCircle } from 'lucide-react'
+import { X, CheckCircle2 } from 'lucide-react'
 import type { Payment, Invoice, Bill, CompanyId, PaymentMethod } from '../types/accounting'
 import { mockChartOfAccounts, moneyFormat } from '../data/mockAccountingData'
 
@@ -104,9 +104,6 @@ export default function PaymentModal({
         {/* Header */}
         <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
-              <CreditCard size={18} />
-            </div>
             <div>
               <h3 className="font-extrabold text-sm">
                 {isCustomer ? 'Register Customer Receipt' : 'Register Vendor Payment'}

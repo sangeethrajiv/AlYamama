@@ -1,21 +1,14 @@
 import { useState } from 'react'
-import {
-  FileCheck2,
-  Sparkles,
-  ArrowRight,
-  CheckCircle2,
-  RefreshCw,
-  Scale,
-  Coins,
-  AlertCircle,
-} from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import type { Invoice, Payment, UserRole } from '../types/accounting'
 import { moneyFormat } from '../data/mockAccountingData'
+import BulkMatchPanel, { type BulkAllocation } from './BulkMatchPanel'
 
 interface ReconciliationViewProps {
   invoices: Invoice[]
   payments: Payment[]
   onReconcile: (invoiceId: string, paymentId: string, writeOffAmount?: number) => void
+  onBulkReconcile: (paymentId: string, allocations: BulkAllocation[]) => void
   currentRole: UserRole
 }
 
@@ -23,6 +16,7 @@ export default function ReconciliationView({
   invoices,
   payments,
   onReconcile,
+  onBulkReconcile,
   currentRole,
 }: ReconciliationViewProps) {
   // Outstanding debits (unpaid invoices)
@@ -85,9 +79,9 @@ export default function ReconciliationView({
 
       {/* Suggested Matches Card (§7.1 REC-003) */}
       {suggestedMatches.length > 0 && (
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 p-4 rounded-xl shadow-xs">
+        <div className="bg-gradient-to-r from-emerald-50 to-slate-50 border border-emerald-200 p-4 rounded-xl shadow-xs">
           <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 mb-2">
-            <Sparkles size={16} className="text-emerald-600" />
+            
             <span>AI / Rule-Based Suggested Matches ({suggestedMatches.length} detected)</span>
           </div>
           <div className="space-y-2">
@@ -105,13 +99,13 @@ export default function ReconciliationView({
                 </div>
 
                 <div className="flex items-center gap-2 text-slate-400">
-                  <ArrowRight size={14} className="text-emerald-600" />
+                  
                   <span className="text-[11px] font-bold uppercase text-emerald-700">Matches Payment</span>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <div className="font-bold text-slate-800">
-                    <span className="font-mono text-blue-700">{payment.paymentNumber}</span>
+                    <span className="font-mono text-slate-700">{payment.paymentNumber}</span>
                     <span className="text-slate-500 font-normal ml-2 font-mono">{moneyFormat(payment.amount, payment.currency)}</span>
                   </div>
                   <button
@@ -179,7 +173,7 @@ export default function ReconciliationView({
 
         {/* Center / Match Status & Actions */}
         <div className="lg:col-span-2 flex flex-col justify-center items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-          <Scale size={24} className="text-emerald-600" />
+          
           <div className="text-center">
             <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Balance Diff</div>
             <div
@@ -196,11 +190,11 @@ export default function ReconciliationView({
               <CheckCircle2 size={12} /> Balanced
             </div>
           ) : difference > 0 ? (
-            <div className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold text-center">
+            <div className="text-[10px] bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-semibold text-center">
               Partial Settlement (Remaining: {moneyFormat(difference, 'SAR')})
             </div>
           ) : (
-            <div className="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-semibold text-center">
+            <div className="text-[10px] bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-semibold text-center">
               Overpayment (Credit on Acct)
             </div>
           )}
@@ -242,12 +236,12 @@ export default function ReconciliationView({
                     onClick={() => setSelectedPaymentId(pay.id)}
                     className={`p-3 rounded-lg border text-xs cursor-pointer transition ${
                       isSelected
-                        ? 'border-blue-500 bg-blue-50/70 ring-2 ring-blue-500/20'
+                        ? 'border-slate-500 bg-slate-50/70 ring-2 ring-slate-500/20'
                         : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center justify-between font-bold">
-                      <span className="font-mono text-blue-800">{pay.paymentNumber}</span>
+                      <span className="font-mono text-slate-800">{pay.paymentNumber}</span>
                       <span className="font-mono text-slate-900">{moneyFormat(pay.amount, pay.currency)}</span>
                     </div>
                     <div className="text-slate-600 mt-0.5 truncate">{pay.partner}</div>
@@ -267,7 +261,7 @@ export default function ReconciliationView({
       {selectedInvoice && selectedPayment && (
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
           <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <Coins size={15} className="text-emerald-600" />
+            
             <span>Write-Off Configuration & Currency FX Gain/Loss</span>
           </h3>
 
@@ -315,6 +309,8 @@ export default function ReconciliationView({
           </div>
         </div>
       )}
+
+      <BulkMatchPanel invoices={invoices} payments={payments} onBulkReconcile={onBulkReconcile} />
     </div>
   )
 }

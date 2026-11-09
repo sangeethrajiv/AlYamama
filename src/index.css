@@ -17,3 +17,15 @@
 @media(max-width:1050px){.sidebar{width:215px}.page-content{padding:25px 22px}.topbar{padding:0 22px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-grid{grid-template-columns:1fr}.insight-panel{min-height:200px}}
 @media(max-width:700px){.app-shell{display:block}.sidebar{width:auto;height:auto;padding:12px 14px;border-right:0;border-bottom:1px solid #e7ebf0;display:block}.brand{display:none}.new-button{display:none}.nav-label,.sidebar-bottom{display:none}.sidebar nav{display:flex;overflow-x:auto;gap:4px}.nav-item{white-space:nowrap;height:37px;padding:0 10px;font-size:11px}.nav-item svg{width:15px}.topbar{height:58px;padding:0 14px}.mobile-brand{display:block;font:800 12px Manrope;color:#218b50;white-space:nowrap}.mobile-brand span{color:#8792a2;font-weight:500}.search-box{width:auto;flex:1;max-width:210px}.search-box input{font-size:10px}.top-actions{gap:8px}.profile-button b,.profile-button>svg,.language-button{display:none}.page-content{padding:22px 14px}.page-heading{align-items:flex-start;flex-direction:column}.page-heading h1{font-size:22px}.heading-actions{width:100%}.heading-actions>*{flex:1}.stats-grid,.stats-grid.three{grid-template-columns:1fr 1fr;gap:9px}.stat-card{padding:13px}.stat-value{font-size:17px}.toolbar{align-items:flex-start;flex-direction:column}.toolbar-right{width:100%}.table-search{flex:1}.table-search input{width:100%}.page-footnote{gap:8px;flex-direction:column}.modal-content{padding:15px}.modal-header,.modal-footer{padding-left:16px;padding-right:16px}.form-grid{padding:13px;gap:11px}.field input,.field select{font-size:10px}.modal-footer>*{flex:1}.modal-footer .primary-button{white-space:nowrap}}
 @media(max-width:420px){.stats-grid,.stats-grid.three{grid-template-columns:1fr}.search-box{max-width:145px}.language-button{display:none}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+
+/* UX polish */
+:focus-visible{outline:2px solid #208b50;outline-offset:2px;border-radius:6px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
+::selection{background:#bbf7d0}
+html{scroll-behavior:smooth}
+button:disabled{cursor:not-allowed;opacity:.55}
+.page-fade{animation:pageFade .22s ease-out}
+@keyframes pageFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px;border:2px solid transparent;background-clip:padding-box}::-webkit-scrollbar-thumb:hover{background:#94a3b8;background-clip:padding-box;border:2px solid transparent}
+table{font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

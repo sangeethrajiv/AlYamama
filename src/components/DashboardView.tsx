@@ -1,17 +1,4 @@
-import {
-  TrendingUp,
-  FileText,
-  Receipt,
-  CreditCard,
-  Landmark,
-  ArrowUpRight,
-  ArrowDownLeft,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Scale,
-  Plus,
-} from 'lucide-react'
+import { CheckCircle2, Plus } from 'lucide-react'
 import type { Invoice, Bill, Payment, Account, TabId, DrawerType } from '../types/accounting'
 import { moneyFormat } from '../data/mockAccountingData'
 
@@ -48,7 +35,7 @@ export default function DashboardView({
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-emerald-800 to-teal-900 rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-emerald-800 to-slate-900 rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-300">
             Al-Yamama Business Overview • Hydraulic Workshop Suite
@@ -87,9 +74,6 @@ export default function DashboardView({
         >
           <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
             <span>Cash & Bank Balances</span>
-            <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition">
-              <Landmark size={15} />
-            </div>
           </div>
           <div className="text-2xl font-black font-mono text-slate-900">
             {moneyFormat(totalCash, 'SAR')}
@@ -103,13 +87,10 @@ export default function DashboardView({
         {/* Receivables (Invoices) */}
         <div
           onClick={() => onSelectTab('invoices')}
-          className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-blue-300 transition cursor-pointer group"
+          className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition cursor-pointer group"
         >
           <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
             <span>Customer Receivables</span>
-            <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition">
-              <FileText size={15} />
-            </div>
           </div>
           <div className="text-2xl font-black font-mono text-slate-900">
             {moneyFormat(totalReceivables, 'SAR')}
@@ -131,9 +112,6 @@ export default function DashboardView({
         >
           <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
             <span>Supplier Payables</span>
-            <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition">
-              <Receipt size={15} />
-            </div>
           </div>
           <div className="text-2xl font-black font-mono text-slate-900">
             {moneyFormat(totalPayables, 'SAR')}
@@ -151,19 +129,16 @@ export default function DashboardView({
         {/* Net Operating Position */}
         <div
           onClick={() => onSelectTab('reports')}
-          className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-purple-300 transition cursor-pointer group"
+          className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition cursor-pointer group"
         >
           <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
             <span>Net Operating Working Capital</span>
-            <div className="p-1.5 rounded-lg bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition">
-              <TrendingUp size={15} />
-            </div>
           </div>
           <div className="text-2xl font-black font-mono text-emerald-800">
             {moneyFormat(totalReceivables - totalPayables, 'SAR')}
           </div>
-          <div className="text-[11px] text-purple-700 font-semibold mt-2 flex items-center gap-1">
-            <ArrowUpRight size={13} />
+          <div className="text-[11px] text-slate-700 font-semibold mt-2 flex items-center gap-1">
+            
             <span>Receivables exceed payables</span>
           </div>
         </div>

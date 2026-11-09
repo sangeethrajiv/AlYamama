@@ -1,4 +1,4 @@
-import { X, Printer, Download, CheckCircle2 } from 'lucide-react'
+import { X, CheckCircle2 } from 'lucide-react'
 import type { Invoice } from '../types/accounting'
 import { mockCompanies, moneyFormat } from '../data/mockAccountingData'
 
@@ -28,7 +28,7 @@ export default function InvoicePdfModal({ invoice, onClose }: InvoicePdfModalPro
               onClick={() => window.print()}
               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition"
             >
-              <Printer size={14} /> Print Document
+              Print Document
             </button>
             <button
               onClick={onClose}

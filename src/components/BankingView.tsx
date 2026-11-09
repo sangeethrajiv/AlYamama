@@ -1,16 +1,5 @@
 import { useState } from 'react'
-import {
-  Landmark,
-  Plus,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  ArrowUpRight,
-  ArrowDownLeft,
-  FileText,
-  RotateCcw,
-  DollarSign,
-} from 'lucide-react'
+import { Plus, AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
 import type { ChequeRecord, Account, CompanyId } from '../types/accounting'
 import { moneyFormat } from '../data/mockAccountingData'
 
@@ -66,7 +55,7 @@ export default function BankingView({
       case 'issued':
         return <span className="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Issued</span>
       case 'presented':
-        return <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Clock size={11} /> Presented</span>
+        return <span className="bg-slate-100 text-slate-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Clock size={11} /> Presented</span>
       case 'cleared':
         return <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><CheckCircle2 size={11} /> Cleared</span>
       case 'bounced':
@@ -113,9 +102,6 @@ export default function BankingView({
               <div>
                 <div className="flex items-center justify-between text-xs mb-2">
                   <span className="font-mono text-slate-400 font-bold">{b.code}</span>
-                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
-                    <Landmark size={15} />
-                  </div>
                 </div>
                 <div className="font-bold text-xs text-slate-800 line-clamp-1">{b.name}</div>
               </div>

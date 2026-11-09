@@ -1,14 +1,5 @@
 import { useState } from 'react'
-import {
-  X,
-  Plus,
-  Trash2,
-  AlertCircle,
-  Receipt,
-  Paperclip,
-  CheckCircle2,
-  History,
-} from 'lucide-react'
+import { X, Plus, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import type { Bill, InvoiceLine, CompanyId } from '../types/accounting'
 import { mockAnalyticAccounts, moneyFormat } from '../data/mockAccountingData'
 
@@ -162,9 +153,6 @@ export default function BillModal({
         {/* Header */}
         <div className="bg-white px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold">
-              <Receipt size={20} />
-            </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-black text-slate-800">
@@ -402,7 +390,7 @@ export default function BillModal({
             <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between gap-6">
               <div className="space-y-2 max-w-sm">
                 <div className="flex items-center gap-2 text-slate-500 text-xs">
-                  <Paperclip size={14} />
+                  
                   <span>Attachments ({attachmentsCount} files attached)</span>
                   {isDraft && (
                     <button

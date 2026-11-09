@@ -1,15 +1,5 @@
 import { useState } from 'react'
-import {
-  BookOpen,
-  Plus,
-  Search,
-  Check,
-  X,
-  FileDown,
-  Upload,
-  ArrowUpRight,
-  Filter,
-} from 'lucide-react'
+import { Plus, Check, X } from 'lucide-react'
 import type { Account, AccountType } from '../types/accounting'
 import { moneyFormat } from '../data/mockAccountingData'
 
@@ -48,11 +38,11 @@ export default function ChartOfAccountsView({
   const getGroupBadge = (group: Account['internalGroup']) => {
     switch (group) {
       case 'asset':
-        return <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Asset</span>
+        return <span className="bg-slate-100 text-slate-800 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Asset</span>
       case 'liability':
         return <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Liability</span>
       case 'equity':
-        return <span className="bg-purple-100 text-purple-800 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Equity</span>
+        return <span className="bg-slate-100 text-slate-800 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Equity</span>
       case 'income':
         return <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Income</span>
       case 'expense':
@@ -78,7 +68,7 @@ export default function ChartOfAccountsView({
             onClick={() => alert('Opening CoA CSV Import Wizard (COA-007)...')}
             className="px-3 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-bold flex items-center gap-1.5 transition"
           >
-            <Upload size={14} />
+            
             <span>Import CSV</span>
           </button>
           <button
@@ -168,7 +158,7 @@ export default function ChartOfAccountsView({
                       title="Drill-down to General Ledger entries"
                     >
                       <span>Ledger</span>
-                      <ArrowUpRight size={12} />
+                      
                     </button>
                   </td>
                 </tr>
@@ -186,7 +176,7 @@ export default function ChartOfAccountsView({
             onClick={() => alert('Exporting Chart of Accounts to CSV...')}
             className="hover:text-emerald-700 font-semibold flex items-center gap-1"
           >
-            <FileDown size={12} /> Export CoA (CSV)
+            Export CoA (CSV)
           </button>
         </div>
       </div>

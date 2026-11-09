@@ -1,13 +1,5 @@
 import { useState } from 'react'
-import {
-  CreditCard,
-  Plus,
-  ArrowDownLeft,
-  ArrowUpRight,
-  FileDown,
-  Landmark,
-  Scale,
-} from 'lucide-react'
+
 import type { Payment, UserRole } from '../types/accounting'
 import { moneyFormat } from '../data/mockAccountingData'
 
@@ -65,14 +57,14 @@ export default function PaymentList({
             onClick={() => onOpenPaymentModal('customer')}
             className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
           >
-            <ArrowDownLeft size={15} />
+            
             <span>Receive Payment</span>
           </button>
           <button
             onClick={() => onOpenPaymentModal('supplier')}
             className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
           >
-            <ArrowUpRight size={15} />
+            
             <span>Pay Supplier</span>
           </button>
         </div>
@@ -84,7 +76,7 @@ export default function PaymentList({
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Collections (AR)</div>
           <div className="text-lg font-bold font-mono text-emerald-700">{moneyFormat(totalReceipts)}</div>
           <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-            <ArrowDownLeft size={13} className="text-emerald-600" />
+            
             <span>Customer remittances into Al Rajhi & Riyad Bank</span>
           </div>
         </div>
@@ -93,16 +85,16 @@ export default function PaymentList({
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Payouts (AP)</div>
           <div className="text-lg font-bold font-mono text-amber-700">{moneyFormat(totalPayouts)}</div>
           <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-            <ArrowUpRight size={13} className="text-amber-600" />
+            
             <span>Supplier wire transfers & corporate cheques</span>
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Net Cash Flow Impact</div>
-          <div className="text-lg font-bold font-mono text-blue-700">{moneyFormat(totalReceipts - totalPayouts)}</div>
+          <div className="text-lg font-bold font-mono text-slate-700">{moneyFormat(totalReceipts - totalPayouts)}</div>
           <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-            <Scale size={13} className="text-blue-600" />
+            
             <span>Surplus cash available for workshop operations</span>
           </div>
         </div>
@@ -150,7 +142,7 @@ export default function PaymentList({
               {filteredPayments.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-slate-400">
-                    <CreditCard size={32} className="mx-auto mb-2 text-slate-300" />
+                    
                     <p className="font-semibold text-slate-600">No payment records found</p>
                   </td>
                 </tr>
@@ -176,7 +168,7 @@ export default function PaymentList({
                       </div>
                     </td>
                     <td className="py-3 px-3 text-slate-600 flex items-center gap-1">
-                      <Landmark size={12} className="text-slate-400" />
+                      
                       <span>{p.journalName}</span>
                     </td>
                     <td className="py-3 px-3 text-slate-600">
@@ -201,7 +193,7 @@ export default function PaymentList({
                           p.state === 'reconciled'
                             ? 'bg-emerald-100 text-emerald-800'
                             : p.state === 'posted'
-                            ? 'bg-blue-100 text-blue-800'
+                            ? 'bg-slate-100 text-slate-800'
                             : 'bg-slate-100 text-slate-700'
                         }`}
                       >
@@ -221,7 +213,7 @@ export default function PaymentList({
             onClick={() => alert('Exporting Payment Receipts...')}
             className="hover:text-emerald-700 font-semibold flex items-center gap-1"
           >
-            <FileDown size={12} /> Export CSV
+            Export CSV
           </button>
         </div>
       </div>

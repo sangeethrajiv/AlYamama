@@ -1,20 +1,5 @@
 import { useState } from 'react'
-import {
-  FileText,
-  Plus,
-  Printer,
-  CreditCard,
-  CheckCircle,
-  XCircle,
-  FileDown,
-  Paperclip,
-  ArrowRightLeft,
-  Building,
-  AlertTriangle,
-  Coins,
-  Layers,
-  ArrowUpRight,
-} from 'lucide-react'
+import { Plus, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 import type { Invoice, InvoiceState, UserRole, InvoiceCategory } from '../types/accounting'
 import { moneyFormat } from '../data/mockAccountingData'
 import MoneyBar from './MoneyBar'
@@ -125,7 +110,7 @@ export default function InvoiceList({
       case 'open':
         return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Posted</span>
       case 'in_payment':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">In Payment</span>
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-300">In Payment</span>
       case 'paid':
         return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Paid</span>
       case 'cancel':
@@ -184,7 +169,7 @@ export default function InvoiceList({
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <Coins size={13} />
+          
           <span>Cash Invoices</span>
           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
             categoryFilter === 'cash' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'
@@ -197,14 +182,14 @@ export default function InvoiceList({
           onClick={() => handleSelectCategory('credit')}
           className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5 ${
             categoryFilter === 'credit'
-              ? 'bg-blue-600 text-white shadow-xs'
+              ? 'bg-slate-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <CreditCard size={13} />
+          
           <span>Credit Invoices</span>
           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-            categoryFilter === 'credit' ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'
+            categoryFilter === 'credit' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
           }`}>
             {creditCount}
           </span>
@@ -214,14 +199,14 @@ export default function InvoiceList({
           onClick={() => handleSelectCategory('proforma')}
           className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5 ${
             categoryFilter === 'proforma'
-              ? 'bg-purple-600 text-white shadow-xs'
+              ? 'bg-slate-600 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <FileText size={13} />
+          
           <span>Proforma Invoices</span>
           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-            categoryFilter === 'proforma' ? 'bg-purple-700 text-white' : 'bg-slate-200 text-slate-700'
+            categoryFilter === 'proforma' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
           }`}>
             {proformaCount}
           </span>
@@ -235,7 +220,7 @@ export default function InvoiceList({
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <Layers size={13} />
+          
           <span>Progressive Invoices</span>
           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
             categoryFilter === 'progressive' ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-700'
@@ -276,7 +261,7 @@ export default function InvoiceList({
               {filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="py-10 text-center text-slate-400">
-                    <FileText size={32} className="mx-auto mb-2 text-slate-300" />
+                    
                     <p className="font-semibold text-slate-600">No invoices match your criteria</p>
                     <p className="text-[11px] text-slate-400">Try adjusting your search or Money Bar filter.</p>
                   </td>
@@ -295,11 +280,11 @@ export default function InvoiceList({
                           <span>{inv.number}</span>
                           {inv.attachmentsCount > 0 && (
                             <span className="text-[10px] text-slate-400 flex items-center" title={`${inv.attachmentsCount} attachments`}>
-                              <Paperclip size={11} /> {inv.attachmentsCount}
+                              {inv.attachmentsCount}
                             </span>
                           )}
                           {inv.type === 'out_refund' && (
-                            <span className="bg-purple-100 text-purple-700 text-[9px] px-1 rounded font-sans">Credit Note</span>
+                            <span className="bg-slate-100 text-slate-700 text-[9px] px-1 rounded font-sans">Credit Note</span>
                           )}
                         </div>
                         {inv.reference && (
@@ -309,22 +294,22 @@ export default function InvoiceList({
                       <td className="py-3 px-3 whitespace-nowrap">
                         {inv.category === 'cash' && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                            <Coins size={11} /> Cash
+                            Cash
                           </span>
                         )}
                         {(inv.category === 'credit' || !inv.category) && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                            <CreditCard size={11} /> Credit
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">
+                            Credit
                           </span>
                         )}
                         {inv.category === 'proforma' && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
-                            <FileText size={11} /> Proforma
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">
+                            Proforma
                           </span>
                         )}
                         {inv.category === 'progressive' && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                            <Layers size={11} /> Progressive {inv.progressPercentage ? `${inv.progressPercentage}%` : ''}
+                            Progressive {inv.progressPercentage ? `${inv.progressPercentage}%` : ''}
                           </span>
                         )}
                       </td>
@@ -333,7 +318,7 @@ export default function InvoiceList({
                         <div>{inv.partner}</div>
                         {inv.interCompanyBillRef && (
                           <div className="text-[10px] text-emerald-600 flex items-center gap-1 font-mono">
-                            <Building size={10} /> IC: {inv.interCompanyBillRef}
+                            IC: {inv.interCompanyBillRef}
                           </div>
                         )}
                       </td>
@@ -369,12 +354,12 @@ export default function InvoiceList({
                           </span>
                         )}
                         {inv.approvalStatus === 'pending_director' && (
-                          <span className="text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full border border-purple-200 font-semibold" title="Invoice >= SAR 200,000 threshold">
+                          <span className="text-[10px] text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded-full border border-slate-200 font-semibold" title="Invoice >= SAR 200,000 threshold">
                             Pending Director
                           </span>
                         )}
                         {inv.approvalStatus === 'pending_manager' && (
-                          <span className="text-[10px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-200 font-semibold">
+                          <span className="text-[10px] text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded-full border border-slate-200 font-semibold">
                             Pending Manager
                           </span>
                         )}
@@ -390,10 +375,10 @@ export default function InvoiceList({
                           {inv.category === 'proforma' && onConvertToTaxInvoice && (
                             <button
                               onClick={() => onConvertToTaxInvoice(inv.id)}
-                              className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition"
+                              className="px-2 py-1 bg-slate-600 hover:bg-slate-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition"
                               title="Convert Proforma to Official Tax Invoice"
                             >
-                              <ArrowUpRight size={12} />
+                              
                               <span>Convert</span>
                             </button>
                           )}
@@ -413,10 +398,10 @@ export default function InvoiceList({
                           {(inv.state === 'open' || inv.state === 'in_payment') && (
                             <button
                               onClick={() => onOpenPaymentModal(inv)}
-                              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition"
+                              className="px-2.5 py-1 bg-slate-600 hover:bg-slate-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition"
                               title="Register Payment / Receipt"
                             >
-                              <CreditCard size={11} />
+                              
                               <span>Pay</span>
                             </button>
                           )}
@@ -427,17 +412,17 @@ export default function InvoiceList({
                             className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition"
                             title="Preview Printable Tax Invoice (QWeb / ZATCA)"
                           >
-                            <Printer size={15} />
+                            
                           </button>
 
                           {/* Credit Note button */}
                           {inv.state === 'open' && (
                             <button
                               onClick={() => onCreateCreditNote(inv)}
-                              className="p-1 text-purple-600 hover:bg-purple-50 rounded transition"
+                              className="p-1 text-slate-600 hover:bg-slate-50 rounded transition"
                               title="Create Credit Note (out_refund)"
                             >
-                              <ArrowRightLeft size={15} />
+                              
                             </button>
                           )}
 
@@ -473,7 +458,7 @@ export default function InvoiceList({
               onClick={() => alert('Exporting Customer Invoices to Excel format (XLSX)...')}
               className="hover:text-emerald-700 font-semibold flex items-center gap-1"
             >
-              <FileDown size={12} /> Export CSV/XLSX
+              Export CSV/XLSX
             </button>
           </div>
         </div>

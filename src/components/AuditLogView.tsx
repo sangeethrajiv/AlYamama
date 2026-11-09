@@ -1,14 +1,5 @@
 import { useState } from 'react'
-import {
-  History,
-  ShieldAlert,
-  Lock,
-  FileDown,
-  Filter,
-  CheckCircle2,
-  Calendar,
-  User,
-} from 'lucide-react'
+import { History, Lock, Filter, User } from 'lucide-react'
 import type { AuditLogEntry } from '../types/accounting'
 
 interface AuditLogViewProps {
@@ -77,7 +68,7 @@ export default function AuditLogView({ logs, searchQuery }: AuditLogViewProps) {
           onClick={() => alert('Exporting Audit Trail to Excel...')}
           className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
         >
-          <FileDown size={15} />
+          
           <span>Export Audit Log (CSV/XLSX)</span>
         </button>
       </div>
@@ -85,9 +76,6 @@ export default function AuditLogView({ logs, searchQuery }: AuditLogViewProps) {
       {/* Regulatory Banner */}
       <div className="bg-slate-900 text-slate-200 p-4 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-slate-800 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 mt-0.5">
-            <Lock size={18} />
-          </div>
           <div>
             <div className="font-bold text-xs text-white flex items-center gap-2">
               <span>Regulatory Compliance & Immutability Enforced</span>
@@ -147,7 +135,7 @@ export default function AuditLogView({ logs, searchQuery }: AuditLogViewProps) {
                     {log.timestamp}
                   </td>
                   <td className="py-3 px-3 font-semibold text-slate-800 whitespace-nowrap flex items-center gap-1.5">
-                    <User size={13} className="text-slate-400" />
+                    
                     <span>{log.user}</span>
                   </td>
                   <td className="py-3 px-3 whitespace-nowrap">

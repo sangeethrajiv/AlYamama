@@ -1,15 +1,5 @@
-import { useState } from 'react'
-import {
-  Search,
-  Building2,
-  ShieldCheck,
-  Lock,
-  Globe,
-  Bell,
-  ChevronDown,
-  Coins,
-  CheckCircle2,
-} from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Search, ChevronDown, CheckCircle2, Menu, X } from 'lucide-react'
 import type { CompanyId, UserRole } from '../types/accounting'
 import { mockCompanies, mockFiscalConfig, mockCurrencies } from '../data/mockAccountingData'
 
@@ -23,6 +13,7 @@ interface HeaderProps {
   onOpenQuickCreate: () => void
   searchQuery: string
   onSearchChange: (q: string) => void
+  onToggleSidebar?: () => void
 }
 
 const rolesList: UserRole[] = [
@@ -42,7 +33,21 @@ export default function Header({
   onToggleLanguage,
   searchQuery,
   onSearchChange,
+  onToggleSidebar,
 }: HeaderProps) {
+  const searchRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        searchRef.current?.focus()
+        searchRef.current?.select()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const [showCompanyMenu, setShowCompanyMenu] = useState(false)
   const [showRoleMenu, setShowRoleMenu] = useState(false)
   const [showCurrencyModal, setShowCurrencyModal] = useState(false)
@@ -52,8 +57,8 @@ export default function Header({
 
   const getRoleBadgeColor = (role: UserRole) => {
     switch (role) {
-      case 'Finance Director': return 'bg-purple-100 text-purple-800 border-purple-200'
-      case 'Accounts Manager': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'Finance Director': return 'bg-slate-100 text-slate-800 border-slate-200'
+      case 'Accounts Manager': return 'bg-slate-100 text-slate-800 border-slate-200'
       case 'Senior Accountant': return 'bg-emerald-100 text-emerald-800 border-emerald-200'
       case 'Accountant': return 'bg-amber-100 text-amber-800 border-amber-200'
       case 'Auditor': return 'bg-slate-100 text-slate-700 border-slate-300'
@@ -61,19 +66,30 @@ export default function Header({
   }
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 py-2.5 shadow-sm">
+    <header className="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-30 px-4 py-2.5 shadow-sm">
       <div className="flex items-center justify-between gap-4">
         {/* Left: Quick search and Brand Identity */}
         <div className="flex items-center gap-3 flex-1 max-w-xl">
+          {onToggleSidebar && (
+            <button onClick={onToggleSidebar} className="lg:hidden p-2 -ml-1 rounded-lg hover:bg-slate-100 text-slate-600" aria-label="Open menu">
+              <Menu size={20} />
+            </button>
+          )}
           <div className="relative w-full">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={17} />
             <input
+              ref={searchRef}
               type="text"
               value={searchQuery}
               onChange={e => onSearchChange(e.target.value)}
-              placeholder="Search invoices, customers, bills, accounts, vouchers (Ctrl + K)..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+              placeholder="Search invoices, bills, accounts… (Ctrl+K)"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-8 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
             />
+            {searchQuery && (
+              <button onClick={() => onSearchChange('')} className="absolute right-2 top-2 p-0.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200" aria-label="Clear search">
+                <X size={14} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -86,7 +102,7 @@ export default function Header({
               className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 transition"
               title="Switch Active Company"
             >
-              <Building2 size={15} className="text-emerald-600" />
+              
               <span className="max-w-[150px] truncate font-semibold">{activeCompany.name}</span>
               <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{activeCompany.code}</span>
               <ChevronDown size={13} className="text-slate-400" />
@@ -121,7 +137,7 @@ export default function Header({
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${getRoleBadgeColor(currentRole)}`}
               title="Switch Active Role"
             >
-              <ShieldCheck size={14} />
+              
               <span>{currentRole}</span>
               <ChevronDown size={12} className="opacity-70" />
             </button>
@@ -151,7 +167,7 @@ export default function Header({
             className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-mono transition"
             title="Active Currencies & Exchange Rates"
           >
-            <Coins size={12} className="text-emerald-600" />
+            
             <span>1 USD = 3.75 SR</span>
           </button>
 
@@ -161,13 +177,13 @@ export default function Header({
             className="flex items-center gap-1 px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg transition"
             title="Toggle Arabic / English"
           >
-            <Globe size={14} />
+            
             <span className="font-semibold">{arabic ? 'English' : 'عربي'}</span>
           </button>
 
           {/* Notifications */}
           <button className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg relative transition">
-            <Bell size={16} />
+            
             <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-white"></span>
           </button>
 
@@ -190,7 +206,7 @@ export default function Header({
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-5 border border-slate-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <Coins className="text-emerald-600" size={19} />
+                
                 <h3 className="font-bold text-sm text-slate-800">Active Currencies & Daily Rates</h3>
               </div>
               <button

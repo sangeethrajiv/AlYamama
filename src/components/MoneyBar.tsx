@@ -25,8 +25,8 @@ export default function MoneyBar({
     switch (color) {
       case 'blue':
         return isSelected
-          ? 'border-blue-600 bg-blue-50/80 text-blue-900 ring-2 ring-blue-500/20'
-          : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50 text-slate-800'
+          ? 'border-slate-600 bg-slate-50/80 text-slate-900 ring-2 ring-slate-500/20'
+          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800'
       case 'orange':
         return isSelected
           ? 'border-amber-600 bg-amber-50/80 text-amber-900 ring-2 ring-amber-500/20'
@@ -41,18 +41,18 @@ export default function MoneyBar({
           : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50 text-slate-800'
       case 'purple':
         return isSelected
-          ? 'border-purple-600 bg-purple-50/80 text-purple-900 ring-2 ring-purple-500/20'
-          : 'border-slate-200 hover:border-purple-300 hover:bg-slate-50 text-slate-800'
+          ? 'border-slate-600 bg-slate-50/80 text-slate-900 ring-2 ring-slate-500/20'
+          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800'
     }
   }
 
   const getTopBarColor = (color: Segment['color']) => {
     switch (color) {
-      case 'blue': return 'bg-blue-500'
+      case 'blue': return 'bg-slate-500'
       case 'orange': return 'bg-amber-500'
       case 'red': return 'bg-rose-500'
       case 'green': return 'bg-emerald-500'
-      case 'purple': return 'bg-purple-500'
+      case 'purple': return 'bg-slate-500'
     }
   }
 

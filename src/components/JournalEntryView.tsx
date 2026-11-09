@@ -1,29 +1,5 @@
 import { useState } from 'react'
-import {
-  Scale,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  XCircle,
-  RotateCcw,
-  AlertCircle,
-  FileText,
-  Search,
-  X,
-  Layers,
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  List,
-  Grid,
-  BarChart3,
-  Calendar,
-  Building2,
-  Tag,
-  Hash,
-  ExternalLink,
-} from 'lucide-react'
+import { Plus, Trash2, CheckCircle2, AlertCircle, X, ChevronLeft, ChevronRight, Filter, Grid } from 'lucide-react'
 import type { JournalEntry, JournalLine, CompanyId, UserRole, AnalyticItem } from '../types/accounting'
 import { mockChartOfAccounts, mockAnalyticAccounts, mockAnalyticItems, moneyFormat, mockCompanies } from '../data/mockAccountingData'
 
@@ -308,7 +284,7 @@ export default function JournalEntryView({
           {activeSubTab === 'entries' && (
             <button
               onClick={handleOpenNew}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg font-medium text-sm transition shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-lg font-medium text-sm transition shadow-sm"
             >
               <Plus size={16} />
               <span>Create Journal Entry</span>
@@ -333,7 +309,7 @@ export default function JournalEntryView({
                 setAnalyticItemsList([newItem, ...analyticItemsList])
                 setSelectedAnalyticItem(newItem)
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg font-medium text-sm transition shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-lg font-medium text-sm transition shadow-sm"
             >
               <Plus size={16} />
               <span>Create Analytic Item</span>
@@ -348,11 +324,11 @@ export default function JournalEntryView({
           onClick={() => setActiveSubTab('entries')}
           className={`pb-3 px-4 font-semibold text-sm border-b-2 transition flex items-center gap-2 ${
             activeSubTab === 'entries'
-              ? 'border-teal-700 text-teal-800'
+              ? 'border-slate-700 text-slate-800'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          <Scale size={16} />
+          
           <span>Journal Entries</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-normal">
             {filteredEntries.length}
@@ -363,11 +339,11 @@ export default function JournalEntryView({
           onClick={() => setActiveSubTab('items')}
           className={`pb-3 px-4 font-semibold text-sm border-b-2 transition flex items-center gap-2 ${
             activeSubTab === 'items'
-              ? 'border-teal-700 text-teal-800'
+              ? 'border-slate-700 text-slate-800'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          <List size={16} />
+          
           <span>Journal Items</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-normal">
             {allJournalItems.length}
@@ -378,11 +354,11 @@ export default function JournalEntryView({
           onClick={() => setActiveSubTab('analytics')}
           className={`pb-3 px-4 font-semibold text-sm border-b-2 transition flex items-center gap-2 ${
             activeSubTab === 'analytics'
-              ? 'border-teal-700 text-teal-800'
+              ? 'border-slate-700 text-slate-800'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          <Tag size={16} />
+          
           <span>Analytic Items</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-normal">
             {filteredAnalyticItems.length}
@@ -421,7 +397,7 @@ export default function JournalEntryView({
                       className="hover:bg-slate-50/80 cursor-pointer transition"
                     >
                       <td className="py-3.5 px-4 font-medium text-slate-600 whitespace-nowrap">{entry.entryDate}</td>
-                      <td className="py-3.5 px-4 font-bold text-teal-800 whitespace-nowrap">{entry.entryNumber}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-800 whitespace-nowrap">{entry.entryNumber}</td>
                       <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">{entry.journalName}</td>
                       <td className="py-3.5 px-4 font-mono text-xs text-slate-500">{entry.reference || '-'}</td>
                       <td className="py-3.5 px-4 text-slate-700 font-medium">{partner}</td>
@@ -446,7 +422,7 @@ export default function JournalEntryView({
                       <td className="py-3.5 px-4 text-right" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={() => handleOpenExisting(entry)}
-                          className="px-2.5 py-1 text-xs font-medium text-teal-700 hover:bg-teal-50 rounded border border-teal-200 transition"
+                          className="px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 rounded border border-slate-200 transition"
                         >
                           View Form
                         </button>
@@ -471,7 +447,7 @@ export default function JournalEntryView({
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border border-slate-200 shadow-xs">
-                <Filter size={12} className="text-slate-400" /> Filters
+                Filters
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border border-slate-200 shadow-xs">
                 Group By
@@ -484,7 +460,7 @@ export default function JournalEntryView({
               <thead className="bg-slate-100/75 text-slate-700 uppercase font-bold border-b border-slate-200">
                 <tr>
                   <th className="py-2.5 px-3 w-8">
-                    <input type="checkbox" className="rounded border-slate-300 text-teal-700" />
+                    <input type="checkbox" className="rounded border-slate-300 text-slate-700" />
                   </th>
                   <th className="py-2.5 px-3">Date</th>
                   <th className="py-2.5 px-3">Journal Entry</th>
@@ -509,10 +485,10 @@ export default function JournalEntryView({
                     className="hover:bg-slate-50 cursor-pointer transition"
                   >
                     <td className="py-2.5 px-3" onClick={e => e.stopPropagation()}>
-                      <input type="checkbox" className="rounded border-slate-300 text-teal-700" />
+                      <input type="checkbox" className="rounded border-slate-300 text-slate-700" />
                     </td>
                     <td className="py-2.5 px-3 whitespace-nowrap text-slate-500">{item.entry.entryDate}</td>
-                    <td className="py-2.5 px-3 font-semibold text-teal-800 whitespace-nowrap">{item.entry.entryNumber}</td>
+                    <td className="py-2.5 px-3 font-semibold text-slate-800 whitespace-nowrap">{item.entry.entryNumber}</td>
                     <td className="py-2.5 px-3 whitespace-nowrap text-slate-600">{item.entry.journalName}</td>
                     <td className="py-2.5 px-3 font-medium text-slate-900 max-w-[200px] truncate">{item.line.label || '-'}</td>
                     <td className="py-2.5 px-3 font-mono text-slate-500 whitespace-nowrap">{item.entry.reference || '-'}</td>
@@ -551,7 +527,7 @@ export default function JournalEntryView({
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border border-slate-200 shadow-xs">
-                <Filter size={12} className="text-slate-400" /> Filters
+                Filters
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border border-slate-200 shadow-xs">
                 Group By
@@ -564,7 +540,7 @@ export default function JournalEntryView({
               <thead className="bg-slate-100/75 text-slate-700 uppercase font-bold border-b border-slate-200">
                 <tr>
                   <th className="py-2.5 px-3 w-8">
-                    <input type="checkbox" className="rounded border-slate-300 text-teal-700" />
+                    <input type="checkbox" className="rounded border-slate-300 text-slate-700" />
                   </th>
                   <th className="py-2.5 px-3">Date</th>
                   <th className="py-2.5 px-3">Ref.</th>
@@ -583,12 +559,12 @@ export default function JournalEntryView({
                     className="hover:bg-slate-50 cursor-pointer transition"
                   >
                     <td className="py-2.5 px-3" onClick={e => e.stopPropagation()}>
-                      <input type="checkbox" className="rounded border-slate-300 text-teal-700" />
+                      <input type="checkbox" className="rounded border-slate-300 text-slate-700" />
                     </td>
                     <td className="py-2.5 px-3 text-slate-500 whitespace-nowrap">{item.date}</td>
                     <td className="py-2.5 px-3 font-mono font-medium text-slate-700 whitespace-nowrap">{item.reference}</td>
                     <td className="py-2.5 px-3 font-semibold text-slate-900">{item.description}</td>
-                    <td className="py-2.5 px-3 text-teal-800 font-medium">{item.analyticAccountName}</td>
+                    <td className="py-2.5 px-3 text-slate-800 font-medium">{item.analyticAccountName}</td>
                     <td className="py-2.5 px-3 text-slate-600 whitespace-nowrap">{item.companyName}</td>
                     <td className="py-2.5 px-3 text-right font-mono text-slate-700">{item.quantity.toFixed(2)}</td>
                     <td className={`py-2.5 px-3 text-right font-mono font-bold whitespace-nowrap ${
@@ -628,7 +604,7 @@ export default function JournalEntryView({
             <div className="bg-white px-6 py-2 border-b border-slate-200 flex items-center gap-2">
               <button
                 onClick={() => handleSave(false)}
-                className="px-4 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold rounded shadow-xs transition"
+                className="px-4 py-1.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded shadow-xs transition"
               >
                 Save
               </button>
@@ -654,7 +630,7 @@ export default function JournalEntryView({
                 {/* Top-Right Reconciled Entries Stat Box */}
                 <div className="absolute top-6 right-6">
                   <div className="border border-slate-300 rounded px-3 py-1.5 flex items-center gap-2 bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs">
-                    <Layers size={16} className="text-slate-600" />
+                    
                     <div className="text-left">
                       <div className="leading-tight font-bold">{reconciledCount}</div>
                       <div className="text-[10px] text-slate-500 font-normal">Reconciled entries</div>
@@ -672,7 +648,7 @@ export default function JournalEntryView({
                         type="date"
                         value={entryDate}
                         onChange={e => setEntryDate(e.target.value)}
-                        className="col-span-2 text-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700"
+                        className="col-span-2 text-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700"
                       />
                     </div>
                     <div className="grid grid-cols-3 items-center">
@@ -682,7 +658,7 @@ export default function JournalEntryView({
                         value={reference}
                         onChange={e => setReference(e.target.value)}
                         placeholder="e.g. Flame/OUT/00382"
-                        className="col-span-2 text-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700 font-mono"
+                        className="col-span-2 text-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700 font-mono"
                       />
                     </div>
                   </div>
@@ -694,7 +670,7 @@ export default function JournalEntryView({
                       <select
                         value={journalName}
                         onChange={e => setJournalName(e.target.value)}
-                        className="col-span-2 text-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700"
+                        className="col-span-2 text-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700"
                       >
                         <option value="Miscellaneous Operations (SAR)">Miscellaneous Operations (SAR)</option>
                         <option value="Stock Journal (SAR)">Stock Journal (SAR)</option>
@@ -719,7 +695,7 @@ export default function JournalEntryView({
                     onClick={() => setActiveFormTab('items')}
                     className={`pb-2 border-b-2 transition ${
                       activeFormTab === 'items'
-                        ? 'border-teal-700 text-teal-800'
+                        ? 'border-slate-700 text-slate-800'
                         : 'border-transparent text-slate-500 hover:text-slate-800'
                     }`}
                   >
@@ -729,7 +705,7 @@ export default function JournalEntryView({
                     onClick={() => setActiveFormTab('other')}
                     className={`pb-2 border-b-2 transition ${
                       activeFormTab === 'other'
-                        ? 'border-teal-700 text-teal-800'
+                        ? 'border-slate-700 text-slate-800'
                         : 'border-transparent text-slate-500 hover:text-slate-800'
                     }`}
                   >
@@ -764,7 +740,7 @@ export default function JournalEntryView({
                                 <select
                                   value={line.accountId}
                                   onChange={e => updateLine(line.id, 'accountId', e.target.value)}
-                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700"
+                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700"
                                 >
                                   {mockChartOfAccounts.map(acc => (
                                     <option key={acc.id} value={acc.id}>
@@ -781,7 +757,7 @@ export default function JournalEntryView({
                                   value={line.partner || ''}
                                   onChange={e => updateLine(line.id, 'partner', e.target.value)}
                                   placeholder="Partner..."
-                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700"
+                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700"
                                 />
                               </td>
 
@@ -792,7 +768,7 @@ export default function JournalEntryView({
                                   value={line.label || ''}
                                   onChange={e => updateLine(line.id, 'label', e.target.value)}
                                   placeholder="Label description..."
-                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700"
+                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700"
                                 />
                               </td>
 
@@ -801,7 +777,7 @@ export default function JournalEntryView({
                                 <select
                                   value={line.analyticAccountId || ''}
                                   onChange={e => updateLine(line.id, 'analyticAccountId', e.target.value)}
-                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700"
+                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700"
                                 >
                                   <option value="">(None)</option>
                                   {mockAnalyticAccounts.map(ana => (
@@ -819,7 +795,7 @@ export default function JournalEntryView({
                                   step="0.01"
                                   value={line.amountCurrency || 0}
                                   onChange={e => updateLine(line.id, 'amountCurrency', parseFloat(e.target.value) || 0)}
-                                  className="w-full text-right text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700 font-mono"
+                                  className="w-full text-right text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700 font-mono"
                                 />
                               </td>
 
@@ -829,7 +805,7 @@ export default function JournalEntryView({
                                   type="text"
                                   value={line.currency || 'SAR'}
                                   onChange={e => updateLine(line.id, 'currency', e.target.value)}
-                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700"
+                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700"
                                 />
                               </td>
 
@@ -840,7 +816,7 @@ export default function JournalEntryView({
                                   step="0.01"
                                   value={line.debit || 0}
                                   onChange={e => updateLine(line.id, 'debit', parseFloat(e.target.value) || 0)}
-                                  className="w-full text-right text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700 font-mono font-semibold"
+                                  className="w-full text-right text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700 font-mono font-semibold"
                                 />
                               </td>
 
@@ -851,7 +827,7 @@ export default function JournalEntryView({
                                   step="0.01"
                                   value={line.credit || 0}
                                   onChange={e => updateLine(line.id, 'credit', parseFloat(e.target.value) || 0)}
-                                  className="w-full text-right text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700 font-mono font-semibold"
+                                  className="w-full text-right text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700 font-mono font-semibold"
                                 />
                               </td>
 
@@ -862,7 +838,7 @@ export default function JournalEntryView({
                                   value={line.taxesApplied || ''}
                                   onChange={e => updateLine(line.id, 'taxesApplied', e.target.value)}
                                   placeholder="e.g. VAT 15%"
-                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-700"
+                                  className="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-700"
                                 />
                               </td>
 
@@ -886,7 +862,7 @@ export default function JournalEntryView({
                     <div className="pt-1">
                       <button
                         onClick={addLine}
-                        className="text-teal-700 hover:text-teal-900 text-xs font-semibold hover:underline inline-flex items-center gap-1"
+                        className="text-slate-700 hover:text-slate-900 text-xs font-semibold hover:underline inline-flex items-center gap-1"
                       >
                         <Plus size={14} /> Add a line
                       </button>
@@ -941,7 +917,7 @@ export default function JournalEntryView({
                     value={internalNote}
                     onChange={e => setInternalNote(e.target.value)}
                     placeholder="Add an internal note..."
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-700 text-slate-700 placeholder:text-slate-400"
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-slate-700 text-slate-700 placeholder:text-slate-400"
                   />
                 </div>
               </div>
@@ -979,7 +955,7 @@ export default function JournalEntryView({
                     handleOpenExisting(selectedJournalItem.entry)
                     setSelectedJournalItem(null)
                   }}
-                  className="px-3.5 py-1 bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold rounded transition"
+                  className="px-3.5 py-1 bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded transition"
                 >
                   Edit
                 </button>
@@ -1013,7 +989,7 @@ export default function JournalEntryView({
 
               {/* Sub-tabs */}
               <div className="border-b border-slate-200 flex gap-4 text-xs font-bold">
-                <span className="pb-2 border-b-2 border-teal-700 text-teal-800">Information</span>
+                <span className="pb-2 border-b-2 border-slate-700 text-slate-800">Information</span>
                 <span className="pb-2 text-slate-400 cursor-pointer">Analytic Lines</span>
               </div>
 
@@ -1027,7 +1003,7 @@ export default function JournalEntryView({
                     <div className="space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
                       <div className="flex justify-between">
                         <span className="text-slate-500">Account</span>
-                        <span className="font-semibold text-teal-800">
+                        <span className="font-semibold text-slate-800">
                           {selectedJournalItem.line.accountCode} {selectedJournalItem.line.accountName}
                         </span>
                       </div>
@@ -1070,7 +1046,7 @@ export default function JournalEntryView({
                     <h4 className="font-bold text-slate-900 text-sm mb-3">States</h4>
                     <div className="flex items-center justify-between bg-slate-50 p-4 rounded-lg border border-slate-200">
                       <span className="text-slate-500">No Follow-up</span>
-                      <input type="checkbox" className="rounded border-slate-300 text-teal-700" />
+                      <input type="checkbox" className="rounded border-slate-300 text-slate-700" />
                     </div>
                   </div>
                 </div>
@@ -1083,7 +1059,7 @@ export default function JournalEntryView({
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-slate-500">Journal Entry</span>
-                        <span className="font-bold text-teal-800 font-mono">
+                        <span className="font-bold text-slate-800 font-mono">
                           {selectedJournalItem.entry.entryNumber}
                         </span>
                       </div>
@@ -1113,7 +1089,7 @@ export default function JournalEntryView({
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
                       <div className="flex justify-between">
                         <span className="text-slate-500">Analytic Account</span>
-                        <span className="font-semibold text-teal-800">
+                        <span className="font-semibold text-slate-800">
                           {selectedJournalItem.line.analyticAccountName || '(None)'}
                         </span>
                       </div>
@@ -1149,7 +1125,7 @@ export default function JournalEntryView({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setSelectedAnalyticItem(null)}
-                  className="px-3.5 py-1 bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold rounded transition"
+                  className="px-3.5 py-1 bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded transition"
                 >
                   Edit
                 </button>
@@ -1182,7 +1158,7 @@ export default function JournalEntryView({
                     </div>
                     <div>
                       <span className="text-slate-500 font-medium block">Analytic Account</span>
-                      <span className="font-semibold text-teal-800">{selectedAnalyticItem.analyticAccountName}</span>
+                      <span className="font-semibold text-slate-800">{selectedAnalyticItem.analyticAccountName}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 font-medium block">Tags</span>
@@ -1248,7 +1224,7 @@ export default function JournalEntryView({
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">Journal Item</span>
-                        <span className="font-mono text-teal-800">
+                        <span className="font-mono text-slate-800">
                           {selectedAnalyticItem.journalItem || '-'}
                         </span>
                       </div>
