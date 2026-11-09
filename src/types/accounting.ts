@@ -150,15 +150,21 @@ export interface JournalLine {
   accountName: string
   partner?: string
   label: string
+  analyticAccountId?: string
+  analyticAccountName?: string
+  amountCurrency?: number
+  currency?: string
   debit: number
   credit: number
-  analyticAccountId?: string
-  analyticTag?: string
+  taxesApplied?: string
+  matchingNumber?: string
+  dueDate?: string
+  quantity?: number
 }
 
 export interface JournalEntry {
   id: string
-  entryNumber: string // e.g. MISC/2026/0014
+  entryNumber: string // e.g. MISC/2026/0014, STJ/2026/0018, T26-1677
   companyId: CompanyId
   entryDate: string
   journalId: string
@@ -167,9 +173,26 @@ export interface JournalEntry {
   lines: JournalLine[]
   state: 'draft' | 'posted'
   narration?: string
+  internalNote?: string
+  reconciledEntriesCount?: number
   sourceDocument?: string
   isReversed?: boolean
   reversedByEntryId?: string
+}
+
+export interface AnalyticItem {
+  id: string
+  date: string
+  reference: string
+  description: string
+  analyticAccountId: string
+  analyticAccountName: string
+  companyName: string
+  quantity: number
+  amount: number
+  financialAccount?: string
+  journalItem?: string
+  partner?: string
 }
 
 export type AccountType = 
