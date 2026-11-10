@@ -188,3 +188,20 @@ export function Avatar({ name, src, size = 36, round }: { name: string; src?: st
     ? <img src={src} alt={name} style={style} className={`${shape} object-cover flex-shrink-0 border border-slate-200`} />
     : <span style={style} aria-hidden="true" className={`${shape} ${tone} flex items-center justify-center font-extrabold flex-shrink-0`}>{initials}</span>
 }
+
+/** Centered form dialog (full-screen on phones). */
+export function CenterDialog({ title, onClose, children, footer }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-stretch sm:items-center justify-center sm:p-6" role="presentation">
+      <div role="dialog" aria-modal="true" aria-label={title}
+        className="bg-slate-50 w-full max-w-5xl sm:max-h-[94vh] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+        <div className="bg-white px-5 py-3 border-b border-slate-200 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-extrabold text-slate-800 truncate">{title}</h2>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"><X size={18} /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">{children}</div>
+        {footer && <div className="bg-white px-5 py-3 border-t border-slate-200 flex items-center justify-end gap-2">{footer}</div>}
+      </div>
+    </div>
+  )
+}

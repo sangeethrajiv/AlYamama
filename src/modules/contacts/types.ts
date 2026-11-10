@@ -58,5 +58,23 @@ export interface Contact {
   girfalcoId?: string
   /** Individuals only */
   companyCode?: string
+  /** Sign & seal */
+  signature?: string
+  seal?: string
+  signatory?: string
+  signatoryTitle?: string
+  /** Sales & purchases */
+  salesperson?: string
+  vendorPaymentTerms?: string
+  /** Location */
+  latitude?: string
+  longitude?: string
+  locationNotes?: string
+  /** Invoicing */
+  bankName?: string
+  iban?: string
+  swift?: string
+  billingEmail?: string
+  invoiceDelivery?: 'email' | 'print' | 'both'
   createdAt: string
 }
