@@ -30,6 +30,7 @@ export type TabId =
   | 'reports'
   | 'audit'
   | 'settings'
+  | 'inventory'
 
 export type DrawerType = 
   | 'invoice' 
@@ -301,7 +302,7 @@ export interface AuditLogEntry {
   id: string
   timestamp: string
   user: string
-  recordType: 'Invoice' | 'Vendor Bill' | 'Payment' | 'Journal Entry' | 'Chart of Accounts' | 'Lock Date'
+  recordType: 'Invoice' | 'Vendor Bill' | 'Payment' | 'Journal Entry' | 'Chart of Accounts' | 'Lock Date' | 'Inventory Adjustment'
   recordId: string
   recordName: string
   fieldName: string
@@ -329,3 +330,48 @@ export interface FiscalPeriodConfig {
   thresholdLevel2: number // e.g. 250,000 SAR
 }
 
+
+// --- Inventory adjustments ---
+export interface StockQuant {
+  id: string
+  companyId: CompanyId
+  productCode: string
+  productName: string
+  category: string
+  location: string
+  lot?: string // Lot / serial number
+  pack?: string // Package
+  owner?: string
+  uom: string
+  onHand: number
+  unitCost: number
+}
+
+export type AdjustmentReason = 'Physical count' | 'Damaged / scrapped' | 'Lost / theft' | 'Found / surplus' | 'Opening balance' | 'Other'
+
+export interface InventoryAdjustmentLine {
+  quantId: string
+  productCode: string
+  productName: string
+  location: string
+  lot?: string
+  uom: string
+  previousQty: number
+  countedQty: number
+  difference: number
+  unitCost: number
+}
+
+export interface InventoryAdjustment {
+  id: string
+  reference: string
+  companyId: CompanyId
+  accountingDate: string
+  appliedAt: string
+  responsible: string
+  reason: AdjustmentReason
+  notes?: string
+  lines: InventoryAdjustmentLine[]
+  netValue: number
+  journalEntryNumber: string
+}

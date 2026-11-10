@@ -13,6 +13,10 @@ import type {
   ChequeRecord,
   AuditLogEntry,
   FiscalPeriodConfig,
+  StockQuant,
+  InventoryAdjustment,
+  InventoryAdjustmentLine,
+  AdjustmentReason,
 } from './types/accounting'
 import {
   mockCompanies,
@@ -44,6 +48,8 @@ import BankingView from './components/BankingView'
 import ReportsView from './components/ReportsView'
 import AuditLogView from './components/AuditLogView'
 import SettingsAndLockView from './components/SettingsAndLockView'
+import InventoryAdjustmentView from './components/InventoryAdjustmentView'
+import { mockStockQuants } from './data/mockInventory'
 
 export default function App() {
   // Global State
@@ -63,6 +69,9 @@ export default function App() {
   const [cheques, setCheques] = useState<ChequeRecord[]>(mockCheques)
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(mockAuditLogs)
   const [fiscalConfig, setFiscalConfig] = useState<Record<string, FiscalPeriodConfig>>(mockFiscalConfig)
+
+  const [stockQuants, setStockQuants] = useState<StockQuant[]>(mockStockQuants)
+  const [adjustments, setAdjustments] = useState<InventoryAdjustment[]>([])
 
   // Modals & Drawers
   const [drawerType, setDrawerType] = useState<DrawerType>(null)
@@ -709,6 +718,67 @@ export default function App() {
     )
   }
 
+  // --- Inventory Adjustments ---
+  const handleApplyAdjustment = (
+    meta: { reference: string; accountingDate: string; reason: AdjustmentReason; notes: string },
+    lines: InventoryAdjustmentLine[]
+  ) => {
+    if (lines.length === 0) return
+    const net = lines.reduce((s, l) => s + l.difference * l.unitCost, 0)
+    const gain = lines.filter(l => l.difference > 0).reduce((s, l) => s + l.difference * l.unitCost, 0)
+    const loss = lines.filter(l => l.difference < 0).reduce((s, l) => s - l.difference * l.unitCost, 0)
+    const jeNumber = `${meta.reference}-JE`
+    const stamp = Date.now()
+    const jeLines = [
+      ...(gain > 0 ? [
+        { id: `jel_ia_g1_${stamp}`, accountId: 'acc_180041', accountCode: '180041', accountName: 'Stock Valuation Account', label: `${meta.reason}: surplus`, debit: gain, credit: 0 },
+        { id: `jel_ia_g2_${stamp}`, accountId: 'acc_501', accountCode: '500000', accountName: 'Raw Materials - Chrome Rods & Tubes', label: 'Inventory adjustment gain', debit: 0, credit: gain },
+      ] : []),
+      ...(loss > 0 ? [
+        { id: `jel_ia_l1_${stamp}`, accountId: 'acc_501', accountCode: '500000', accountName: 'Raw Materials - Chrome Rods & Tubes', label: 'Inventory adjustment loss', debit: loss, credit: 0 },
+        { id: `jel_ia_l2_${stamp}`, accountId: 'acc_180041', accountCode: '180041', accountName: 'Stock Valuation Account', label: `${meta.reason}: shortage`, debit: 0, credit: loss },
+      ] : []),
+    ]
+    const je: JournalEntry = {
+      id: `je_ia_${stamp}`,
+      entryNumber: jeNumber,
+      companyId: activeCompanyId,
+      entryDate: meta.accountingDate,
+      journalId: 'jour_stock',
+      journalName: 'Stock Journal (SAR)',
+      reference: meta.reference,
+      state: 'posted',
+      narration: `Inventory adjustment (${meta.reason})${meta.notes ? `: ${meta.notes}` : ''}`,
+      sourceDocument: meta.reference,
+      lines: jeLines,
+    }
+    setJournalEntries(prev => [je, ...prev])
+    setAccounts(prev =>
+      prev.map(a =>
+        a.code === '180041' ? { ...a, balance: a.balance + net } : a.code === '500000' ? { ...a, balance: a.balance - net } : a
+      )
+    )
+    const diffs = new Map(lines.map(l => [l.quantId, l.countedQty]))
+    setStockQuants(prev => prev.map(q => (diffs.has(q.id) ? { ...q, onHand: diffs.get(q.id) as number } : q)))
+    setAdjustments(prev => [
+      {
+        id: `adj_${stamp}`,
+        reference: meta.reference,
+        companyId: activeCompanyId,
+        accountingDate: meta.accountingDate,
+        appliedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+        responsible: currentRole,
+        reason: meta.reason,
+        notes: meta.notes,
+        lines,
+        netValue: net,
+        journalEntryNumber: jeNumber,
+      },
+      ...prev,
+    ])
+    addAuditLog('Inventory Adjustment', `adj_${stamp}`, meta.reference, 'inventory_adjustment', '—', 'applied', `${lines.length} line(s) adjusted (${meta.reason}). Net stock value ${net.toFixed(2)} SAR; journal entry ${jeNumber} posted.`)
+  }
+
   // --- Journal Entry Operations (§6) ---
   const handleSaveJE = (entry: JournalEntry) => {
     setJournalEntries(prev => [entry, ...prev])
@@ -1109,6 +1179,15 @@ export default function App() {
 
           {activeTab === 'audit' && (
             <AuditLogView logs={auditLogs} searchQuery={searchQuery} />
+          )}
+
+          {activeTab === 'inventory' && (
+            <InventoryAdjustmentView
+              quants={stockQuants.filter(q => q.companyId === activeCompanyId)}
+              history={adjustments.filter(a => a.companyId === activeCompanyId)}
+              currentRole={currentRole}
+              onApply={handleApplyAdjustment}
+            />
           )}
 
           {activeTab === 'settings' && (

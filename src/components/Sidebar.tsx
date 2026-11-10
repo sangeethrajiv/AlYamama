@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LayoutDashboard, FileText, Receipt, CreditCard, Scale, BookOpen, Landmark, BarChart3, History, Settings, ChevronDown, FileCheck2 } from 'lucide-react'
+import { LayoutDashboard, FileText, Receipt, CreditCard, Scale, BookOpen, Landmark, BarChart3, History, Settings, ChevronDown, FileCheck2 , Boxes } from 'lucide-react'
 import type { TabId, DrawerType, InvoiceCategory } from '../types/accounting'
 
 interface SidebarProps {
@@ -261,6 +261,14 @@ export default function Sidebar({
         >
           <Landmark size={17} />
           <span>Banking & Cheques</span>
+        </button>
+
+        <button
+          onClick={() => selectTab('inventory')}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold transition ${activeTab === 'inventory' ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}
+        >
+          <Boxes size={17} />
+          <span>Inventory Adjustments</span>
         </button>
 
         <div className="pt-3 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
