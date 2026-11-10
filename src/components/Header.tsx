@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, ChevronDown, CheckCircle2, Menu, X } from 'lucide-react'
+import { Search, ChevronDown, CheckCircle2, Menu, X, LogOut } from 'lucide-react'
 import type { CompanyId, UserRole } from '../types/accounting'
 import { mockCompanies, mockFiscalConfig, mockCurrencies } from '../data/mockAccountingData'
 
@@ -14,6 +14,8 @@ interface HeaderProps {
   searchQuery: string
   onSearchChange: (q: string) => void
   onToggleSidebar?: () => void
+  user?: { name: string; email: string; initials: string; title: string }
+  onSignOut?: () => void
 }
 
 const rolesList: UserRole[] = [
@@ -34,7 +36,10 @@ export default function Header({
   searchQuery,
   onSearchChange,
   onToggleSidebar,
+  user = { name: 'Sangeeth R.', email: '', initials: 'SR', title: 'Finance & Accounts' },
+  onSignOut,
 }: HeaderProps) {
+  const [showUserMenu, setShowUserMenu] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -188,14 +193,30 @@ export default function Header({
           </button>
 
           {/* User Profile */}
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-            <div className="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-              SR
-            </div>
-            <div className="hidden md:block leading-tight text-left">
-              <div className="text-xs font-bold text-slate-800">Sangeeth R.</div>
-              <div className="text-[10px] text-slate-400">Finance & Accounts</div>
-            </div>
+          <div className="relative pl-2 border-l border-slate-200">
+            <button onClick={() => setShowUserMenu(v => !v)} aria-haspopup="menu" aria-expanded={showUserMenu} aria-label="Account menu" className="flex items-center gap-2 rounded-lg hover:bg-slate-50 px-1 py-0.5">
+              <span className="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">{user.initials}</span>
+              <span className="hidden md:block leading-tight text-left">
+                <span className="block text-xs font-bold text-slate-800">{user.name}</span>
+                <span className="block text-[10px] text-slate-400">{user.title}</span>
+              </span>
+              <ChevronDown size={12} className="hidden md:block text-slate-400" />
+            </button>
+            {showUserMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} aria-hidden="true" />
+                <div role="menu" className="absolute right-0 mt-2 w-60 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <div className="text-xs font-bold text-slate-900">{user.name}</div>
+                    {user.email && <div className="text-[11px] text-slate-500 truncate">{user.email}</div>}
+                    <div className="text-[10px] text-emerald-700 font-bold mt-1">{currentRole}</div>
+                  </div>
+                  <button role="menuitem" onClick={() => { setShowUserMenu(false); onSignOut?.() }} className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-rose-700 hover:bg-rose-50">
+                    <LogOut size={14} />Sign out
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

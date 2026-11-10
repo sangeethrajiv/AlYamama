@@ -80,21 +80,6 @@ export default function DashboardView({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onOpenDrawer('invoice')}
-            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md transition"
-          >
-            <Plus size={16} className="stroke-[3]" />
-            <span>Create Invoice</span>
-          </button>
-          <button
-            onClick={() => onSelectTab('reconcile')}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition"
-          >
-            Reconcile Payments
-          </button>
-        </div>
       </div>
 
       {/* Role-based KPIs */}

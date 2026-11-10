@@ -33,6 +33,11 @@ async function runLiveTest() {
     // 1. Load Dashboard
     console.log('⏳ Navigating to http://localhost:5173...')
     await page.goto('http://localhost:5173', { waitUntil: 'networkidle0', timeout: 15000 })
+    // The app now starts at the sign-in page: log in with the demo account
+    await page.type('input[type=email]', 'sangeeth@alyamama.example')
+    await page.type('input[autocomplete=current-password]', 'Yamama@2026')
+    await page.keyboard.press('Enter')
+    await page.waitForSelector('aside', { timeout: 5000 })
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '1_dashboard.png') })
     console.log('✅ Dashboard loaded successfully')
     results.dashboard = true

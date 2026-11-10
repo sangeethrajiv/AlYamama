@@ -38,7 +38,7 @@ export default function Sidebar({
   const [invoicesSubmenuOpen, setInvoicesSubmenuOpen] = useState(true)
   const moduleOf = (t: TabId): 'accounting' | 'inventory' | 'contacts' | 'dashboard' =>
     t === 'dashboard' ? 'dashboard' : t === 'contacts' ? 'contacts' : t === 'inventory' || t.startsWith('inv_') ? 'inventory' : 'accounting'
-  const [openModule, setOpenModule] = useState<'accounting' | 'inventory' | null>(() => (moduleOf(activeTab) === 'inventory' ? 'inventory' : 'accounting'))
+  const [openModule, setOpenModule] = useState<'accounting' | 'inventory' | null>(() => { const m = moduleOf(activeTab); return m === 'inventory' || m === 'accounting' ? m : null })
   useEffect(() => {
     const m = moduleOf(activeTab)
     if (m === 'accounting' || m === 'inventory') setOpenModule(m)

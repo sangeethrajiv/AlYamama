@@ -31,6 +31,9 @@ import {
 
 // Components
 import Header from './components/Header'
+import LoginPage from './components/LoginPage'
+import { loadSession, saveSession, clearSession } from './auth/session'
+import type { AuthUser } from './auth/users'
 import Sidebar from './components/Sidebar'
 import DashboardView from './components/DashboardView'
 import InvoiceList from './components/InvoiceList'
@@ -54,14 +57,50 @@ import InventoryModule from './modules/inventory/InventoryModule'
 import { useInventory } from './modules/inventory/useInventory'
 import { DirectoryProvider } from './modules/shared/directory'
 
+const VALID_TABS: TabId[] = ['dashboard', 'invoices', 'bills', 'payments', 'reconcile', 'journals', 'coa', 'banking', 'reports', 'audit', 'settings', 'inventory', 'contacts', 'inv_overview', 'inv_products', 'inv_categories', 'inv_warehouses', 'inv_stock', 'inv_moves', 'inv_receipts', 'inv_deliveries', 'inv_internal', 'inv_reorder']
+function tabFromHash(): TabId {
+  const h = window.location.hash.replace(/^#\/?/, '') as TabId
+  return VALID_TABS.includes(h) ? h : 'dashboard'
+}
+
 export default function App() {
   // Global State
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard')
-  const [activeCompanyId, setActiveCompanyId] = useState<CompanyId>('co_1')
-  const [currentRole, setCurrentRole] = useState<UserRole>('Accounts Manager')
-  const [arabic, setArabic] = useState<boolean>(false)
+  // Session: restored after a refresh. The current page lives in the URL hash so a refresh stays on it.
+  const [restored] = useState(() => loadSession())
+  const [user, setUser] = useState<AuthUser | null>(restored?.user ?? null)
+  const [signedOutNotice, setSignedOutNotice] = useState('')
+  const [remember, setRemember] = useState(restored?.session.remember ?? true)
+  const [activeTab, setActiveTab] = useState<TabId>(tabFromHash)
+  const [activeCompanyId, setActiveCompanyId] = useState<CompanyId>(restored?.session.companyId ?? 'co_1')
+  const [currentRole, setCurrentRole] = useState<UserRole>(restored?.session.role ?? 'Accounts Manager')
+  const [arabic, setArabic] = useState<boolean>(restored?.session.arabic ?? false)
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  // Keep the URL in step with the page, and follow back/forward
+  useEffect(() => {
+    if (!user) return
+    if (tabFromHash() !== activeTab) window.location.hash = `#/${activeTab}`
+  }, [activeTab, user])
+  useEffect(() => {
+    const onHash = () => setActiveTab(tabFromHash())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+  useEffect(() => {
+    if (user) saveSession({ userId: user.id, role: currentRole, companyId: activeCompanyId, arabic, remember })
+  }, [user, currentRole, activeCompanyId, arabic, remember])
+  const handleLogin = (u: AuthUser, rem: boolean) => {
+    setRemember(rem); setCurrentRole(u.role); setSignedOutNotice(''); setUser(u)
+  }
+  const handleSignOut = () => {
+    clearSession()
+    setDrawerType(null); setEditingInvoice(undefined); setEditingBill(undefined); setPdfInvoice(null); setPaymentModalState({ open: false })
+    setSignedOutNotice('You have been signed out.')
+    window.location.hash = ''
+    setActiveTab('dashboard')
+    setUser(null)
+  }
 
   // Entities Data State
   const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices)
@@ -1122,6 +1161,8 @@ export default function App() {
   const proformaInvoicesCount = invoices.filter(i => i.category === 'proforma').length
   const progressiveInvoicesCount = invoices.filter(i => i.category === 'progressive').length
 
+  if (!user) return <LoginPage notice={signedOutNotice} onLogin={handleLogin} />
+
   return (
     <DirectoryProvider contacts={contactsApi.contacts} products={inventory.products} stockOf={sku => inventory.onHand(sku)}>
     <div className={`flex min-h-screen bg-slate-100 text-slate-800 ${arabic ? 'rtl' : 'ltr'}`} dir={arabic ? 'rtl' : 'ltr'}>
@@ -1176,6 +1217,8 @@ export default function App() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onToggleSidebar={() => setMobileNavOpen(true)}
+          user={user}
+          onSignOut={handleSignOut}
         />
 
         <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto">
