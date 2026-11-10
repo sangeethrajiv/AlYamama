@@ -26,6 +26,8 @@ export default function PaymentModal({
 }: PaymentModalProps) {
   const isCustomer = initialInvoice ? true : initialBill ? false : initialType === 'customer'
   const partnerType = isCustomer ? 'customer' : 'supplier'
+  // Opened from a specific invoice/bill: only ask for the essentials
+  const compact = !!(initialInvoice || initialBill)
 
   const defaultPartner = initialInvoice
     ? initialInvoice.partner
@@ -88,11 +90,11 @@ export default function PaymentModal({
       currency: 'SAR',
       currencyRate: 1.0,
       amountBaseCurrency: amount,
-      memo: chequeNumber ? `${memo} (Cheque #${chequeNumber} - ${chequeBank})` : memo,
-      paymentMethod,
+      memo: !compact && chequeNumber ? `${memo} (Cheque #${chequeNumber} - ${chequeBank})` : memo,
+      paymentMethod: compact ? (/cash/i.test(selectedJournal.name) ? 'Cash' : 'Bank Transfer') : paymentMethod,
       state: 'posted',
       matchedInvoiceIds: selectedInvoiceId ? [selectedInvoiceId] : [],
-      chequeNumber: paymentMethod === 'Corporate Cheque' ? chequeNumber : undefined,
+      chequeNumber: !compact && paymentMethod === 'Corporate Cheque' ? chequeNumber : undefined,
     }
 
     onSavePayment(newPayment, selectedInvoiceId || undefined, selectedBillId || undefined)
@@ -119,6 +121,33 @@ export default function PaymentModal({
         </div>
 
         {/* Body */}
+        {compact ? (
+        <div className="p-6 space-y-4 text-xs">
+          <div>
+            <label className="block text-slate-600 font-bold mb-1">Payment Amount *</label>
+            <input type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(Number(e.target.value))}
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-mono font-bold text-sm" />
+          </div>
+          <div>
+            <label className="block text-slate-600 font-bold mb-1">Payment Journal *</label>
+            <select value={journalId} onChange={e => setJournalId(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-medium">
+              {bankJournals.map(j => <option key={j.id} value={j.id}>{j.name} ({j.code})</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-slate-600 font-bold mb-1">Payment Date *</label>
+            <input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800" />
+          </div>
+          <div>
+            <label className="block text-slate-600 font-bold mb-1">Memo</label>
+            <input type="text" value={memo} onChange={e => setMemo(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800" />
+          </div>
+        </div>
+
+        ) : (
         <div className="p-6 space-y-4 text-xs">
           <div>
             <label className="block text-slate-600 font-bold mb-1">
@@ -274,6 +303,8 @@ export default function PaymentModal({
             </span>
           </div>
         </div>
+
+        )}
 
         {/* Footer */}
         <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end gap-2">

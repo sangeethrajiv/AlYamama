@@ -17,6 +17,7 @@ import type {
   InventoryAdjustment,
   InventoryAdjustmentLine,
   AdjustmentReason,
+  CreditNoteOptions,
 } from './types/accounting'
 import {
   mockCompanies,
@@ -193,6 +194,9 @@ export default function App() {
 
     if (postImmediately) {
       handleValidateInvoice(inv.id, inv)
+      // Stay on the invoice: the drawer now shows it as Open with its next steps
+      setEditingInvoice(inv)
+      return
     }
 
     setDrawerType(null)
@@ -203,13 +207,11 @@ export default function App() {
     const target = overrideInv || invoices.find(i => i.id === invoiceId)
     if (!target) return
 
-    const isCashInvoice = target.category === 'cash'
-
-    // Post validation: update state to 'open' (or 'paid' for Cash Invoices)
+    // Post validation: every invoice (cash included) goes to 'open'; it becomes paid only when a payment is registered
     const updated: Invoice = {
       ...target,
-      state: isCashInvoice ? 'paid' : 'open',
-      residual: isCashInvoice ? 0 : target.residual,
+      state: 'open',
+      residual: target.amountTotal,
       validatedBy: currentRole,
       validatedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
       approvalStatus: 'approved',
@@ -326,6 +328,10 @@ export default function App() {
   const handleCancelInvoice = (invoiceId: string) => {
     const target = invoices.find(i => i.id === invoiceId)
     if (!target) return
+    if (target.zatca) {
+      alert('This invoice was submitted to ZATCA and cannot be cancelled. Create a credit note instead.')
+      return
+    }
 
     setInvoices(prev =>
       prev.map(i => (i.id === invoiceId ? { ...i, state: 'cancel', residual: 0 } : i))
@@ -373,29 +379,32 @@ export default function App() {
     )
   }
 
-  const handleCreateCreditNote = (originalInvoice: Invoice) => {
+  const handleCreateCreditNote = (originalInvoice: Invoice, opts: CreditNoteOptions = { reason: 'Credit note', date: '2026-11-10', method: 'cancel' }) => {
     const stamp = Math.floor(1000 + Math.random() * 9000)
+    const reconcile = opts.method !== 'draft'
     const creditNote: Invoice = {
       ...originalInvoice,
       id: `inv_cn_${Date.now()}`,
       number: `RND/2026/${stamp}`,
       type: 'out_refund',
       originInvoiceNumber: originalInvoice.number,
+      creditNoteReason: opts.reason,
       reference: `Credit Note for ${originalInvoice.number}`,
-      dateInvoice: '2026-11-06',
-      state: 'open',
+      dateInvoice: opts.date,
+      state: reconcile ? 'paid' : 'draft',
       residual: 0,
-      approvalStatus: 'approved',
+      approvalStatus: reconcile ? 'approved' : 'not_required',
+      zatca: undefined,
     }
 
-    // Reduces residual on original invoice (BR-008)
+    // Reconciling clears the credit against the original invoice's open balance (BR-008)
     setInvoices(prev => [
       creditNote,
-      ...prev.map(i =>
-        i.id === originalInvoice.id
-          ? { ...i, residual: Math.max(0, i.residual - originalInvoice.amountTotal) }
-          : i
-      ),
+      ...prev.map(i => {
+        if (i.id !== originalInvoice.id || !reconcile) return i
+        const residual = Math.max(0, Math.round((i.residual - originalInvoice.amountTotal) * 100) / 100)
+        return { ...i, residual, state: (residual <= 0 ? 'paid' : 'in_payment') as Invoice['state'] }
+      }),
     ])
 
     addAuditLog(
@@ -404,9 +413,54 @@ export default function App() {
       creditNote.number,
       'create_credit_note',
       '—',
-      'open',
-      `Issued credit note linked to original invoice ${originalInvoice.number} (INV-011 / BR-008)`
+      creditNote.state,
+      `Credit note for ${originalInvoice.number} (${opts.reason}). ${reconcile ? 'Posted and reconciled against the invoice.' : 'Saved as draft.'}`
     )
+    addAuditLog('Invoice', originalInvoice.id, originalInvoice.number, 'create_credit_note', '—', creditNote.state, `Credit note ${creditNote.number} issued: ${opts.reason}.`)
+    if (reconcile) {
+      const left = Math.max(0, Math.round((originalInvoice.residual - originalInvoice.amountTotal) * 100) / 100)
+      addAuditLog('Invoice', originalInvoice.id, originalInvoice.number, 'state', originalInvoice.state, left <= 0 ? 'paid' : 'in_payment', `Credit note ${creditNote.number} reconciled against this invoice.`)
+    }
+
+    // "Modify": also open a fresh draft copy so the invoice can be corrected and re-issued
+    if (opts.method === 'modify') {
+      const copy: Invoice = {
+        ...originalInvoice,
+        id: `inv_mod_${Date.now()}`,
+        number: `DRAFT/${stamp}`,
+        state: 'draft',
+        residual: originalInvoice.amountTotal,
+        dateInvoice: opts.date,
+        validatedBy: undefined,
+        validatedAt: undefined,
+        approvalStatus: 'not_required',
+        zatca: undefined,
+        reference: `Re-issued from ${originalInvoice.number}`,
+      }
+      setInvoices(prev => [copy, ...prev])
+      addAuditLog('Invoice', copy.id, copy.number, 'create', '—', 'draft', `Draft re-issued from ${originalInvoice.number} after credit note ${creditNote.number}.`)
+    }
+  }
+
+  // Simulated ZATCA submission: validates, signs a local hash, chains the document
+  const handleSubmitZatca = async (invoiceId: string) => {
+    const inv = invoices.find(i => i.id === invoiceId)
+    if (!inv || inv.zatca) return
+    const bytes = new TextEncoder().encode(JSON.stringify({ n: inv.number, t: inv.amountTotal, d: inv.dateInvoice, p: inv.partner }))
+    const digest = await crypto.subtle.digest('SHA-256', bytes)
+    const invoiceHash = btoa(String.fromCharCode(...new Uint8Array(digest)))
+    const chainIndex = Math.max(0, ...invoices.map(i => i.zatca?.chainIndex ?? 0)) + 1
+    const zatca = {
+      status: 'cleared' as const,
+      uuid: crypto.randomUUID(),
+      invoiceHash,
+      chainIndex,
+      submittedAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      submittedBy: currentRole,
+      message: 'Invoice cleared (simulated)',
+    }
+    setInvoices(prev => prev.map(i => (i.id === invoiceId ? { ...i, zatca } : i)))
+    addAuditLog('Invoice', inv.id, inv.number, 'zatca_submit', 'not submitted', 'cleared', `Submitted to ZATCA. Chain index ${chainIndex}, UUID ${zatca.uuid}.`)
   }
 
   // --- Bill Operations ---
@@ -547,6 +601,18 @@ export default function App() {
 
     setJournalEntries(prev => [je, ...prev])
 
+    // Mirror the payment on the invoice / bill so its Chatter shows the status change
+    const payInv = allocatedInvoiceId ? invoices.find(i => i.id === allocatedInvoiceId) : undefined
+    if (payInv) {
+      const left = Math.max(0, payInv.residual - payment.amount)
+      addAuditLog('Invoice', payInv.id, payInv.number, 'payment', payInv.state, left <= 0 ? 'paid' : 'in_payment', `Payment ${payment.paymentNumber} of ${payment.amount.toFixed(2)} ${payInv.currency} registered via ${payment.journalName}. Balance due ${left.toFixed(2)}.`)
+    }
+    const payBill = allocatedBillId ? bills.find(b => b.id === allocatedBillId) : undefined
+    if (payBill) {
+      const left = Math.max(0, payBill.residual - payment.amount)
+      addAuditLog('Vendor Bill', payBill.id, payBill.number, 'payment', payBill.state, left <= 0 ? 'paid' : 'in_payment', `Payment ${payment.paymentNumber} of ${payment.amount.toFixed(2)} ${payBill.currency} registered via ${payment.journalName}. Balance due ${left.toFixed(2)}.`)
+    }
+
     // If allocated to invoice, update invoice state & residual
     if (allocatedInvoiceId) {
       setInvoices(prev =>
@@ -654,6 +720,7 @@ export default function App() {
       )
     )
 
+    addAuditLog('Invoice', inv.id, inv.number, 'reconciliation', inv.state, newInvoiceState, `Payment ${pay.paymentNumber} reconciled against this invoice. Balance due ${newResidual.toFixed(2)}.`)
     addAuditLog(
       'Payment',
       pay.id,
@@ -712,6 +779,12 @@ export default function App() {
           : p
       )
     )
+    allocations.forEach(a => {
+      const inv = invoices.find(x => x.id === a.invoiceId)
+      if (!inv) return
+      const left = Math.max(0, Math.round((inv.residual - a.amount) * 100) / 100)
+      addAuditLog('Invoice', inv.id, inv.number, 'reconciliation', inv.state, left <= 0 ? 'paid' : 'in_payment', `Bulk payment ${pay.paymentNumber} applied ${a.amount.toFixed(2)}. Balance due ${left.toFixed(2)}.`)
+    })
     addAuditLog(
       'Payment', pay.id, pay.paymentNumber, 'bulk_reconciliation', 'posted', fully ? 'reconciled' : 'posted',
       `Bulk payment matched against ${allocations.length} invoice(s): ${allocations.map(a => invoices.find(i => i.id === a.invoiceId)?.number).join(', ')}. Total allocated ${total.toFixed(2)}.`
@@ -1210,6 +1283,9 @@ export default function App() {
           existingInvoices={invoices}
           payments={payments}
           onUnreconcile={handleUnreconcile}
+          onRegisterPayment={inv => setPaymentModalState({ open: true, type: 'customer', invoice: inv })}
+          onCreateCreditNote={handleCreateCreditNote}
+          onSubmitZatca={handleSubmitZatca}
           auditLogs={auditLogs}
           onPostNote={handlePostNote}
           defaultCategory={defaultInvoiceCategory}

@@ -50,6 +50,13 @@ export type InvoiceCategory = 'cash' | 'credit' | 'proforma' | 'progressive'
 
 export interface InvoiceLine {
   id: string
+  // Proforma line fields
+  subscriptionType?: string
+  subscriptions?: number
+  frequency?: string
+  startDate?: string
+  endDate?: string
+  vehiclesText?: string
   mainTask?: string
   category?: string
   showSeparately?: boolean
@@ -74,6 +81,22 @@ export interface InvoiceLine {
   subtotal: number
   taxAmount: number
   total: number
+}
+
+export interface ZatcaSubmission {
+  status: 'cleared' | 'rejected'
+  uuid: string
+  invoiceHash: string
+  chainIndex: number
+  submittedAt: string
+  submittedBy: string
+  message?: string
+}
+
+export interface CreditNoteOptions {
+  reason: string
+  date: string
+  method: 'draft' | 'cancel' | 'modify' // draft only / create and reconcile / create, reconcile and re-draft the invoice
 }
 
 export interface Invoice {
@@ -139,6 +162,12 @@ export interface Invoice {
   validatedAt?: string
   type: 'out_invoice' | 'out_refund' // Invoice vs Customer Credit Note
   originInvoiceNumber?: string // If credit note
+  // Proforma header fields
+  billingEmail?: string
+  advPercentage?: number
+  linkedInvoice?: string
+  creditNoteReason?: string
+  zatca?: ZatcaSubmission
   interCompanyBillRef?: string // Traceability to Co B bill
   attachmentsCount: number
 }

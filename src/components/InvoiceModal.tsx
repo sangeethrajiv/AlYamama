@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { X, Plus, Trash2, CheckCircle2 } from 'lucide-react'
 import Chatter from './Chatter'
-import type { AuditLogEntry, Invoice, InvoiceLine, CompanyId, InvoiceCategory, Payment } from '../types/accounting'
-import { mockAnalyticAccounts, mockCurrencies, moneyFormat } from '../data/mockAccountingData'
+import InvoiceNextSteps from './InvoiceNextSteps'
+import ProformaFormCards from './ProformaFormCards'
+import type { AuditLogEntry, CreditNoteOptions, Invoice, InvoiceLine, CompanyId, InvoiceCategory, Payment } from '../types/accounting'
+import { mockAnalyticAccounts, mockCurrencies, mockCompanies, moneyFormat } from '../data/mockAccountingData'
 
 interface InvoiceModalProps {
   invoice?: Invoice
@@ -10,6 +12,9 @@ interface InvoiceModalProps {
   existingInvoices: Invoice[]
   payments?: Payment[]
   onUnreconcile?: (invoiceId: string, paymentId: string) => void
+  onRegisterPayment?: (invoice: Invoice) => void
+  onCreateCreditNote?: (invoice: Invoice, opts: CreditNoteOptions) => void
+  onSubmitZatca?: (invoiceId: string) => void
   auditLogs?: AuditLogEntry[]
   onPostNote?: (recordType: AuditLogEntry['recordType'], recordId: string, recordName: string, text: string) => void
   defaultCategory?: InvoiceCategory
@@ -24,6 +29,9 @@ export default function InvoiceModal({
   existingInvoices,
   payments = [],
   onUnreconcile,
+  onRegisterPayment,
+  onCreateCreditNote,
+  onSubmitZatca,
   auditLogs = [],
   onPostNote,
   defaultCategory = 'credit',
@@ -112,6 +120,10 @@ export default function InvoiceModal({
   const [journalName] = useState(
     category === 'cash' ? 'Cash Invoices (Cash)' : 'Customer Invoices (Sale)'
   )
+
+  // Proforma-only header fields
+  const [billingEmail, setBillingEmail] = useState(invoice?.billingEmail || '')
+  const [advPercentage, setAdvPercentage] = useState<number>(invoice?.advPercentage ?? 0)
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'lines' | 'other' | 'vehicles'>('lines')
@@ -305,6 +317,9 @@ export default function InvoiceModal({
       vendorProjectName,
       prNumber,
       poNumber,
+      billingEmail: category === 'proforma' ? billingEmail : invoice?.billingEmail,
+      advPercentage: category === 'proforma' ? advPercentage : invoice?.advPercentage,
+      linkedInvoice: invoice?.linkedInvoice,
       invoiceDateWithTime,
       dateInvoice,
       dateDue,
@@ -378,6 +393,16 @@ export default function InvoiceModal({
 
         {/* Scrollable Drawer Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* Next steps: only once posted and still open */}
+          {invoice && (invoice.state === 'open' || invoice.state === 'in_payment' || invoice.state === 'paid') && invoice.type !== 'out_refund' && onRegisterPayment && onCreateCreditNote && onSubmitZatca && (
+            <InvoiceNextSteps
+              invoice={invoice}
+              customer={{ name: partner, vat: customerVat, address: customerAddress }}
+              onRegisterPayment={() => onRegisterPayment(invoice)}
+              onCreateCreditNote={opts => onCreateCreditNote(invoice, opts)}
+              onSubmitZatca={() => onSubmitZatca(invoice.id)}
+            />
+          )}
           {/* 4 Invoice Types Switcher */}
           {showTypePicker && (
           <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
@@ -444,6 +469,32 @@ export default function InvoiceModal({
           </div>
           )}
 
+          {category === 'proforma' ? (
+            <ProformaFormCards
+              isDraft={isDraft}
+              invoiceStatus={invoice?.state === 'paid' ? 'invoiced' : 'pending'}
+              companyName={mockCompanies.find(c => c.id === (invoice?.companyId || companyId))?.name || ''}
+              journalName={journalName}
+              currency={currency}
+              onCurrencyChange={handleCurrencyChange}
+              dateInvoice={dateInvoice} setDateInvoice={setDateInvoice}
+              partner={partner} setPartner={setPartner}
+              salesperson={salesperson} setSalesperson={setSalesperson}
+              linkedInvoice={invoice?.linkedInvoice || ''}
+              billingEmail={billingEmail} setBillingEmail={setBillingEmail}
+              poNumber={poNumber === '-' ? '' : poNumber} setPoNumber={setPoNumber}
+              prNumber={prNumber} setPrNumber={setPrNumber}
+              vendorProjectName={vendorProjectName} setVendorProjectName={setVendorProjectName}
+              frequency={subscriptionFrequency} setFrequency={setSubscriptionFrequency}
+              advPercentage={advPercentage} setAdvPercentage={setAdvPercentage}
+              lines={lines}
+              updateLine={updateLine}
+              addLine={addLine}
+              removeLine={removeLine}
+              totals={{ price: amountWithoutDiscount, tax: taxTotal, discount: discountTotal, grand: grandTotal }}
+            />
+          ) : (
+          <>
           {/* CARD 1: INVOICE HEADER & PARTNER INFORMATION */}
           <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -1225,7 +1276,7 @@ export default function InvoiceModal({
                   </div>
                   <div>
                     <span className="text-slate-500 font-medium block">ZATCA Clearance State</span>
-                    <span className="font-semibold text-emerald-700">Cleared & Cryptographically Signed</span>
+                    <span className={`font-semibold ${invoice?.zatca ? 'text-emerald-700' : 'text-amber-700'}`}>{invoice?.zatca ? `Cleared · chain #${invoice.zatca.chainIndex}` : 'Not submitted'}</span>
                   </div>
                 </div>
               </div>
@@ -1293,6 +1344,9 @@ export default function InvoiceModal({
               </div>
             )}
           </div>
+
+          </>
+          )}
 
           {/* CARD: PAYMENTS & RECONCILIATION */}
           {invoice && !isDraft && invoice.state !== 'cancel' && (
