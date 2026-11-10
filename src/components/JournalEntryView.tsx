@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Trash2, CheckCircle2, AlertCircle, X, ChevronLeft, ChevronRight, Filter, Grid } from 'lucide-react'
+import { Plus, Trash2, CheckCircle2, AlertCircle, X, Filter, Grid } from 'lucide-react'
 import type { JournalEntry, JournalLine, CompanyId, UserRole, AnalyticItem } from '../types/accounting'
 import { mockChartOfAccounts, mockAnalyticAccounts, mockAnalyticItems, moneyFormat, mockCompanies } from '../data/mockAccountingData'
 
@@ -931,28 +931,6 @@ export default function JournalEntryView({
               </button>
             </div>
 
-            {/* Actions Bar */}
-            <div className="bg-slate-50 px-6 py-2 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    handleOpenExisting(selectedJournalItem.entry)
-                    setSelectedJournalItem(null)
-                  }}
-                  className="px-3.5 py-1 bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded transition"
-                >
-                  Edit
-                </button>
-                <span className="text-xs text-slate-600 bg-white border border-slate-300 px-2.5 py-1 rounded">
-                  Action
-                </span>
-              </div>
-              <div className="flex items-center gap-1 text-xs text-slate-500">
-                <ChevronLeft size={16} className="cursor-pointer hover:text-slate-900" />
-                <ChevronRight size={16} className="cursor-pointer hover:text-slate-900" />
-              </div>
-            </div>
-
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto space-y-6">
               {/* Header Info */}
@@ -1102,31 +1080,6 @@ export default function JournalEntryView({
               >
                 <X size={20} />
               </button>
-            </div>
-
-            {/* Actions Bar */}
-            <div className="bg-slate-50 px-6 py-2 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setSelectedAnalyticItem(null)}
-                  className="px-3.5 py-1 bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded transition"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => setSelectedAnalyticItem(null)}
-                  className="px-3.5 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold rounded transition"
-                >
-                  Create
-                </button>
-                <span className="text-xs text-slate-600 bg-white border border-slate-300 px-2.5 py-1 rounded">
-                  Action
-                </span>
-              </div>
-              <div className="flex items-center gap-1 text-xs text-slate-500">
-                <ChevronLeft size={16} className="cursor-pointer hover:text-slate-900" />
-                <ChevronRight size={16} className="cursor-pointer hover:text-slate-900" />
-              </div>
             </div>
 
             {/* Modal Body */}
