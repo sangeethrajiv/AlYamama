@@ -19,7 +19,7 @@ const EVENTS: Record<string, { title: string; tone: Tone }> = {
   create: { title: 'Created', tone: 'slate' },
   update: { title: 'Edited', tone: 'slate' },
   state: { title: 'Status changed', tone: 'green' },
-  renew: { title: 'Renewed', tone: 'green' },
+  renew: { title: 'Invoiced', tone: 'green' },
   payment: { title: 'Payment registered', tone: 'green' },
   approvalStatus: { title: 'Approval updated', tone: 'amber' },
   zatca_submit: { title: 'Submitted to ZATCA', tone: 'green' },

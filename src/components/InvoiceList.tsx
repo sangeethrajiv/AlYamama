@@ -369,7 +369,7 @@ export default function InvoiceList({
                         {/* Fixed slots keep every row's buttons in the same columns */}
                         <div className="flex items-center justify-end gap-1">
                           <div className="w-12 flex justify-end">
-                            {inv.state === 'draft' && canValidate && (
+                            {inv.state === 'draft' && canValidate && inv.category !== 'proforma' && (
                               <button
                                 onClick={() => onValidateInvoice(inv.id)}
                                 className="h-7 w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[11px] font-bold transition"

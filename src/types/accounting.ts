@@ -166,6 +166,7 @@ export interface Invoice {
   poName?: string
   poDescription?: string
   progressiveStatus?: 'draft' | 'approved'
+  sourceProformaId?: string // invoice created from a proforma
   // Proforma header fields
   billingEmail?: string
   advPercentage?: number

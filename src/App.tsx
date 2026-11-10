@@ -450,35 +450,36 @@ export default function App() {
     }
   }
 
-  // Renew a proforma: copy it as a new draft with every period moved forward by its frequency
+  // Renew a proforma: turns it into a real customer invoice (draft) and marks the proforma as invoiced
   const handleRenewProforma = (orig: Invoice) => {
-    const months: Record<string, number> = { 'One Year': 12, 'Six Months': 6, Quarterly: 3, Monthly: 1 }
-    const shift = (iso: string | undefined, m: number) => {
-      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso) || !m) return iso
-      const d = new Date(`${iso}T00:00:00`)
-      d.setMonth(d.getMonth() + m)
-      return d.toISOString().slice(0, 10)
-    }
-    const m = months[orig.subscriptionFrequency || 'One Year'] ?? 0
+    if (orig.linkedInvoice) return
     const stamp = Math.floor(1000 + Math.random() * 9000)
     const copy: Invoice = {
       ...orig,
-      id: `inv_ren_${Date.now()}`,
-      number: `PRO/2026/${stamp}`,
+      id: `inv_from_pro_${Date.now()}`,
+      number: `INV/2026/${stamp}`,
+      category: 'credit',
       state: 'draft',
       residual: orig.amountTotal,
       dateInvoice: '2026-11-10',
       dateDue: '2026-11-10',
+      sourceDocument: orig.number,
+      sourceProformaId: orig.id,
+      reference: `From proforma ${orig.number}`,
       linkedInvoice: undefined,
-      reference: `Renewal of ${orig.number}`,
+      billingEmail: undefined,
+      advPercentage: undefined,
       validatedBy: undefined,
       validatedAt: undefined,
+      approvalStatus: 'not_required',
       zatca: undefined,
-      lines: orig.lines.map((l, i) => ({ ...l, id: `ln_ren_${Date.now()}_${i}`, startDate: l.endDate || l.startDate, endDate: shift(l.endDate, m) })),
+      lines: orig.lines.map((l, i) => ({ ...l, id: `ln_inv_${Date.now()}_${i}` })),
     }
-    setInvoices(prev => [copy, ...prev])
-    addAuditLog('Invoice', orig.id, orig.number, 'renew', '—', 'draft', `Renewed as ${copy.number}.`)
-    addAuditLog('Invoice', copy.id, copy.number, 'create', '—', 'draft', `Created by renewing ${orig.number}.`)
+    setInvoices(prev => [copy, ...prev.map(i => (i.id === orig.id ? { ...i, linkedInvoice: copy.number } : i))])
+    addAuditLog('Invoice', orig.id, orig.number, 'renew', 'pending payment', 'invoiced', `Invoice ${copy.number} created from this proforma.`)
+    addAuditLog('Invoice', copy.id, copy.number, 'create', '—', 'draft', `Created from proforma ${orig.number}.`)
+    setDefaultInvoiceCategory('credit')
+    setLockedCategory('credit')
     setEditingInvoice(copy)
   }
 

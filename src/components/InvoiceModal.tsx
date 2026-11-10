@@ -4,7 +4,7 @@ import Chatter from './Chatter'
 import InvoiceNextSteps from './InvoiceNextSteps'
 import ProformaFormCards from './ProformaFormCards'
 import ProgressiveFormCard from './ProgressiveFormCard'
-import DocumentActionBar from './DocumentActionBar'
+import DocumentActionBar, { type ActionItem } from './DocumentActionBar'
 import type { AuditLogEntry, CreditNoteOptions, Invoice, InvoiceLine, CompanyId, InvoiceCategory, Payment } from '../types/accounting'
 import { mockAnalyticAccounts, mockCurrencies, mockCompanies, moneyFormat } from '../data/mockAccountingData'
 
@@ -299,7 +299,7 @@ export default function InvoiceModal({
   const grandTotal = untaxedTotal + taxTotal
 
   // Save handler
-  const handleSave = (postImmediately = false, approve = false) => {
+  const handleSave = (postImmediately = false, approve = false, keepOpen = approve) => {
     const isProg = category === 'progressive'
     if (isProg) {
       if (!partner.trim() || !poName.trim() || poTotal <= 0) {
@@ -351,6 +351,7 @@ export default function InvoiceModal({
       billingEmail: category === 'proforma' ? billingEmail : invoice?.billingEmail,
       advPercentage: category === 'proforma' ? advPercentage : invoice?.advPercentage,
       linkedInvoice: invoice?.linkedInvoice,
+      sourceProformaId: invoice?.sourceProformaId,
       invoiceDateWithTime,
       dateInvoice,
       dateDue,
@@ -386,8 +387,48 @@ export default function InvoiceModal({
       vehicles: vehiclesList,
     }
 
-    onSave(updatedInvoice, postImmediately, approve)
+    onSave(updatedInvoice, postImmediately, keepOpen)
   }
+
+  // Which actions apply depends on the document type and how far along it is
+  const sourceProforma = invoice?.sourceProformaId ? existingInvoices.find(i => i.id === invoice.sourceProformaId) : undefined
+  const cancelAction: ActionItem = {
+    label: 'Cancel',
+    kind: 'danger',
+    onClick: () => {
+      if (invoice && onCancelInvoice) onCancelInvoice(invoice.id)
+      onClose()
+    },
+  }
+  let actionItems: ActionItem[] = []
+  if (invoice?.state !== 'cancel') {
+    if (category === 'proforma') {
+      // Not saved yet: only Save (footer). Saved: Renew (-> invoice), Print, Cancel.
+      if (invoice) {
+        const invoiced = !!invoice.linkedInvoice
+        actionItems = [
+          ...(invoiced ? [] : [{ label: 'Renew', kind: 'primary' as const, onClick: onRenewProforma ? () => onRenewProforma(invoice) : undefined }]),
+          { label: 'Print Proforma Invoice', onClick: onPrintInvoice ? () => onPrintInvoice(invoice, true) : undefined },
+          ...(invoiced ? [] : [cancelAction]),
+        ]
+      }
+    } else if (category === 'progressive') {
+      const validated = !!invoice && invoice.state !== 'draft'
+      actionItems = [
+        ...(validated ? [] : [{ label: 'Validate', kind: 'primary' as const, onClick: () => handleSave(true, true) }]),
+        { label: 'Preview', onClick: invoice && onPrintInvoice ? () => onPrintInvoice(invoice) : undefined, title: invoice ? undefined : 'Save the document first' },
+        cancelAction,
+      ]
+    } else if (sourceProforma) {
+      // Invoice created by renewing a proforma
+      actionItems = [
+        ...(invoice?.state === 'draft' ? [{ label: 'Validate', kind: 'primary' as const, onClick: () => handleSave(true) }] : []),
+        { label: 'Print Proforma Invoice', onClick: onPrintInvoice ? () => onPrintInvoice(sourceProforma, true) : undefined },
+        cancelAction,
+      ]
+    }
+  }
+  const usesActionBar = category === 'progressive' || category === 'proforma' || !!invoice?.sourceProformaId
 
   const invoiceNumberDisplay = invoice?.number || 'New'
   const stateDisplay = invoice?.state ? invoice.state.toUpperCase() : 'DRAFT'
@@ -428,26 +469,13 @@ export default function InvoiceModal({
 
         {/* Scrollable Drawer Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Proforma / progressive: Validate, Preview, Print, Cancel first */}
-          {(category === 'proforma' || category === 'progressive') && invoice?.state !== 'cancel' && (
-            <DocumentActionBar
-              invoice={invoice}
-              isProforma={category === 'proforma'}
-              onValidate={() => (category === 'progressive' ? handleSave(true, true) : handleSave(true))}
-              onPreview={invoice && onPrintInvoice ? () => onPrintInvoice(invoice) : undefined}
-              onPrint={invoice && onPrintInvoice ? () => onPrintInvoice(invoice, true) : undefined}
-              onRenew={invoice && onRenewProforma ? () => onRenewProforma(invoice) : undefined}
-              onCancel={() => {
-                if (invoice && onCancelInvoice) onCancelInvoice(invoice.id)
-                onClose()
-              }}
-            />
-          )}
+          {/* Stage-specific document actions */}
+          <DocumentActionBar items={actionItems} />
           {/* Next steps: only once posted and still open */}
-          {invoice && (invoice.state === 'open' || invoice.state === 'in_payment' || invoice.state === 'paid') && invoice.type !== 'out_refund' && onRegisterPayment && onCreateCreditNote && onSubmitZatca && (
+          {invoice && category !== 'proforma' && (invoice.state === 'open' || invoice.state === 'in_payment' || invoice.state === 'paid') && invoice.type !== 'out_refund' && onRegisterPayment && onCreateCreditNote && onSubmitZatca && (
             <InvoiceNextSteps
               invoice={invoice}
-              hideCreditNote={category === 'proforma' || category === 'progressive'}
+              hideCreditNote={category === 'progressive'}
               customer={{ name: partner, vat: customerVat, address: customerAddress }}
               onRegisterPayment={() => onRegisterPayment(invoice)}
               onCreateCreditNote={opts => onCreateCreditNote(invoice, opts)}
@@ -537,7 +565,7 @@ export default function InvoiceModal({
           ) : category === 'proforma' ? (
             <ProformaFormCards
               isDraft={isDraft}
-              invoiceStatus={invoice?.state === 'paid' ? 'invoiced' : 'pending'}
+              invoiceStatus={invoice?.linkedInvoice ? 'invoiced' : 'pending'}
               companyName={mockCompanies.find(c => c.id === (invoice?.companyId || companyId))?.name || ''}
               journalName={journalName}
               currency={currency}
@@ -1486,12 +1514,12 @@ export default function InvoiceModal({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => handleSave(false)}
+                onClick={() => handleSave(false, false, category === 'proforma')}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition"
               >
-                Save as Draft
+                {category === 'proforma' ? 'Save' : 'Save as Draft'}
               </button>
-              {category !== 'proforma' && category !== 'progressive' && (
+              {!usesActionBar && (
                 <button
                   type="button"
                   onClick={() => handleSave(true)}
