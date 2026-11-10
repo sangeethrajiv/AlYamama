@@ -82,6 +82,7 @@ export default function App() {
   // Set when the form is opened from a specific type; undefined means the user picks the type
   const [lockedCategory, setLockedCategory] = useState<InvoiceCategory | undefined>(undefined)
   const [pdfInvoice, setPdfInvoice] = useState<Invoice | null>(null)
+  const [pdfAutoPrint, setPdfAutoPrint] = useState(false)
   const [editingBill, setEditingBill] = useState<Bill | undefined>(undefined)
   const [paymentModalState, setPaymentModalState] = useState<{
     open: boolean
@@ -173,7 +174,8 @@ export default function App() {
     salesperson: 'Salesperson', sourceDocument: 'Source document', reference: 'Reference', prNumber: 'PR number', poNumber: 'PO number',
     vendorProjectName: 'Vendor project', isSubscriptionInvoice: 'Subscription invoice', subscriptionFrequency: 'Frequency',
     subscriptionType: 'Subscription type', subscriptionStartDate: 'Start date', subscriptionEndDate: 'End date',
-    amountTotal: 'Total',
+    amountTotal: 'Total', billingEmail: 'Billing email', advPercentage: 'Adv. percentage', poName: 'PO name', poDescription: 'PO description',
+    contractAmount: 'PO total amount', progressiveStatus: 'PO status',
   }
   const BILL_FIELDS: Record<string, string> = {
     vendor: 'Vendor', supplierInvoiceNumber: 'Vendor reference', dateBill: 'Bill date', dateDue: 'Due date',
@@ -181,7 +183,7 @@ export default function App() {
   }
 
   // --- Invoice Operations ---
-  const handleSaveInvoice = (inv: Invoice, postImmediately = false) => {
+  const handleSaveInvoice = (inv: Invoice, postImmediately = false, keepOpen = false) => {
     const exists = invoices.some(i => i.id === inv.id)
     if (exists) {
       setInvoices(prev => prev.map(i => (i.id === inv.id ? inv : i)))
@@ -195,6 +197,12 @@ export default function App() {
     if (postImmediately) {
       handleValidateInvoice(inv.id, inv)
       // Stay on the invoice: the drawer now shows it as Open with its next steps
+      setEditingInvoice(inv)
+      return
+    }
+
+    if (keepOpen) {
+      // e.g. approving a progressive PO: stay on the record
       setEditingInvoice(inv)
       return
     }
@@ -440,6 +448,38 @@ export default function App() {
       setInvoices(prev => [copy, ...prev])
       addAuditLog('Invoice', copy.id, copy.number, 'create', '—', 'draft', `Draft re-issued from ${originalInvoice.number} after credit note ${creditNote.number}.`)
     }
+  }
+
+  // Renew a proforma: copy it as a new draft with every period moved forward by its frequency
+  const handleRenewProforma = (orig: Invoice) => {
+    const months: Record<string, number> = { 'One Year': 12, 'Six Months': 6, Quarterly: 3, Monthly: 1 }
+    const shift = (iso: string | undefined, m: number) => {
+      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso) || !m) return iso
+      const d = new Date(`${iso}T00:00:00`)
+      d.setMonth(d.getMonth() + m)
+      return d.toISOString().slice(0, 10)
+    }
+    const m = months[orig.subscriptionFrequency || 'One Year'] ?? 0
+    const stamp = Math.floor(1000 + Math.random() * 9000)
+    const copy: Invoice = {
+      ...orig,
+      id: `inv_ren_${Date.now()}`,
+      number: `PRO/2026/${stamp}`,
+      state: 'draft',
+      residual: orig.amountTotal,
+      dateInvoice: '2026-11-10',
+      dateDue: '2026-11-10',
+      linkedInvoice: undefined,
+      reference: `Renewal of ${orig.number}`,
+      validatedBy: undefined,
+      validatedAt: undefined,
+      zatca: undefined,
+      lines: orig.lines.map((l, i) => ({ ...l, id: `ln_ren_${Date.now()}_${i}`, startDate: l.endDate || l.startDate, endDate: shift(l.endDate, m) })),
+    }
+    setInvoices(prev => [copy, ...prev])
+    addAuditLog('Invoice', orig.id, orig.number, 'renew', '—', 'draft', `Renewed as ${copy.number}.`)
+    addAuditLog('Invoice', copy.id, copy.number, 'create', '—', 'draft', `Created by renewing ${orig.number}.`)
+    setEditingInvoice(copy)
   }
 
   // Simulated ZATCA submission: validates, signs a local hash, chains the document
@@ -1278,6 +1318,7 @@ export default function App() {
       {/* Global Invoice Modal */}
       {drawerType === 'invoice' && (
         <InvoiceModal
+          key={editingInvoice?.id ?? 'new'}
           invoice={editingInvoice}
           companyId={activeCompanyId}
           existingInvoices={invoices}
@@ -1286,6 +1327,9 @@ export default function App() {
           onRegisterPayment={inv => setPaymentModalState({ open: true, type: 'customer', invoice: inv })}
           onCreateCreditNote={handleCreateCreditNote}
           onSubmitZatca={handleSubmitZatca}
+          onRenewProforma={handleRenewProforma}
+          onPrintInvoice={(inv, autoPrint) => { setPdfAutoPrint(!!autoPrint); setPdfInvoice(inv) }}
+          onCancelInvoice={handleCancelInvoice}
           auditLogs={auditLogs}
           onPostNote={handlePostNote}
           defaultCategory={defaultInvoiceCategory}
@@ -1300,7 +1344,7 @@ export default function App() {
 
       {/* Global Printable Tax Invoice PDF Modal */}
       {pdfInvoice && (
-        <InvoicePdfModal invoice={pdfInvoice} onClose={() => setPdfInvoice(null)} />
+        <InvoicePdfModal invoice={pdfInvoice} autoPrint={pdfAutoPrint} onClose={() => setPdfInvoice(null)} />
       )}
 
       {/* Global Bill Modal */}

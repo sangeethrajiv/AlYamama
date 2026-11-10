@@ -1,13 +1,22 @@
+import { useEffect } from 'react'
 import { X, CheckCircle2 } from 'lucide-react'
 import type { Invoice } from '../types/accounting'
 import { mockCompanies, moneyFormat } from '../data/mockAccountingData'
 
 interface InvoicePdfModalProps {
   invoice: Invoice
+  autoPrint?: boolean
   onClose: () => void
 }
 
-export default function InvoicePdfModal({ invoice, onClose }: InvoicePdfModalProps) {
+export default function InvoicePdfModal({ invoice, autoPrint, onClose }: InvoicePdfModalProps) {
+  useEffect(() => {
+    if (autoPrint) {
+      const t = setTimeout(() => window.print(), 250)
+      return () => clearTimeout(t)
+    }
+  }, [autoPrint])
+
   const company = mockCompanies.find(c => c.id === invoice.companyId) || mockCompanies[0]
 
   return (
@@ -17,10 +26,10 @@ export default function InvoicePdfModal({ invoice, onClose }: InvoicePdfModalPro
         <div className="bg-slate-900 text-white px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h3 className="font-extrabold text-sm tracking-wide">
-              Tax Invoice Preview — {invoice.number}
+              {invoice.category === 'proforma' ? 'Proforma Invoice Preview' : 'Tax Invoice Preview'} — {invoice.number}
             </h3>
             <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-mono px-2 py-0.5 rounded">
-              ZATCA Tax Invoice
+              {invoice.category === 'proforma' ? 'Proforma (not a tax invoice)' : 'ZATCA Tax Invoice'}
             </span>
           </div>
           <div className="flex items-center gap-2">

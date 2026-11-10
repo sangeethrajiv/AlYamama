@@ -162,6 +162,10 @@ export interface Invoice {
   validatedAt?: string
   type: 'out_invoice' | 'out_refund' // Invoice vs Customer Credit Note
   originInvoiceNumber?: string // If credit note
+  // Progressive PO fields (PO total uses contractAmount)
+  poName?: string
+  poDescription?: string
+  progressiveStatus?: 'draft' | 'approved'
   // Proforma header fields
   billingEmail?: string
   advPercentage?: number

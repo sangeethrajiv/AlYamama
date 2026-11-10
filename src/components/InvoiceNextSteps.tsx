@@ -8,6 +8,7 @@ interface Props {
   onRegisterPayment: () => void
   onCreateCreditNote: (opts: CreditNoteOptions) => void
   onSubmitZatca: () => void
+  hideCreditNote?: boolean // proforma / progressive: only payment and ZATCA
 }
 
 
@@ -22,7 +23,7 @@ const zatcaChecks = (inv: Invoice, c: Props['customer']) => [
 const STEPS = ['Posted', 'Submitted', 'Cleared']
 
 /** Post-posting actions: collect money, correct the invoice, report it to ZATCA. */
-export default function InvoiceNextSteps({ invoice, customer, onRegisterPayment, onCreateCreditNote, onSubmitZatca }: Props) {
+export default function InvoiceNextSteps({ invoice, customer, onRegisterPayment, onCreateCreditNote, onSubmitZatca, hideCreditNote }: Props) {
   const [dialog, setDialog] = useState<null | 'credit' | 'zatca'>(null)
   const [showDetails, setShowDetails] = useState(false)
   const [reason, setReason] = useState('')
@@ -47,7 +48,7 @@ export default function InvoiceNextSteps({ invoice, customer, onRegisterPayment,
         <span className="text-[11px] text-slate-400">What can you do with this invoice now</span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className={`grid grid-cols-1 gap-3 ${hideCreditNote ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}`}>
         {/* Register payment */}
         <div className={card}>
           <div>
@@ -62,7 +63,7 @@ export default function InvoiceNextSteps({ invoice, customer, onRegisterPayment,
         </div>
 
         {/* Credit note */}
-        <div className={card}>
+        {!hideCreditNote && <div className={card}>
           <div>
             <div className="text-xs font-extrabold text-slate-800">Correct or reverse</div>
             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -73,7 +74,7 @@ export default function InvoiceNextSteps({ invoice, customer, onRegisterPayment,
             className={`${btn} mt-auto border border-slate-300 hover:bg-slate-50 text-slate-800`}>
             Add credit note
           </button>
-        </div>
+        </div>}
 
         {/* ZATCA */}
         <div className={card}>

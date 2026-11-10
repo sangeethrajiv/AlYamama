@@ -3,6 +3,8 @@ import { X, Plus, Trash2, CheckCircle2 } from 'lucide-react'
 import Chatter from './Chatter'
 import InvoiceNextSteps from './InvoiceNextSteps'
 import ProformaFormCards from './ProformaFormCards'
+import ProgressiveFormCard from './ProgressiveFormCard'
+import DocumentActionBar from './DocumentActionBar'
 import type { AuditLogEntry, CreditNoteOptions, Invoice, InvoiceLine, CompanyId, InvoiceCategory, Payment } from '../types/accounting'
 import { mockAnalyticAccounts, mockCurrencies, mockCompanies, moneyFormat } from '../data/mockAccountingData'
 
@@ -15,12 +17,15 @@ interface InvoiceModalProps {
   onRegisterPayment?: (invoice: Invoice) => void
   onCreateCreditNote?: (invoice: Invoice, opts: CreditNoteOptions) => void
   onSubmitZatca?: (invoiceId: string) => void
+  onRenewProforma?: (invoice: Invoice) => void
+  onPrintInvoice?: (invoice: Invoice, autoPrint?: boolean) => void
+  onCancelInvoice?: (invoiceId: string) => void
   auditLogs?: AuditLogEntry[]
   onPostNote?: (recordType: AuditLogEntry['recordType'], recordId: string, recordName: string, text: string) => void
   defaultCategory?: InvoiceCategory
   lockedCategory?: InvoiceCategory
   onClose: () => void
-  onSave: (invoice: Invoice, postImmediately?: boolean) => void
+  onSave: (invoice: Invoice, postImmediately?: boolean, keepOpen?: boolean) => void
 }
 
 export default function InvoiceModal({
@@ -32,6 +37,9 @@ export default function InvoiceModal({
   onRegisterPayment,
   onCreateCreditNote,
   onSubmitZatca,
+  onRenewProforma,
+  onPrintInvoice,
+  onCancelInvoice,
   auditLogs = [],
   onPostNote,
   defaultCategory = 'credit',
@@ -124,6 +132,16 @@ export default function InvoiceModal({
   // Proforma-only header fields
   const [billingEmail, setBillingEmail] = useState(invoice?.billingEmail || '')
   const [advPercentage, setAdvPercentage] = useState<number>(invoice?.advPercentage ?? 0)
+
+  // Progressive PO fields
+  const [poName, setPoName] = useState(invoice?.poName || invoice?.reference || '')
+  const [poDescription, setPoDescription] = useState(invoice?.poDescription || '')
+  const [poTotal, setPoTotal] = useState<number>(invoice?.contractAmount ?? 0)
+  const progressiveStatus: 'draft' | 'approved' = invoice?.progressiveStatus || 'draft'
+  const linkedInvoices = invoice
+    ? existingInvoices.filter(i => i.id !== invoice.id && i.sourceDocument === invoice.number && i.state !== 'cancel')
+    : []
+  const billedAmount = linkedInvoices.reduce((s, i) => s + i.amountTotal, 0) + (invoice?.previouslyBilled ?? 0)
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'lines' | 'other' | 'vehicles'>('lines')
@@ -281,11 +299,24 @@ export default function InvoiceModal({
   const grandTotal = untaxedTotal + taxTotal
 
   // Save handler
-  const handleSave = (postImmediately = false) => {
-    if (!partner.trim() || grandTotal <= 0) {
+  const handleSave = (postImmediately = false, approve = false) => {
+    const isProg = category === 'progressive'
+    if (isProg) {
+      if (!partner.trim() || !poName.trim() || poTotal <= 0) {
+        alert('Please enter the PO name, a customer and a PO total amount.')
+        return
+      }
+    } else if (!partner.trim() || grandTotal <= 0) {
       alert('Please enter a customer and at least one valid invoice line.')
       return
     }
+    // A progressive PO has no product lines: it is a single untaxed amount
+    const saveLines: InvoiceLine[] = isProg
+      ? [{ id: invoice?.lines[0]?.id || 'ln_po', product: 'PO', description: poName, quantity: 1, unitPrice: poTotal, taxRate: 0, taxesApplied: 'No tax', discount: 0, subtotal: poTotal, taxAmount: 0, total: poTotal }]
+      : lines
+    const saveUntaxed = isProg ? poTotal : untaxedTotal
+    const saveTax = isProg ? 0 : taxTotal
+    const saveTotal = isProg ? poTotal : grandTotal
 
     let nextNum = invoice?.number
     if (!nextNum) {
@@ -334,13 +365,17 @@ export default function InvoiceModal({
       currencyRate,
       journalId: category === 'cash' ? 'jour_cash' : 'jour_sale',
       reference: sourceDocument || poNumber,
-      lines,
-      amountWithoutDiscount,
-      discountTotal,
-      amountUntaxed: untaxedTotal,
-      amountTax: taxTotal,
-      amountTotal: grandTotal,
-      residual: postImmediately ? (category === 'cash' ? 0 : grandTotal) : (invoice?.residual ?? grandTotal),
+      lines: saveLines,
+      amountWithoutDiscount: isProg ? poTotal : amountWithoutDiscount,
+      discountTotal: isProg ? 0 : discountTotal,
+      amountUntaxed: saveUntaxed,
+      amountTax: saveTax,
+      amountTotal: saveTotal,
+      residual: postImmediately ? (category === 'cash' ? 0 : saveTotal) : (invoice?.residual ?? saveTotal),
+      poName: isProg ? poName : invoice?.poName,
+      poDescription: isProg ? poDescription : invoice?.poDescription,
+      contractAmount: isProg ? poTotal : invoice?.contractAmount,
+      progressiveStatus: isProg ? (approve ? 'approved' : progressiveStatus) : invoice?.progressiveStatus,
       state: postImmediately ? (category === 'cash' ? 'paid' : 'open') : (invoice?.state || 'draft'),
       category,
       approvalStatus: 'approved',
@@ -351,7 +386,7 @@ export default function InvoiceModal({
       vehicles: vehiclesList,
     }
 
-    onSave(updatedInvoice, postImmediately)
+    onSave(updatedInvoice, postImmediately, approve)
   }
 
   const invoiceNumberDisplay = invoice?.number || 'New'
@@ -393,10 +428,26 @@ export default function InvoiceModal({
 
         {/* Scrollable Drawer Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* Proforma / progressive: Validate, Preview, Print, Cancel first */}
+          {(category === 'proforma' || category === 'progressive') && invoice?.state !== 'cancel' && (
+            <DocumentActionBar
+              invoice={invoice}
+              isProforma={category === 'proforma'}
+              onValidate={() => (category === 'progressive' ? handleSave(true, true) : handleSave(true))}
+              onPreview={invoice && onPrintInvoice ? () => onPrintInvoice(invoice) : undefined}
+              onPrint={invoice && onPrintInvoice ? () => onPrintInvoice(invoice, true) : undefined}
+              onRenew={invoice && onRenewProforma ? () => onRenewProforma(invoice) : undefined}
+              onCancel={() => {
+                if (invoice && onCancelInvoice) onCancelInvoice(invoice.id)
+                onClose()
+              }}
+            />
+          )}
           {/* Next steps: only once posted and still open */}
           {invoice && (invoice.state === 'open' || invoice.state === 'in_payment' || invoice.state === 'paid') && invoice.type !== 'out_refund' && onRegisterPayment && onCreateCreditNote && onSubmitZatca && (
             <InvoiceNextSteps
               invoice={invoice}
+              hideCreditNote={category === 'proforma' || category === 'progressive'}
               customer={{ name: partner, vat: customerVat, address: customerAddress }}
               onRegisterPayment={() => onRegisterPayment(invoice)}
               onCreateCreditNote={opts => onCreateCreditNote(invoice, opts)}
@@ -469,7 +520,21 @@ export default function InvoiceModal({
           </div>
           )}
 
-          {category === 'proforma' ? (
+          {category === 'progressive' ? (
+            <ProgressiveFormCard
+              locked={!isDraft || progressiveStatus === 'approved'}
+              status={progressiveStatus}
+              poName={poName} setPoName={setPoName}
+              poDate={dateInvoice} setPoDate={setDateInvoice}
+              partner={partner} setPartner={setPartner}
+              companyName={mockCompanies.find(c => c.id === (invoice?.companyId || companyId))?.name || ''}
+              currency={currency} onCurrencyChange={handleCurrencyChange}
+              poTotal={poTotal} setPoTotal={setPoTotal}
+              billedAmount={billedAmount}
+              invoiceCount={linkedInvoices.length}
+              description={poDescription} setDescription={setPoDescription}
+            />
+          ) : category === 'proforma' ? (
             <ProformaFormCards
               isDraft={isDraft}
               invoiceStatus={invoice?.state === 'paid' ? 'invoiced' : 'pending'}
@@ -1426,14 +1491,16 @@ export default function InvoiceModal({
               >
                 Save as Draft
               </button>
-              <button
-                type="button"
-                onClick={() => handleSave(true)}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
-              >
-                <CheckCircle2 size={15} />
-                <span>Validate & Post</span>
-              </button>
+              {category !== 'proforma' && category !== 'progressive' && (
+                <button
+                  type="button"
+                  onClick={() => handleSave(true)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                >
+                  <CheckCircle2 size={15} />
+                  <span>Validate & Post</span>
+                </button>
+              )}
             </div>
           )}
         </div>
