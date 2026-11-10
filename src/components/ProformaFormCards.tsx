@@ -66,7 +66,7 @@ export default function ProformaFormCards(p: ProformaFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3.5 text-xs">
           <div className="space-y-3">
             <Row label="Date"><input type="date" disabled={d} value={p.dateInvoice} onChange={e => p.setDateInvoice(e.target.value)} className={inputCls} /></Row>
-            <Row label="Customer"><input type="text" disabled={d} value={p.partner} onChange={e => p.setPartner(e.target.value)} className={`${inputCls} font-bold`} /></Row>
+            <Row label="Customer"><input list="erp-customers" type="text" disabled={d} value={p.partner} onChange={e => p.setPartner(e.target.value)} className={`${inputCls} font-bold`} /></Row>
             <Row label="Journal"><input type="text" disabled value={p.journalName} className="w-full bg-slate-100 border border-slate-200 rounded px-2.5 py-1 text-slate-600 font-medium cursor-not-allowed" /></Row>
             <Row label="Company"><span className="font-semibold text-emerald-800">{p.companyName}</span></Row>
             <Row label="Salesperson">

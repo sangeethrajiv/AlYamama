@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useDirectory } from '../modules/shared/directory'
 import { X, Plus, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import Chatter from './Chatter'
 import type { AuditLogEntry, Bill, InvoiceLine, CompanyId } from '../types/accounting'
@@ -26,6 +27,7 @@ export default function BillModal({
   const isEditing = Boolean(bill)
   const isDraft = !bill || bill.state === 'draft'
 
+  const directory = useDirectory()
   const [vendor, setVendor] = useState(bill?.vendor || 'Dammam Special Steel & Honed Tubes Co.')
   const [vendorVat, setVendorVat] = useState(bill?.vendorVat || '300481920100003')
   const [supplierInvoiceNumber, setSupplierInvoiceNumber] = useState(bill?.supplierInvoiceNumber || '')
@@ -199,8 +201,9 @@ export default function BillModal({
                 <input
                   type="text"
                   value={vendor}
+                  list="erp-vendors"
                   disabled={!isDraft}
-                  onChange={e => setVendor(e.target.value)}
+                  onChange={e => { setVendor(e.target.value); const c = directory.vendors.find(x => x.name === e.target.value); if (c?.vat) setVendorVat(c.vat) }}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 disabled:opacity-70"
                   placeholder="Vendor name"
                 />

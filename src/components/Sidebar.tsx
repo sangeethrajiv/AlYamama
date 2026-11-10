@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { LayoutDashboard, FileText, Receipt, CreditCard, Scale, BookOpen, Landmark, BarChart3, History, Settings, ChevronDown, FileCheck2 , Boxes } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { LayoutDashboard, FileText, Receipt, CreditCard, Scale, BookOpen, Landmark, BarChart3, History, Settings, ChevronDown, FileCheck2, Boxes, Users, Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Layers, Activity, SlidersHorizontal, Tags, Gauge } from 'lucide-react'
 import type { TabId, DrawerType, InvoiceCategory } from '../types/accounting'
 
 interface SidebarProps {
@@ -36,6 +36,30 @@ export default function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const [invoicesSubmenuOpen, setInvoicesSubmenuOpen] = useState(true)
+  const moduleOf = (t: TabId): 'accounting' | 'inventory' | 'contacts' | 'dashboard' =>
+    t === 'dashboard' ? 'dashboard' : t === 'contacts' ? 'contacts' : t === 'inventory' || t.startsWith('inv_') ? 'inventory' : 'accounting'
+  const [openModule, setOpenModule] = useState<'accounting' | 'inventory' | null>(() => (moduleOf(activeTab) === 'inventory' ? 'inventory' : 'accounting'))
+  useEffect(() => {
+    const m = moduleOf(activeTab)
+    if (m === 'accounting' || m === 'inventory') setOpenModule(m)
+  }, [activeTab])
+  const activeModule = moduleOf(activeTab)
+  const modBtn = (id: 'accounting' | 'inventory', label: string, icon: JSX.Element) => (
+    <button
+      onClick={() => setOpenModule(openModule === id ? null : id)}
+      aria-expanded={openModule === id}
+      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-bold transition ${activeModule === id ? 'text-emerald-400' : 'text-slate-200 hover:bg-slate-800/80 hover:text-white'}`}
+    >
+      <span className="flex items-center gap-3">{icon}<span>{label}</span></span>
+      <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${openModule === id ? 'rotate-180' : ''}`} />
+    </button>
+  )
+  const invItem = (tab: TabId, label: string, icon: JSX.Element) => (
+    <button
+      onClick={() => selectTab(tab)}
+      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-semibold transition ${activeTab === tab ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}
+    >{icon}<span>{label}</span></button>
+  )
 
   const selectTab = (tab: TabId) => {
     onSelectTab(tab)
@@ -57,7 +81,7 @@ export default function Sidebar({
           <div className="font-extrabold text-sm text-white tracking-wide flex items-center gap-1.5">
             Al-Yamama
           </div>
-          <div className="text-[11px] text-slate-400">Workshop Accounting</div>
+          <div className="text-[11px] text-slate-400">Workshop ERP</div>
         </div>
       </div>
 
@@ -71,7 +95,9 @@ export default function Sidebar({
           <span>Dashboard</span>
         </button>
 
-        <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+        {modBtn('accounting', 'Accounting', <BookOpen size={17} />)}
+        {openModule === 'accounting' && (<div className="ml-3 pl-2 border-l border-slate-800 space-y-1">
+        <div className="pt-1 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
           Bookkeeping Workflows
         </div>
 
@@ -263,13 +289,6 @@ export default function Sidebar({
           <span>Banking & Cheques</span>
         </button>
 
-        <button
-          onClick={() => selectTab('inventory')}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold transition ${activeTab === 'inventory' ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}
-        >
-          <Boxes size={17} />
-          <span>Inventory Adjustments</span>
-        </button>
 
         <div className="pt-3 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
           Governance & Reporting
@@ -298,12 +317,39 @@ export default function Sidebar({
           <Settings size={17} />
           <span>Settings</span>
         </button>
+        </div>)}
+
+        <button
+          onClick={() => selectTab('contacts')}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold transition ${activeTab === 'contacts' ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500' : 'text-slate-200 hover:bg-slate-800/80 hover:text-white'}`}
+        >
+          <Users size={17} />
+          <span>Contacts</span>
+        </button>
+
+        {modBtn('inventory', 'Inventory', <Boxes size={17} />)}
+        {openModule === 'inventory' && (<div className="ml-3 pl-2 border-l border-slate-800 space-y-0.5">
+          {invItem('inv_overview', 'Overview', <Gauge size={15} />)}
+          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Catalogue</div>
+          {invItem('inv_products', 'Products', <Package size={15} />)}
+          {invItem('inv_categories', 'Categories', <Tags size={15} />)}
+          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Operations</div>
+          {invItem('inv_receipts', 'Receipts', <ArrowDownToLine size={15} />)}
+          {invItem('inv_deliveries', 'Deliveries', <ArrowUpFromLine size={15} />)}
+          {invItem('inv_internal', 'Internal Transfers', <ArrowLeftRight size={15} />)}
+          {invItem('inventory', 'Adjustments', <SlidersHorizontal size={15} />)}
+          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Stock</div>
+          {invItem('inv_stock', 'Stock On Hand', <Layers size={15} />)}
+          {invItem('inv_moves', 'Stock Movements', <Activity size={15} />)}
+          {invItem('inv_reorder', 'Reordering Rules', <Boxes size={15} />)}
+          {invItem('inv_warehouses', 'Warehouses & Locations', <Warehouse size={15} />)}
+        </div>)}
       </nav>
 
       {/* Footer System Badge */}
       <div className="p-3 bg-slate-950/60 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
         <div>
-          <div className="font-semibold text-slate-300">Al-Yamama Accounting</div>
+          <div className="font-semibold text-slate-300">Al-Yamama ERP</div>
           <div className="text-[10px] text-slate-500">Enterprise Edition</div>
         </div>
         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="System Online"></span>

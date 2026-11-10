@@ -62,7 +62,7 @@ export default function ProgressiveFormCard(p: ProgressiveFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3.5 text-xs">
         <div className="space-y-3">
           <Row label="PO Date"><input type="date" disabled={p.locked} value={p.poDate} onChange={e => p.setPoDate(e.target.value)} className={inputCls} /></Row>
-          <Row label="Customer"><input type="text" disabled={p.locked} value={p.partner} onChange={e => p.setPartner(e.target.value)} className={`${inputCls} font-bold`} /></Row>
+          <Row label="Customer"><input list="erp-customers" type="text" disabled={p.locked} value={p.partner} onChange={e => p.setPartner(e.target.value)} className={`${inputCls} font-bold`} /></Row>
           <Row label="Company"><span className="font-semibold text-emerald-800">{p.companyName}</span></Row>
         </div>
         <div className="space-y-3">

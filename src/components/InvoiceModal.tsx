@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useDirectory, formatAddress } from '../modules/shared/directory'
 import { X, Plus, Trash2, CheckCircle2 } from 'lucide-react'
 import Chatter from './Chatter'
 import InvoiceNextSteps from './InvoiceNextSteps'
@@ -10,6 +11,7 @@ import { mockAnalyticAccounts, mockCurrencies, mockCompanies, moneyFormat } from
 
 interface InvoiceModalProps {
   invoice?: Invoice
+  defaultPartner?: string
   companyId: CompanyId
   existingInvoices: Invoice[]
   payments?: Payment[]
@@ -30,6 +32,7 @@ interface InvoiceModalProps {
 
 export default function InvoiceModal({
   invoice: invoiceProp,
+  defaultPartner,
   companyId,
   existingInvoices,
   payments = [],
@@ -88,14 +91,16 @@ export default function InvoiceModal({
   const [subscriptionAlertDate, setSubscriptionAlertDate] = useState<string>(
     invoice?.subscriptionAlertDate || '12/31/2026'
   )
+  const directory = useDirectory()
+  const preset = !invoice && defaultPartner ? directory.customers.find(c => c.name === defaultPartner) : undefined
   const [partner, setPartner] = useState(
-    invoice?.partner || 'Innovex (Dril Quip TIW-SAUDI ARABIA Limited Company)'
+    invoice?.partner || defaultPartner || 'Innovex (Dril Quip TIW-SAUDI ARABIA Limited Company)'
   )
   const [customerAddress, setCustomerAddress] = useState(
-    invoice?.customerAddress ||
+    invoice?.customerAddress || (preset ? formatAddress(preset) : '') ||
       'King Abdul Aziz Rd\nKing Abdul Aziz Rd\nKing Abdul Aziz Seaport Dist. DMM 32212\n7289 2490\nSaudi Arabia - 310562291400003'
   )
-  const [customerVat, setCustomerVat] = useState(invoice?.customerVat || '310562291400003')
+  const [customerVat, setCustomerVat] = useState(invoice?.customerVat || preset?.vat || '310562291400003')
   const [project, setProject] = useState(invoice?.project || '')
   const [contactPerson, setContactPerson] = useState(invoice?.contactPerson || '')
   const [paymentTerms, setPaymentTerms] = useState(invoice?.paymentTerms || 'On Completion')
@@ -221,12 +226,36 @@ export default function InvoiceModal({
     }
   }
 
+  // Picking a known customer fills tax number and address from Contacts
+  const choosePartner = (name: string) => {
+    setPartner(name)
+    const c = directory.customers.find(x => x.name === name)
+    if (c && isDraft) {
+      if (c.vat) setCustomerVat(c.vat)
+      const addr = formatAddress(c)
+      if (addr) setCustomerAddress(addr)
+    }
+  }
+
   const updateLine = (id: string, field: keyof InvoiceLine, value: any) => {
     if (!isDraft) return
     setLines(prev =>
       prev.map(l => {
         if (l.id !== id) return l
         const updated = { ...l, [field]: value }
+
+        // Picking a catalogue SKU fills description, price, unit and tax from Inventory
+        if (field === 'product') {
+          const prod = directory.products.find(p => p.sku === value)
+          if (prod) {
+            updated.product = prod.sku
+            updated.description = prod.name
+            updated.unitPrice = prod.salePrice
+            updated.unitOfMeasure = prod.uom
+            updated.taxRate = prod.taxRate
+            updated.taxesApplied = prod.taxRate ? `VAT ${Math.round(prod.taxRate * 100)}%` : 'No tax'
+          }
+        }
 
         if (field === 'analyticAccountId') {
           const matched = mockAnalyticAccounts.find(a => a.id === value)
@@ -554,7 +583,7 @@ export default function InvoiceModal({
               status={progressiveStatus}
               poName={poName} setPoName={setPoName}
               poDate={dateInvoice} setPoDate={setDateInvoice}
-              partner={partner} setPartner={setPartner}
+              partner={partner} setPartner={choosePartner}
               companyName={mockCompanies.find(c => c.id === (invoice?.companyId || companyId))?.name || ''}
               currency={currency} onCurrencyChange={handleCurrencyChange}
               poTotal={poTotal} setPoTotal={setPoTotal}
@@ -571,7 +600,7 @@ export default function InvoiceModal({
               currency={currency}
               onCurrencyChange={handleCurrencyChange}
               dateInvoice={dateInvoice} setDateInvoice={setDateInvoice}
-              partner={partner} setPartner={setPartner}
+              partner={partner} setPartner={choosePartner}
               salesperson={salesperson} setSalesperson={setSalesperson}
               linkedInvoice={invoice?.linkedInvoice || ''}
               billingEmail={billingEmail} setBillingEmail={setBillingEmail}
@@ -722,7 +751,8 @@ export default function InvoiceModal({
                       type="text"
                       disabled={!isDraft}
                       value={partner}
-                      onChange={e => setPartner(e.target.value)}
+                      list="erp-customers"
+                      onChange={e => choosePartner(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-slate-800 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-600"
                     />
                     <textarea
@@ -1190,6 +1220,8 @@ export default function InvoiceModal({
                               <input
                                 type="text"
                                 value={line.product}
+                                list="erp-products"
+                                title={directory.products.some(p => p.sku === line.product) ? `In stock: ${directory.stockOf(line.product)}` : undefined}
                                 onChange={e => updateLine(line.id, 'product', e.target.value)}
                                 className="bg-white border border-slate-200 rounded px-1.5 py-1 text-xs font-semibold text-slate-900 w-28"
                               />

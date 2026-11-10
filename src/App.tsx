@@ -13,8 +13,6 @@ import type {
   ChequeRecord,
   AuditLogEntry,
   FiscalPeriodConfig,
-  StockQuant,
-  InventoryAdjustment,
   InventoryAdjustmentLine,
   AdjustmentReason,
   CreditNoteOptions,
@@ -50,7 +48,11 @@ import ReportsView from './components/ReportsView'
 import AuditLogView from './components/AuditLogView'
 import SettingsAndLockView from './components/SettingsAndLockView'
 import InventoryAdjustmentView from './components/InventoryAdjustmentView'
-import { mockStockQuants } from './data/mockInventory'
+import ContactsModule from './modules/contacts/ContactsModule'
+import { useContacts } from './modules/contacts/useContacts'
+import InventoryModule from './modules/inventory/InventoryModule'
+import { useInventory } from './modules/inventory/useInventory'
+import { DirectoryProvider } from './modules/shared/directory'
 
 export default function App() {
   // Global State
@@ -71,8 +73,10 @@ export default function App() {
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(mockAuditLogs)
   const [fiscalConfig, setFiscalConfig] = useState<Record<string, FiscalPeriodConfig>>(mockFiscalConfig)
 
-  const [stockQuants, setStockQuants] = useState<StockQuant[]>(mockStockQuants)
-  const [adjustments, setAdjustments] = useState<InventoryAdjustment[]>([])
+  // Independent modules: Contacts and Inventory own their data; Accounting reads them through the directory
+  const contactsApi = useContacts(mockInvoices, mockBills)
+  const inventory = useInventory(activeCompanyId)
+  const [invoiceDefaultPartner, setInvoiceDefaultPartner] = useState<string | undefined>(undefined)
 
   // Modals & Drawers
   const [drawerType, setDrawerType] = useState<DrawerType>(null)
@@ -184,6 +188,7 @@ export default function App() {
 
   // --- Invoice Operations ---
   const handleSaveInvoice = (inv: Invoice, postImmediately = false, keepOpen = false) => {
+    contactsApi.ensurePartner(inv.partner, 'isCustomer', inv.customerVat, inv.customerAddress)
     const exists = invoices.some(i => i.id === inv.id)
     if (exists) {
       setInvoices(prev => prev.map(i => (i.id === inv.id ? inv : i)))
@@ -506,6 +511,7 @@ export default function App() {
 
   // --- Bill Operations ---
   const handleSaveBill = (b: Bill, postImmediately = false) => {
+    contactsApi.ensurePartner(b.vendor, 'isVendor', b.vendorVat)
     const exists = bills.some(item => item.id === b.id)
     if (exists) {
       setBills(prev => prev.map(item => (item.id === b.id ? b : item)))
@@ -873,8 +879,8 @@ export default function App() {
       )
     )
     const diffs = new Map(lines.map(l => [l.quantId, l.countedQty]))
-    setStockQuants(prev => prev.map(q => (diffs.has(q.id) ? { ...q, onHand: diffs.get(q.id) as number } : q)))
-    setAdjustments(prev => [
+    inventory.applyCounts(
+      diffs,
       {
         id: `adj_${stamp}`,
         reference: meta.reference,
@@ -887,9 +893,8 @@ export default function App() {
         lines,
         netValue: net,
         journalEntryNumber: jeNumber,
-      },
-      ...prev,
-    ])
+      }
+    )
     addAuditLog('Inventory Adjustment', `adj_${stamp}`, meta.reference, 'inventory_adjustment', '—', 'applied', `${lines.length} line(s) adjusted (${meta.reason}). Net stock value ${net.toFixed(2)} SAR; journal entry ${jeNumber} posted.`)
   }
 
@@ -1118,6 +1123,7 @@ export default function App() {
   const progressiveInvoicesCount = invoices.filter(i => i.category === 'progressive').length
 
   return (
+    <DirectoryProvider contacts={contactsApi.contacts} products={inventory.products} stockOf={sku => inventory.onHand(sku)}>
     <div className={`flex min-h-screen bg-slate-100 text-slate-800 ${arabic ? 'rtl' : 'ltr'}`} dir={arabic ? 'rtl' : 'ltr'}>
       {/* Navigation Sidebar */}
       <Sidebar
@@ -1295,12 +1301,34 @@ export default function App() {
             <AuditLogView logs={auditLogs} searchQuery={searchQuery} />
           )}
 
-          {activeTab === 'inventory' && (
-            <InventoryAdjustmentView
-              quants={stockQuants.filter(q => q.companyId === activeCompanyId)}
-              history={adjustments.filter(a => a.companyId === activeCompanyId)}
+          {(activeTab === 'inventory' || activeTab.startsWith('inv_')) && (
+            <InventoryModule
+              tab={activeTab}
+              inv={inventory}
+              contacts={contactsApi.contacts}
+              invoices={invoices}
               currentRole={currentRole}
-              onApply={handleApplyAdjustment}
+              searchQuery={searchQuery}
+              onSelectTab={setActiveTab}
+              onApplyAdjustment={handleApplyAdjustment}
+            />
+          )}
+
+          {activeTab === 'contacts' && (
+            <ContactsModule
+              api={contactsApi}
+              invoices={invoices}
+              bills={bills}
+              currentRole={currentRole}
+              searchQuery={searchQuery}
+              onCreateInvoice={partner => {
+                setEditingInvoice(undefined)
+                setInvoiceDefaultPartner(partner)
+                setLockedCategory(undefined)
+                setDrawerType('invoice')
+              }}
+              onOpenInvoice={inv => { setEditingInvoice(inv); setDrawerType('invoice') }}
+              onCreateBill={() => { setEditingBill(undefined); setDrawerType('bill') }}
             />
           )}
 
@@ -1321,6 +1349,7 @@ export default function App() {
         <InvoiceModal
           key={editingInvoice?.id ?? 'new'}
           invoice={editingInvoice}
+          defaultPartner={invoiceDefaultPartner}
           companyId={activeCompanyId}
           existingInvoices={invoices}
           payments={payments}
@@ -1338,6 +1367,7 @@ export default function App() {
           onClose={() => {
             setDrawerType(null)
             setEditingInvoice(undefined)
+            setInvoiceDefaultPartner(undefined)
           }}
           onSave={handleSaveInvoice}
         />
@@ -1378,5 +1408,6 @@ export default function App() {
         />
       )}
     </div>
+    </DirectoryProvider>
   )
 }

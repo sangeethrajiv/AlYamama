@@ -31,6 +31,17 @@ export type TabId =
   | 'audit'
   | 'settings'
   | 'inventory'
+  | 'contacts'
+  | 'inv_overview'
+  | 'inv_products'
+  | 'inv_categories'
+  | 'inv_warehouses'
+  | 'inv_stock'
+  | 'inv_moves'
+  | 'inv_receipts'
+  | 'inv_deliveries'
+  | 'inv_internal'
+  | 'inv_reorder'
 
 export type DrawerType = 
   | 'invoice' 
