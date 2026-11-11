@@ -70,16 +70,16 @@ export function Pill({ children, tone = 'slate' }: { children: ReactNode; tone?:
   return <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${t}`}>{children}</span>
 }
 
-export function Card({ title, children, actions }: { title?: string; children: ReactNode; actions?: ReactNode }) {
+export function Card({ title, children, actions, dense }: { title?: string; children: ReactNode; actions?: ReactNode; dense?: boolean }) {
   return (
     <section className="bg-white border border-slate-200 rounded-xl shadow-xs">
       {(title || actions) && (
-        <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
+        <div className={`${dense ? 'px-3 py-2' : 'px-4 py-2.5'} border-b border-slate-100 flex items-center justify-between`}>
           <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">{title}</h3>
           {actions}
         </div>
       )}
-      <div className="p-4">{children}</div>
+      <div className={dense ? 'p-3' : 'p-4'}>{children}</div>
     </section>
   )
 }
@@ -94,10 +94,10 @@ export function Kpi({ label, value, hint, tone }: { label: string; value: ReactN
   )
 }
 
-export function Field({ label, children, span = 1, hint }: { label: string; children: ReactNode; span?: 1 | 2; hint?: string }) {
+export function Field({ label, children, span = 1, hint, dense }: { label: string; children: ReactNode; span?: 1 | 2; hint?: string; dense?: boolean }) {
   return (
     <label className={`block text-xs ${span === 2 ? 'sm:col-span-2' : ''}`}>
-      <span className="block text-slate-600 font-bold mb-1">{label}</span>
+      <span className={`block text-slate-600 font-bold ${dense ? 'mb-0.5 text-[11px]' : 'mb-1'}`}>{label}</span>
       {children}
       {hint && <span className="block text-[10px] text-slate-400 mt-0.5">{hint}</span>}
     </label>
@@ -190,7 +190,7 @@ export function Avatar({ name, src, size = 36, round }: { name: string; src?: st
 }
 
 /** Centered form dialog (full-screen on phones). */
-export function CenterDialog({ title, onClose, children, footer }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
+export function CenterDialog({ title, onClose, children, footer, dense }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; dense?: boolean }) {
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-stretch sm:items-center justify-center sm:p-6" role="presentation">
       <div role="dialog" aria-modal="true" aria-label={title}
@@ -199,8 +199,8 @@ export function CenterDialog({ title, onClose, children, footer }: { title: stri
           <h2 className="text-sm font-extrabold text-slate-800 truncate">{title}</h2>
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"><X size={18} /></button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">{children}</div>
-        {footer && <div className="bg-white px-5 py-3 border-t border-slate-200 flex items-center justify-end gap-2">{footer}</div>}
+        <div className={`flex-1 overflow-y-auto ${dense ? 'p-3 sm:p-4 space-y-3' : 'p-4 sm:p-6 space-y-4'}`}>{children}</div>
+        {footer && <div className="bg-white px-5 py-2.5 border-t border-slate-200 flex items-center justify-end gap-2">{footer}</div>}
       </div>
     </div>
   )
