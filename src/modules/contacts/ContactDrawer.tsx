@@ -59,7 +59,7 @@ function Switch({ checked, onChange, disabled }: { checked: boolean; onChange: (
 type AddType = 'contact' | 'delivery' | 'other'
 const blankAddr = (): ContactAddress => ({ id: `ad_${Date.now()}`, type: 'invoice', street: '', city: '', region: '', zip: '', country: 'Saudi Arabia' })
 
-/** "Create Contacts" dialog: opened by the Add buttons. Nothing is shown on the tab until something is added. */
+/** "Create User" dialog: opened by the Add buttons. Nothing is shown on the tab until something is added. */
 function AddDialog({ kind, parent, isNew, onCreate, onAddAddress, onClose }: {
   kind: 'person' | 'company'; parent: Contact; isNew: boolean; onCreate: (c: Contact) => void; onAddAddress: (a: ContactAddress) => void; onClose: () => void
 }) {
@@ -70,7 +70,7 @@ function AddDialog({ kind, parent, isNew, onCreate, onAddAddress, onClose }: {
   const set = (k: keyof typeof f, v: string) => setF(p => ({ ...p, [k]: v }))
   const isAddress = kind === 'person' && type !== 'contact'
   const person = kind === 'person' && type === 'contact'
-  const title = kind === 'company' ? 'Create Child Company' : 'Create Contacts'
+  const title = kind === 'company' ? 'Create Child Company' : 'Create User'
 
   const save = () => {
     if (isAddress) {
@@ -78,7 +78,7 @@ function AddDialog({ kind, parent, isNew, onCreate, onAddAddress, onClose }: {
       onAddAddress({ ...addr, id: `ad_${Date.now()}`, type: type as 'delivery' | 'other' }); return onClose()
     }
     if (isNew) return setErr('Save this contact first, then add people and companies to it.')
-    if (!f.name.trim()) return setErr(kind === 'company' ? 'Company name is required.' : 'Contact name is required.')
+    if (!f.name.trim()) return setErr(kind === 'company' ? 'Company name is required.' : 'User name is required.')
     if (f.email && !/^\S+@\S+\.\S+$/.test(f.email)) return setErr('Email address looks invalid.')
     if (f.vat && !/^\d{15}$/.test(f.vat)) return setErr('VAT number must be 15 digits.')
     onCreate(newContact(f.name.trim(), {
@@ -99,12 +99,12 @@ function AddDialog({ kind, parent, isNew, onCreate, onAddAddress, onClose }: {
           {err && <div role="alert" className="text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-3 py-2">{err}</div>}
           {kind === 'person' && (
             <select aria-label="Type" className={ic} value={type} onChange={e => { setType(e.target.value as AddType); setErr('') }}>
-              <option value="contact">Contact</option><option value="delivery">Delivery address</option><option value="other">Other address</option>
+              <option value="contact">User</option><option value="delivery">Delivery address</option><option value="other">Other address</option>
             </select>
           )}
           {!isAddress && (
             <div className="grid sm:grid-cols-2 gap-x-3 gap-y-2">
-              <div className="sm:col-span-2">{T(kind === 'company' ? 'Company name *' : 'Contact name *', 'name')}</div>
+              <div className="sm:col-span-2">{T(kind === 'company' ? 'Company name *' : 'User name *', 'name')}</div>
               {person && <>
                 <Field dense label="Title"><select className={ic} value={f.title} onChange={e => set('title', e.target.value)}><option value="">e.g. Mr.</option>{['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Eng.', 'Sheikh'].map(t => <option key={t}>{t}</option>)}</select></Field>
                 {T('Job position', 'jobTitle', 'e.g. Sales Director')}
@@ -185,12 +185,12 @@ export default function ContactDrawer({ contact, contacts, invoices, bills, read
   return (
     <CenterDialog
       dense
-      title={isNew ? 'New Contact' : c.name || 'Contact'}
+      title={isNew ? 'New User' : c.name || 'User'}
       onClose={onClose}
       footer={<>
         {!isNew && !readOnly && <GhostButton danger={c.active} onClick={() => (c.active ? setConfirmArchive(true) : (onArchive(c.id, true), onClose()))}>{c.active ? 'Archive' : 'Restore'}</GhostButton>}
         <GhostButton onClick={onClose}>{readOnly ? 'Close' : 'Cancel'}</GhostButton>
-        {!readOnly && <PrimaryButton onClick={save}>Save contact</PrimaryButton>}
+        {!readOnly && <PrimaryButton onClick={save}>Save user</PrimaryButton>}
       </>}
     >
       {error && <div role="alert" className="text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-3 py-2">{error}</div>}
@@ -411,7 +411,7 @@ export default function ContactDrawer({ contact, contacts, invoices, bills, read
           onAddAddress={a => set('addresses', [...c.addresses, a])} />
       )}
 
-      {confirmArchive && <ConfirmDialog title="Archive contact?" text="Archived contacts are hidden from lists and pickers but their documents are kept." confirmLabel="Archive" danger onCancel={() => setConfirmArchive(false)} onConfirm={() => { onArchive(c.id, false); onClose() }} />}
+      {confirmArchive && <ConfirmDialog title="Archive user?" text="Archived users are hidden from lists and pickers but their documents are kept." confirmLabel="Archive" danger onCancel={() => setConfirmArchive(false)} onConfirm={() => { onArchive(c.id, false); onClose() }} />}
     </CenterDialog>
   )
 }

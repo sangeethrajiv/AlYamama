@@ -74,7 +74,7 @@ export default function ContactsModule({ api, invoices, bills, currentRole, sear
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Contacts" subtitle="Customers, vendors, companies and people in one address book shared by Accounting and Inventory."
+      <PageHeader title="Users" subtitle="Customers, vendors, companies and people in one address book shared by Accounting and Inventory."
         actions={<>
           <SearchBox value={local} onChange={setLocal} placeholder="Search name, phone, email, VAT…" />
           <div className="inline-flex rounded-lg bg-slate-100 p-0.5" role="group" aria-label="View">
@@ -83,7 +83,7 @@ export default function ContactsModule({ api, invoices, bills, currentRole, sear
                 className={`p-2 rounded-md ${view === v ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}><Icon size={14} /></button>
             ))}
           </div>
-          {!readOnly && <PrimaryButton onClick={() => setOpen({})}><Plus size={16} />New Contact</PrimaryButton>}
+          {!readOnly && <PrimaryButton onClick={() => setOpen({})}><Plus size={16} />New User</PrimaryButton>}
         </>} />
 
       <Segmented value={filter} onChange={setFilter} options={[
@@ -94,7 +94,7 @@ export default function ContactsModule({ api, invoices, bills, currentRole, sear
       ]} />
 
       {rows.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl"><EmptyState title="No contacts found" text="Try another filter or create a new contact." /></div>
+        <div className="bg-white border border-slate-200 rounded-xl"><EmptyState title="No users found" text="Try another filter or create a new user." /></div>
       ) : view === 'list' ? (
         <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
           <table className="w-full text-xs">
@@ -130,7 +130,7 @@ export default function ContactsModule({ api, invoices, bills, currentRole, sear
           ))}
         </div>
       )}
-      <div className="text-[11px] text-slate-400">{rows.length} contact{rows.length === 1 ? '' : 's'}</div>
+      <div className="text-[11px] text-slate-400">{rows.length} user{rows.length === 1 ? '' : 's'}</div>
 
       {open && (
         <ContactDrawer key={open.contact?.id ?? 'new'} contact={open.contact} contacts={contacts} invoices={invoices} bills={bills} readOnly={readOnly}

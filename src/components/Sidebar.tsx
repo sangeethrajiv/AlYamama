@@ -324,7 +324,7 @@ export default function Sidebar({
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold transition ${activeTab === 'contacts' ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500' : 'text-slate-200 hover:bg-slate-800/80 hover:text-white'}`}
         >
           <Users size={17} />
-          <span>Contacts</span>
+          <span>Users</span>
         </button>
 
         {modBtn('inventory', 'Inventory', <Boxes size={17} />)}

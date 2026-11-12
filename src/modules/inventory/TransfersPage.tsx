@@ -129,7 +129,7 @@ function TransferDrawer({ inv, transfer, contacts, readOnly, onClose }: { inv: I
           </Field>
           {t.kind === 'internal' && <Field label="Destination"><select className={inputCls} disabled={locked} value={t.to} onChange={e => set('to', e.target.value)}>{internal.map(l => <option key={l.id}>{l.name}</option>)}</select></Field>}
         </div>
-        {partners.length === 0 && t.kind !== 'internal' && <p className="text-[11px] text-slate-400 mt-2">Tip: add {t.kind === 'receipt' ? 'vendors' : 'customers'} in Contacts to pick them here.</p>}
+        {partners.length === 0 && t.kind !== 'internal' && <p className="text-[11px] text-slate-400 mt-2">Tip: add {t.kind === 'receipt' ? 'vendors' : 'customers'} in Users to pick them here.</p>}
       </Card>
       <Card title="Products" actions={!locked && <GhostButton onClick={addLine}>Add line</GhostButton>}>
         {t.lines.length === 0 ? <p className="text-xs text-slate-500">No lines yet.</p> : (
