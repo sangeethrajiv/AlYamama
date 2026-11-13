@@ -1,5 +1,6 @@
 export type ContactKind = 'company' | 'individual'
-export type AddressType = 'invoice' | 'delivery' | 'other'
+export type AddressType = 'invoice' | 'delivery' | 'other' | 'private'
+export type OtherKind = 'own_company' | 'bank' | 'other'
 
 export interface ContactAddress {
   id: string
@@ -25,6 +26,12 @@ export interface Contact {
   jobTitle?: string
   isCustomer: boolean
   isVendor: boolean
+  /** Can sign in to this system (a login account is linked to this record) */
+  isLogin?: boolean
+  /** Staff member; used for payroll and expense payments */
+  isEmployee?: boolean
+  /** The company's own record, a bank, or any other special record */
+  otherKind?: OtherKind
   email: string
   phone: string
   mobile: string

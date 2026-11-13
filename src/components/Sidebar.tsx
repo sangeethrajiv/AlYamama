@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, FileText, Receipt, CreditCard, Scale, BookOpen, Landmark, BarChart3, History, Settings, ChevronDown, FileCheck2, Boxes, Users, Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Layers, Activity, SlidersHorizontal, Tags, Gauge } from 'lucide-react'
+import { LayoutDashboard, FileText, Receipt, CreditCard, Scale, BookOpen, Landmark, BarChart3, History, Settings, ChevronDown, FileCheck2, Boxes, Users, Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Layers, Activity, SlidersHorizontal, Tags, Gauge, UserCheck, Truck, IdCard, KeyRound, Archive } from 'lucide-react'
 import type { TabId, DrawerType, InvoiceCategory } from '../types/accounting'
 
 interface SidebarProps {
@@ -37,14 +37,14 @@ export default function Sidebar({
 }: SidebarProps) {
   const [invoicesSubmenuOpen, setInvoicesSubmenuOpen] = useState(true)
   const moduleOf = (t: TabId): 'accounting' | 'inventory' | 'contacts' | 'dashboard' =>
-    t === 'dashboard' ? 'dashboard' : t === 'contacts' ? 'contacts' : t === 'inventory' || t.startsWith('inv_') ? 'inventory' : 'accounting'
-  const [openModule, setOpenModule] = useState<'accounting' | 'inventory' | null>(() => { const m = moduleOf(activeTab); return m === 'inventory' || m === 'accounting' ? m : null })
+    t === 'dashboard' ? 'dashboard' : t === 'contacts' || t.startsWith('usr_') ? 'contacts' : t === 'inventory' || t.startsWith('inv_') ? 'inventory' : 'accounting'
+  const [openModule, setOpenModule] = useState<'accounting' | 'inventory' | 'contacts' | null>(() => { const m = moduleOf(activeTab); return m === 'dashboard' ? null : m })
   useEffect(() => {
     const m = moduleOf(activeTab)
-    if (m === 'accounting' || m === 'inventory') setOpenModule(m)
+    if (m !== 'dashboard') setOpenModule(m)
   }, [activeTab])
   const activeModule = moduleOf(activeTab)
-  const modBtn = (id: 'accounting' | 'inventory', label: string, icon: JSX.Element) => (
+  const modBtn = (id: 'accounting' | 'inventory' | 'contacts', label: string, icon: JSX.Element) => (
     <button
       onClick={() => setOpenModule(openModule === id ? null : id)}
       aria-expanded={openModule === id}
@@ -319,30 +319,42 @@ export default function Sidebar({
         </button>
         </div>)}
 
-        <button
-          onClick={() => selectTab('contacts')}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold transition ${activeTab === 'contacts' ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500' : 'text-slate-200 hover:bg-slate-800/80 hover:text-white'}`}
-        >
-          <Users size={17} />
-          <span>Users</span>
-        </button>
+        {modBtn('contacts', 'Users', <Users size={17} />)}
+        {openModule === 'contacts' && (<div className="ml-3 pl-2 border-l border-slate-800 space-y-0.5">
+          {invItem('contacts', 'All Users', <Users size={15} />)}
+          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Partners</div>
+          {invItem('usr_customers', 'Customers', <UserCheck size={15} />)}
+          {invItem('usr_vendors', 'Vendors', <Truck size={15} />)}
+          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">People</div>
+          {invItem('usr_employees', 'Employees', <IdCard size={15} />)}
+          {invItem('usr_logins', 'System Users', <KeyRound size={15} />)}
+          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Other</div>
+          {invItem('usr_other', 'Company & Banks', <Landmark size={15} />)}
+          {invItem('usr_archived', 'Archived', <Archive size={15} />)}
+        </div>)}
 
         {modBtn('inventory', 'Inventory', <Boxes size={17} />)}
         {openModule === 'inventory' && (<div className="ml-3 pl-2 border-l border-slate-800 space-y-0.5">
           {invItem('inv_overview', 'Overview', <Gauge size={15} />)}
-          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Catalogue</div>
-          {invItem('inv_products', 'Products', <Package size={15} />)}
-          {invItem('inv_categories', 'Categories', <Tags size={15} />)}
           <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Operations</div>
+          {invItem('inv_transfers', 'Transfers', <ArrowLeftRight size={15} />)}
           {invItem('inv_receipts', 'Receipts', <ArrowDownToLine size={15} />)}
-          {invItem('inv_deliveries', 'Deliveries', <ArrowUpFromLine size={15} />)}
+          {invItem('inv_deliveries', 'Delivery Orders', <ArrowUpFromLine size={15} />)}
           {invItem('inv_internal', 'Internal Transfers', <ArrowLeftRight size={15} />)}
-          {invItem('inventory', 'Adjustments', <SlidersHorizontal size={15} />)}
-          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Stock</div>
-          {invItem('inv_stock', 'Stock On Hand', <Layers size={15} />)}
-          {invItem('inv_moves', 'Stock Movements', <Activity size={15} />)}
-          {invItem('inv_reorder', 'Reordering Rules', <Boxes size={15} />)}
-          {invItem('inv_warehouses', 'Warehouses & Locations', <Warehouse size={15} />)}
+          {invItem('inventory', 'Inventory Adjustments', <SlidersHorizontal size={15} />)}
+          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Master Data</div>
+          {invItem('inv_products', 'Products', <Package size={15} />)}
+          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Reporting</div>
+          {invItem('inv_stock', 'Inventory Report', <Layers size={15} />)}
+          {invItem('inv_moves', 'Stock Moves', <Activity size={15} />)}
+          {invItem('inv_move_lines', 'Moves History', <Activity size={15} />)}
+          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Configuration</div>
+          {invItem('inv_warehouses', 'Warehouses', <Warehouse size={15} />)}
+          {invItem('inv_locations', 'Locations', <Boxes size={15} />)}
+          {invItem('inv_picking_types', 'Operation Types', <SlidersHorizontal size={15} />)}
+          {invItem('inv_categories', 'Product Categories', <Tags size={15} />)}
+          {invItem('inv_uom_categories', 'UoM Categories', <Tags size={15} />)}
+          {invItem('inv_uom', 'Units of Measure', <Layers size={15} />)}
         </div>)}
       </nav>
 

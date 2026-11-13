@@ -56,7 +56,8 @@ function Switch({ checked, onChange, disabled }: { checked: boolean; onChange: (
   )
 }
 
-type AddType = 'contact' | 'delivery' | 'other'
+type AddType = 'contact' | 'delivery' | 'other' | 'private'
+const ADDR_LABEL: Record<string, string> = { delivery: 'Delivery address', other: 'Other address', private: 'Private address', invoice: 'Invoice address' }
 const blankAddr = (): ContactAddress => ({ id: `ad_${Date.now()}`, type: 'invoice', street: '', city: '', region: '', zip: '', country: 'Saudi Arabia' })
 
 /** "Create User" dialog: opened by the Add buttons. Nothing is shown on the tab until something is added. */
@@ -75,7 +76,7 @@ function AddDialog({ kind, parent, isNew, onCreate, onAddAddress, onClose }: {
   const save = () => {
     if (isAddress) {
       if (!addr.street.trim() && !addr.city.trim()) return setErr('Enter at least a street or a city.')
-      onAddAddress({ ...addr, id: `ad_${Date.now()}`, type: type as 'delivery' | 'other' }); return onClose()
+      onAddAddress({ ...addr, id: `ad_${Date.now()}`, type: type as 'delivery' | 'other' | 'private' }); return onClose()
     }
     if (isNew) return setErr('Save this contact first, then add people and companies to it.')
     if (!f.name.trim()) return setErr(kind === 'company' ? 'Company name is required.' : 'User name is required.')
@@ -99,7 +100,7 @@ function AddDialog({ kind, parent, isNew, onCreate, onAddAddress, onClose }: {
           {err && <div role="alert" className="text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-3 py-2">{err}</div>}
           {kind === 'person' && (
             <select aria-label="Type" className={ic} value={type} onChange={e => { setType(e.target.value as AddType); setErr('') }}>
-              <option value="contact">User</option><option value="delivery">Delivery address</option><option value="other">Other address</option>
+              <option value="contact">User</option><option value="delivery">Delivery address</option><option value="other">Other address</option><option value="private">Private address</option>
             </select>
           )}
           {!isAddress && (
@@ -137,6 +138,7 @@ export default function ContactDrawer({ contact, contacts, invoices, bills, read
   const [error, setError] = useState('')
   const [confirmArchive, setConfirmArchive] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [similar, setSimilar] = useState<Contact | null>(null)
   const [adding, setAdding] = useState<'person' | 'company' | null>(null)
   const set = <K extends keyof Contact>(k: K, v: Contact[K]) => setC(p => ({ ...p, [k]: v }))
   const dis = readOnly
@@ -167,7 +169,7 @@ export default function ContactDrawer({ contact, contacts, invoices, bills, read
 
   const validate = (): string => {
     if (!c.name.trim()) return 'Name is required.'
-    if (!c.isCustomer && !c.isVendor && c.kind === 'company') return 'Mark the contact as a customer, a vendor or both.'
+    if (!c.isCustomer && !c.isVendor && !c.isEmployee && !c.isLogin && !c.otherKind && c.kind === 'company') return 'Choose at least one role: customer, vendor, employee, login or other.'
     if (c.email && !/^\S+@\S+\.\S+$/.test(c.email)) return 'Email address looks invalid.'
     if (c.billingEmail && !/^\S+@\S+\.\S+$/.test(c.billingEmail)) return 'Billing email address looks invalid.'
     if (c.vat && !/^\d{15}$/.test(c.vat)) return 'Saudi VAT number must be 15 digits.'
@@ -175,11 +177,21 @@ export default function ContactDrawer({ contact, contacts, invoices, bills, read
     if (dup) return `A contact named "${dup.name}" already exists.`
     return ''
   }
+  const norm = (n: string) => n.toLowerCase().replace(/\(.*?\)/g, '').replace(/\b(co|company|ltd|limited|llc|est|inc|trading|the)\b\.?/g, '').replace(/[^a-z0-9\u0600-\u06ff]+/g, ' ').trim()
+  const findSimilar = (): Contact | undefined => {
+    const n = norm(c.name)
+    if (n.length < 4) return undefined
+    return contacts.find(o => { if (o.id === c.id || !o.active) return false; const m = norm(o.name); return m.length >= 4 && (m.includes(n) || n.includes(m)) })
+  }
+  const commit = () => { onSave({ ...c, name: c.name.trim() }); onClose() }
   const save = () => {
     const e = validate(); setError(e); if (e) return
-    onSave({ ...c, name: c.name.trim() }); onClose()
+    // Documents link to a user by exact name, so near-duplicates split the history: ask before creating one
+    const nameChanged = !contact || contact.name.trim() !== c.name.trim()
+    const sim = nameChanged ? findSimilar() : undefined
+    if (sim) return setSimilar(sim)
+    commit()
   }
-
   const parentName = contacts.find(p => p.id === c.parentId)?.name
 
   return (
@@ -224,6 +236,13 @@ export default function ContactDrawer({ contact, contacts, invoices, bills, read
                 <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" disabled={dis} checked={c.isCustomer} onChange={e => set('isCustomer', e.target.checked)} /> Customer</label>
                 <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" disabled={dis} checked={c.isVendor} onChange={e => set('isVendor', e.target.checked)} /> Vendor</label>
                 {!c.active && <Pill tone="red">Archived</Pill>}
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1.5 border-t border-slate-100">
+                <label className="flex items-center gap-1.5 text-xs" title="Staff member: used for payroll and expense payments"><input type="checkbox" disabled={dis} checked={!!c.isEmployee} onChange={e => set('isEmployee', e.target.checked)} /> Employee</label>
+                <label className="flex items-center gap-1.5 text-xs" title="Has a login account for this system"><input type="checkbox" disabled={dis} checked={!!c.isLogin} onChange={e => set('isLogin', e.target.checked)} /> System user</label>
+                <select aria-label="Other record type" disabled={dis} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs" value={c.otherKind || ''} onChange={e => set('otherKind', (e.target.value || undefined) as Contact['otherKind'])}>
+                  <option value="">Other: none</option><option value="own_company">Our own company</option><option value="bank">Bank</option><option value="other">Other</option>
+                </select>
               </div>
             </Field>
           </div>
@@ -282,7 +301,7 @@ export default function ContactDrawer({ contact, contacts, invoices, bills, read
       {/* Tabs live inside the main form, directly under the profile and sections */}
       <section className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
         <div role="tablist" aria-label="Contact sections" className="flex overflow-x-auto border-b border-slate-200 bg-slate-50/70 px-2">
-          {TABS.map(t => (
+          {TABS.map(t => ({ ...t, label: t.id === 'invoices' && c.isCustomer && c.isVendor ? 'Invoices & Bills' : t.label })).map(t => (
             <button key={t.id} role="tab" id={`ctab-${t.id}`} aria-selected={tab === t.id} aria-controls={`cpanel-${t.id}`} onClick={() => setTab(t.id)}
               className={`px-4 py-2.5 text-xs font-bold whitespace-nowrap border-b-2 -mb-px transition ${tab === t.id ? 'border-emerald-600 text-emerald-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
               {t.label}
@@ -313,7 +332,7 @@ export default function ContactDrawer({ contact, contacts, invoices, bills, read
                     ))}
                     {extra.map(a => (
                       <div key={a.id} className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/60 text-xs relative">
-                        <Pill>{a.type === 'delivery' ? 'Delivery address' : 'Other address'}</Pill>
+                        <Pill>{ADDR_LABEL[a.type]}</Pill>
                         <div className="mt-1 text-slate-700 leading-snug">{[a.street, a.neighborhood, [a.city, a.zip].filter(Boolean).join(' '), a.region, a.country].filter(Boolean).join(', ') || '—'}</div>
                         {!dis && <button onClick={() => set('addresses', c.addresses.filter(x => x.id !== a.id))} aria-label="Remove address" className="absolute top-2 right-2 text-slate-400 hover:text-rose-600"><Trash2 size={13} /></button>}
                       </div>
@@ -348,6 +367,13 @@ export default function ContactDrawer({ contact, contacts, invoices, bills, read
           {tab === 'invoices' && (
             isNew ? <p className="text-xs text-slate-500">Save this contact first. Invoices appear here once the contact exists and has documents under the same name.</p> : (
               <>
+                {c.isCustomer && c.isVendor && (
+                  <div className={`rounded-lg border px-3 py-2 text-xs flex flex-wrap items-center gap-x-5 gap-y-1 ${receivable - payable > 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : receivable - payable < 0 ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                    <span>They owe you <b className="font-mono">{moneyFormat(receivable)}</b></span>
+                    <span>You owe them <b className="font-mono">{moneyFormat(payable)}</b></span>
+                    <span className="font-extrabold">Net position: <span className="font-mono">{moneyFormat(Math.abs(receivable - payable))}</span> {receivable - payable > 0 ? 'in your favour' : receivable - payable < 0 ? 'in their favour' : '(settled)'}</span>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <Kpi label="Invoices" value={myInvoices.length} />
                   <Kpi label="Total invoiced" value={moneyFormat(billed)} />
@@ -405,6 +431,11 @@ export default function ContactDrawer({ contact, contacts, invoices, bills, read
           )}
         </div>
       </section>
+
+      {similar && (
+        <ConfirmDialog title="Similar user already exists" text={`"${similar.name}" looks like the same business. Documents are linked by exact name, so a second spelling would split their invoices and bills. Cancel to review, or save this as a separate user?`}
+          confirmLabel="Save as separate user" onCancel={() => setSimilar(null)} onConfirm={() => { setSimilar(null); commit() }} />
+      )}
 
       {adding && (
         <AddDialog kind={adding} parent={c} isNew={isNew} onClose={() => setAdding(null)} onCreate={onSave}

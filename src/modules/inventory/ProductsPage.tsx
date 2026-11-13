@@ -1,171 +1,123 @@
-import { useMemo, useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
-import { moneyFormat } from '../../data/mockAccountingData'
+import { useState } from 'react'
+import { Plus, Archive } from 'lucide-react'
 import type { InventoryApi } from './useInventory'
-import type { Product, ProductType, ProductCategory } from './types'
-import { PageHeader, PrimaryButton, GhostButton, Segmented, SearchBox, Table, Pill, EmptyState, Drawer, Field, Card, inputCls, ConfirmDialog } from '../shared/ui'
+import type { Product, ProductType, ID } from './types'
+import { categoryName, getUom, qtyAvailable } from './helpers'
+import { Breadcrumb, M2O, TabBar, Sheet, Row, SmartButton, ErrorBanner, fmtQty } from './components'
+import { PageHeader, PrimaryButton, GhostButton, Segmented, SearchBox, Table, Pill, EmptyState, inputCls } from '../shared/ui'
 
-const blank = (): Product => ({
-  id: `prd_${Date.now()}`, sku: '', barcode: '', name: '', categoryId: 'cat_all', type: 'storable', uom: 'Units', cost: 0, salePrice: 0, taxRate: 0.15,
-  canSell: true, canPurchase: true, tracking: 'none', description: '', vendor: '', active: true,
+const TYPE_LABEL: Record<ProductType, string> = { product: 'Storable Product', consu: 'Consumable', service: 'Service' }
+type Tab = 'general' | 'inventory' | 'notes'
+
+const blank = (s: InventoryApi['s']): Omit<Product, 'id'> => ({
+  name: '', default_code: '', barcode: '', type: 'product', categ_id: s.categories[0]?.id ?? 0, uom_id: s.uoms[0]?.id ?? 0, uom_po_id: s.uoms[0]?.id ?? 0,
+  list_price: 1, standard_price: 0, sale_ok: true, purchase_ok: true, active: true, description: '', description_picking: '', description_pickingin: '',
+  description_pickingout: '', weight: 0, volume: 0, responsible_id: 'Sangeeth R.',
 })
 
-export function ProductsPage({ inv, readOnly, searchQuery }: { inv: InventoryApi; readOnly: boolean; searchQuery: string }) {
+export function ProductsPage({ inv, readOnly, searchQuery, onOpenStock }: { inv: InventoryApi; readOnly: boolean; searchQuery: string; onOpenStock: () => void }) {
+  const { s } = inv
   const [filter, setFilter] = useState<'all' | ProductType | 'archived'>('all')
-  const [cat, setCat] = useState('all')
   const [local, setLocal] = useState('')
-  const [editing, setEditing] = useState<Product | null>(null)
+  const [open, setOpen] = useState<ID | 'new' | null>(null)
   const q = (local || searchQuery).trim().toLowerCase()
-  const catName = (id: string) => inv.categories.find(c => c.id === id)?.name || '—'
+  const rows = s.products.filter(p => (filter === 'archived' ? !p.active : p.active && (filter === 'all' || p.type === filter)) && (!q || [p.name, p.default_code, p.barcode].some(v => v.toLowerCase().includes(q))))
+  const n = (t: ProductType) => s.products.filter(p => p.active && p.type === t).length
 
-  const rows = useMemo(() => inv.products.filter(p => {
-    if (filter === 'archived' ? p.active : !p.active) return false
-    if (filter !== 'all' && filter !== 'archived' && p.type !== filter) return false
-    if (cat !== 'all' && p.categoryId !== cat) return false
-    return !q || [p.name, p.sku, p.barcode, p.vendor].some(v => v.toLowerCase().includes(q))
-  }), [inv.products, filter, cat, q])
-  const act = inv.products.filter(p => p.active)
-
+  if (open !== null) return <ProductForm inv={inv} id={open === 'new' ? undefined : open} readOnly={readOnly} onClose={() => setOpen(null)} onOpenStock={onOpenStock} />
   return (
     <div className="space-y-4">
-      <PageHeader title="Products" subtitle="Items you stock, sell and purchase. SKUs and barcodes are unique."
-        actions={<>
-          <SearchBox value={local} onChange={setLocal} placeholder="Search name, SKU, barcode…" />
-          <select aria-label="Category" value={cat} onChange={e => setCat(e.target.value)} className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs">
-            <option value="all">All categories</option>{inv.categories.filter(c => c.id !== 'cat_all').map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          {!readOnly && <PrimaryButton onClick={() => setEditing(blank())}><Plus size={16} />New Product</PrimaryButton>}
-        </>} />
+      <PageHeader title="Products" actions={<>
+        <SearchBox value={local} onChange={setLocal} placeholder="Search name, reference, barcode…" />
+        {!readOnly && <PrimaryButton onClick={() => setOpen('new')}><Plus size={16} />Create</PrimaryButton>}
+      </>} />
       <Segmented value={filter} onChange={setFilter} options={[
-        { id: 'all', label: 'All', count: act.length }, { id: 'storable', label: 'Storable', count: act.filter(p => p.type === 'storable').length },
-        { id: 'consumable', label: 'Consumable', count: act.filter(p => p.type === 'consumable').length }, { id: 'service', label: 'Service', count: act.filter(p => p.type === 'service').length },
-        { id: 'archived', label: 'Archived', count: inv.products.length - act.length },
+        { id: 'all', label: 'All', count: s.products.filter(p => p.active).length }, { id: 'product', label: 'Storable', count: n('product') },
+        { id: 'consu', label: 'Consumable', count: n('consu') }, { id: 'service', label: 'Service', count: n('service') }, { id: 'archived', label: 'Archived', count: s.products.filter(p => !p.active).length },
       ]} />
-      <Table head={['Product', 'SKU', 'Barcode', 'Category', 'Type', { label: 'On hand', right: true }, { label: 'Cost', right: true }, { label: 'Sales price', right: true }]}
-        empty={rows.length === 0 ? <EmptyState title="No products found" /> : null}>
-        {rows.map(p => {
-          const oh = inv.onHand(p.sku)
-          return (
-            <tr key={p.id} onClick={() => setEditing(p)} className="hover:bg-slate-50 cursor-pointer">
-              <td className="px-3 py-2.5 font-bold text-slate-900">{p.name}</td>
-              <td className="px-3 py-2.5 font-mono text-slate-600">{p.sku}</td>
-              <td className="px-3 py-2.5 font-mono text-slate-500">{p.barcode || '—'}</td>
-              <td className="px-3 py-2.5 text-slate-600">{catName(p.categoryId)}</td>
-              <td className="px-3 py-2.5"><Pill tone={p.type === 'service' ? 'blue' : 'slate'}>{p.type}</Pill></td>
-              <td className="px-3 py-2.5 text-right font-mono">{p.type === 'service' ? '—' : `${oh} ${p.uom}`}</td>
-              <td className="px-3 py-2.5 text-right font-mono">{moneyFormat(p.cost)}</td>
-              <td className="px-3 py-2.5 text-right font-mono">{moneyFormat(p.salePrice)}</td>
-            </tr>
-          )
-        })}
+      <Table head={['Internal Reference', 'Name', { label: 'Sales Price', right: true }, { label: 'Cost', right: true }, 'Product Category', 'Product Type', { label: 'Quantity On Hand', right: true }, 'Unit of Measure']} empty={rows.length === 0 ? <EmptyState title="No products found" /> : null}>
+        {rows.map(p => (
+          <tr key={p.id} onClick={() => setOpen(p.id)} className="hover:bg-slate-50 cursor-pointer">
+            <td className="px-3 py-2.5 font-mono text-slate-600">{p.default_code || '—'}</td>
+            <td className="px-3 py-2.5 font-bold text-slate-900">{p.name}</td>
+            <td className="px-3 py-2.5 text-right font-mono">{p.list_price.toFixed(2)}</td><td className="px-3 py-2.5 text-right font-mono">{p.standard_price.toFixed(2)}</td>
+            <td className="px-3 py-2.5 text-slate-600">{categoryName(s, p.categ_id)}</td><td className="px-3 py-2.5"><Pill tone={p.type === 'product' ? 'green' : p.type === 'consu' ? 'blue' : 'slate'}>{TYPE_LABEL[p.type]}</Pill></td>
+            <td className="px-3 py-2.5 text-right font-mono">{p.type === 'product' ? fmtQty(qtyAvailable(s, p.id)) : '—'}</td><td className="px-3 py-2.5 text-slate-600">{getUom(s, p.uom_id)?.name}</td>
+          </tr>
+        ))}
       </Table>
-      {editing && <ProductDrawer inv={inv} product={editing} isNew={!inv.products.some(p => p.id === editing.id)} readOnly={readOnly} onClose={() => setEditing(null)} />}
     </div>
   )
 }
 
-function ProductDrawer({ inv, product, isNew, readOnly, onClose }: { inv: InventoryApi; product: Product; isNew: boolean; readOnly: boolean; onClose: () => void }) {
-  const [p, setP] = useState(product)
+function ProductForm({ inv, id, readOnly, onClose, onOpenStock }: { inv: InventoryApi; id?: ID; readOnly: boolean; onClose: () => void; onOpenStock: () => void }) {
+  const { s } = inv
+  const existing = s.products.find(p => p.id === id)
+  const [p, setP] = useState<Product>(() => existing ?? { id: 0, ...blank(s) })
+  const [tab, setTab] = useState<Tab>('general')
   const [err, setErr] = useState('')
-  const [confirm, setConfirm] = useState(false)
   const set = <K extends keyof Product>(k: K, v: Product[K]) => setP(x => ({ ...x, [k]: v }))
-  const stock = inv.quants.filter(q => q.productCode === p.sku)
+  const dis = readOnly
+  const num = (k: 'list_price' | 'standard_price' | 'weight' | 'volume', label: string) => <input aria-label={label} type="number" min={0} step="0.01" disabled={dis} className={inputCls} value={p[k]} onChange={e => set(k, Number(e.target.value) || 0)} />
+  const area = (k: 'description' | 'description_pickingout' | 'description_pickingin' | 'description_picking', label: string) => <textarea aria-label={label} rows={2} disabled={dis} className={`${inputCls} resize-none`} value={p[k]} onChange={e => set(k, e.target.value)} />
+
   const save = () => {
-    const sku = p.sku.trim()
-    if (!p.name.trim()) return setErr('Product name is required.')
-    if (!sku) return setErr('SKU is required.')
-    if (inv.products.some(o => o.id !== p.id && o.sku.toLowerCase() === sku.toLowerCase())) return setErr(`SKU "${sku}" is already used.`)
-    if (p.barcode && inv.products.some(o => o.id !== p.id && o.barcode === p.barcode)) return setErr('Barcode is already used by another product.')
-    if (p.cost < 0 || p.salePrice < 0) return setErr('Prices cannot be negative.')
-    inv.saveProduct({ ...p, sku, name: p.name.trim() })
+    if (!p.name.trim()) return setErr('Name is required.')
+    if (!p.uom_id) return setErr('Unit of Measure is required.')
+    if (s.products.some(x => x.id !== p.id && p.default_code && x.default_code.toLowerCase() === p.default_code.toLowerCase())) return setErr('Another product already uses this Internal Reference.')
+    inv.save('products', { ...p, name: p.name.trim(), uom_po_id: p.uom_po_id || p.uom_id, ...(existing ? {} : { id: undefined }) })
     onClose()
   }
-  const dis = readOnly
   return (
-    <Drawer title={isNew ? 'New Product' : p.name} subtitle={isNew ? undefined : p.sku} badge={!p.active ? <Pill tone="red">Archived</Pill> : undefined} onClose={onClose}
-      footer={<>
-        {!isNew && !readOnly && <GhostButton danger={p.active} onClick={() => (p.active ? setConfirm(true) : (inv.saveProduct({ ...p, active: true }), onClose()))}>{p.active ? 'Archive' : 'Restore'}</GhostButton>}
-        <GhostButton onClick={onClose}>{readOnly ? 'Close' : 'Cancel'}</GhostButton>{!readOnly && <PrimaryButton onClick={save}>Save product</PrimaryButton>}
-      </>}>
-      {err && <div role="alert" className="text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-3 py-2">{err}</div>}
-      <Card title="General">
-        <div className="grid sm:grid-cols-2 gap-3">
-          <Field label="Product name *" span={2}><input className={inputCls} disabled={dis} value={p.name} onChange={e => set('name', e.target.value)} autoFocus={isNew} /></Field>
-          <Field label="SKU (internal reference) *"><input className={`${inputCls} font-mono`} disabled={dis} value={p.sku} onChange={e => set('sku', e.target.value.toUpperCase())} /></Field>
-          <Field label="Barcode"><input className={`${inputCls} font-mono`} disabled={dis} value={p.barcode} onChange={e => set('barcode', e.target.value.replace(/\s/g, ''))} /></Field>
-          <Field label="Category"><select className={inputCls} disabled={dis} value={p.categoryId} onChange={e => set('categoryId', e.target.value)}>{inv.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
-          <Field label="Product type" hint="Services are never stocked"><select className={inputCls} disabled={dis} value={p.type} onChange={e => set('type', e.target.value as ProductType)}><option value="storable">Storable</option><option value="consumable">Consumable</option><option value="service">Service</option></select></Field>
-          <Field label="Unit of measure"><input className={inputCls} disabled={dis} value={p.uom} onChange={e => set('uom', e.target.value)} /></Field>
-          <Field label="Tracking"><select className={inputCls} disabled={dis || p.type === 'service'} value={p.tracking} onChange={e => set('tracking', e.target.value as Product['tracking'])}><option value="none">No tracking</option><option value="lot">By lot</option><option value="serial">By serial number</option></select></Field>
-          <Field label="Description" span={2}><textarea rows={2} className={`${inputCls} resize-none`} disabled={dis} value={p.description} onChange={e => set('description', e.target.value)} /></Field>
+    <div className="space-y-3 max-w-5xl">
+      <Breadcrumb parent="Products" current={existing ? existing.name : 'New'} onBack={onClose} />
+      <div className="flex flex-wrap gap-2 justify-between">
+        <div className="flex gap-2">
+          {existing && <SmartButton value={p.type === 'product' ? fmtQty(qtyAvailable(s, p.id)) : '—'} label="On Hand" onClick={onOpenStock} />}
+          {existing && !readOnly && <button onClick={() => set('active', !p.active)} className="min-w-24 border border-slate-200 bg-white rounded-lg px-3 py-1.5 text-left hover:border-emerald-400 flex items-center gap-2"><Archive size={14} className={p.active ? 'text-emerald-600' : 'text-rose-500'} /><span className="text-[10px] font-bold uppercase tracking-wide text-slate-600">{p.active ? 'Active' : 'Archived'}</span></button>}
         </div>
-      </Card>
-      <Card title="Pricing & sourcing">
-        <div className="grid sm:grid-cols-2 gap-3">
-          <Field label="Cost (SAR)"><input type="number" min={0} step="0.01" className={inputCls} disabled={dis} value={p.cost} onChange={e => set('cost', Number(e.target.value) || 0)} /></Field>
-          <Field label="Sales price (SAR)"><input type="number" min={0} step="0.01" className={inputCls} disabled={dis} value={p.salePrice} onChange={e => set('salePrice', Number(e.target.value) || 0)} /></Field>
-          <Field label="Sales tax"><select className={inputCls} disabled={dis} value={p.taxRate} onChange={e => set('taxRate', Number(e.target.value))}><option value={0.15}>VAT 15%</option><option value={0}>No tax</option></select></Field>
-          <Field label="Preferred vendor"><input className={inputCls} disabled={dis} value={p.vendor} list="erp-vendors" onChange={e => set('vendor', e.target.value)} /></Field>
-          <div className="flex gap-4 text-xs sm:col-span-2">
-            <label className="flex items-center gap-1.5"><input type="checkbox" disabled={dis} checked={p.canSell} onChange={e => set('canSell', e.target.checked)} /> Can be sold</label>
-            <label className="flex items-center gap-1.5"><input type="checkbox" disabled={dis} checked={p.canPurchase} onChange={e => set('canPurchase', e.target.checked)} /> Can be purchased</label>
-          </div>
+        <div className="flex items-center gap-4 text-xs">
+          <label className="flex items-center gap-1.5 font-bold"><input type="checkbox" disabled={dis} checked={p.sale_ok} onChange={e => set('sale_ok', e.target.checked)} />Can be Sold</label>
+          <label className="flex items-center gap-1.5 font-bold"><input type="checkbox" disabled={dis} checked={p.purchase_ok} onChange={e => set('purchase_ok', e.target.checked)} />Can be Purchased</label>
         </div>
-      </Card>
-      {!isNew && p.type !== 'service' && (
-        <Card title="Stock on hand">
-          {stock.length === 0 ? <p className="text-xs text-slate-500">No stock recorded.</p> : (
-            <table className="w-full text-xs"><tbody className="divide-y divide-slate-100">
-              {stock.map(s => <tr key={s.id}><td className="py-1.5">{s.location}{s.lot ? <span className="text-slate-400"> · {s.lot}</span> : null}</td><td className="py-1.5 text-right font-mono">{s.onHand} {s.uom}</td></tr>)}
-              <tr><td className="py-1.5 font-bold">Total</td><td className="py-1.5 text-right font-mono font-bold">{stock.reduce((a, s) => a + s.onHand, 0)} {p.uom}</td></tr>
-            </tbody></table>
-          )}
-        </Card>
-      )}
-      {confirm && <ConfirmDialog title="Archive product?" text="It stays on past documents but disappears from pickers." confirmLabel="Archive" danger onCancel={() => setConfirm(false)} onConfirm={() => { inv.saveProduct({ ...p, active: false }); onClose() }} />}
-    </Drawer>
-  )
-}
-
-export function CategoriesPage({ inv, readOnly }: { inv: InventoryApi; readOnly: boolean }) {
-  const [name, setName] = useState('')
-  const [parent, setParent] = useState('cat_all')
-  const [err, setErr] = useState('')
-  const [rename, setRename] = useState<ProductCategory | null>(null)
-  const add = () => {
-    const n = name.trim()
-    if (!n) return setErr('Enter a category name.')
-    if (inv.categories.some(c => c.name.toLowerCase() === n.toLowerCase())) return setErr('That category already exists.')
-    inv.saveCategory({ id: `cat_${Date.now()}`, name: n, parentId: parent })
-    setName(''); setErr('')
-  }
-  const count = (id: string) => inv.products.filter(p => p.categoryId === id && p.active).length
-  return (
-    <div className="space-y-4">
-      <PageHeader title="Product Categories" subtitle="Group products for reporting and pricing." />
-      {!readOnly && (
-        <Card title="New category">
-          <div className="flex flex-wrap gap-2 items-end">
-            <div className="w-56"><Field label="Name"><input className={inputCls} value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()} /></Field></div>
-            <div className="w-56"><Field label="Parent"><select className={inputCls} value={parent} onChange={e => setParent(e.target.value)}>{inv.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field></div>
-            <PrimaryButton onClick={add}><Plus size={14} />Add</PrimaryButton>
+      </div>
+      <ErrorBanner text={err} />
+      <Sheet>
+        <input aria-label="Product Name" disabled={dis} placeholder="Product Name" className="w-full text-2xl font-extrabold text-slate-900 border-b border-slate-200 focus:outline-none focus:border-emerald-600 pb-1 bg-transparent" value={p.name} onChange={e => set('name', e.target.value)} />
+        <TabBar<Tab> value={tab} onChange={setTab} tabs={[{ id: 'general', label: 'General Information' }, { id: 'inventory', label: 'Inventory' }, { id: 'notes', label: 'Notes' }]} />
+        {tab === 'general' && (
+          <div className="grid lg:grid-cols-2 gap-x-8 gap-y-2">
+            <div className="space-y-2">
+              <Row label="Product Type"><select aria-label="Product Type" disabled={dis} className={inputCls} value={p.type} onChange={e => set('type', e.target.value as ProductType)}>{(Object.keys(TYPE_LABEL) as ProductType[]).map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}</select></Row>
+              <Row label="Product Category"><M2O label="Product Category" disabled={dis} value={p.categ_id} onChange={v => set('categ_id', v ?? 0)} options={s.categories.map(c => ({ id: c.id, label: categoryName(s, c.id) }))} /></Row>
+              <Row label="Internal Reference"><input aria-label="Internal Reference" disabled={dis} className={`${inputCls} font-mono`} value={p.default_code} onChange={e => set('default_code', e.target.value)} /></Row>
+              <Row label="Barcode"><input aria-label="Barcode" disabled={dis} className={`${inputCls} font-mono`} value={p.barcode} onChange={e => set('barcode', e.target.value)} /></Row>
+            </div>
+            <div className="space-y-2">
+              <Row label="Sales Price">{num('list_price', 'Sales Price')}</Row>
+              <Row label="Cost">{num('standard_price', 'Cost')}</Row>
+              <Row label="Unit of Measure"><M2O label="Unit of Measure" disabled={dis} value={p.uom_id} onChange={v => setP(x => ({ ...x, uom_id: v ?? 0, uom_po_id: v ?? 0 }))} options={s.uoms.filter(u => u.active).map(u => ({ id: u.id, label: u.name }))} /></Row>
+              <Row label="Purchase Unit of Measure"><M2O label="Purchase Unit of Measure" disabled={dis} value={p.uom_po_id} onChange={v => set('uom_po_id', v ?? 0)} options={s.uoms.filter(u => u.active && u.category_id === getUom(s, p.uom_id)?.category_id).map(u => ({ id: u.id, label: u.name }))} /></Row>
+            </div>
           </div>
-          {err && <p role="alert" className="text-xs text-rose-600 mt-2">{err}</p>}
-        </Card>
-      )}
-      <Table head={['Category', 'Parent', { label: 'Products', right: true }, '']}>
-        {inv.categories.map(c => (
-          <tr key={c.id}>
-            <td className="px-3 py-2.5 font-bold text-slate-900">{rename?.id === c.id ? (
-              <input autoFocus className={`${inputCls} max-w-xs`} value={rename.name} onChange={e => setRename({ ...rename, name: e.target.value })}
-                onBlur={() => { if (rename.name.trim()) inv.saveCategory({ ...c, name: rename.name.trim() }); setRename(null) }} onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
-            ) : <button disabled={readOnly || c.id === 'cat_all'} onClick={() => setRename(c)} className="text-left hover:underline disabled:no-underline">{c.name}</button>}</td>
-            <td className="px-3 py-2.5 text-slate-600">{inv.categories.find(p => p.id === c.parentId)?.name || '—'}</td>
-            <td className="px-3 py-2.5 text-right font-mono">{count(c.id)}</td>
-            <td className="px-3 py-2.5 text-right">{!readOnly && c.id !== 'cat_all' && <button aria-label={`Delete ${c.name}`} onClick={() => setErr(inv.deleteCategory(c.id))} className="text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>}</td>
-          </tr>
-        ))}
-      </Table>
+        )}
+        {tab === 'inventory' && (
+          <div className="grid lg:grid-cols-2 gap-x-8 gap-y-2">
+            <div className="space-y-2">
+              <Row label="Responsible"><input aria-label="Responsible" disabled={dis} className={inputCls} value={p.responsible_id} onChange={e => set('responsible_id', e.target.value)} /></Row>
+              <Row label="Weight">{num('weight', 'Weight')}</Row>
+              <Row label="Volume">{num('volume', 'Volume')}</Row>
+            </div>
+            <div className="space-y-2">
+              <Row label="Delivery Orders">{area('description_pickingout', 'Description on Delivery Orders')}</Row>
+              <Row label="Receipts">{area('description_pickingin', 'Description on Receptions')}</Row>
+              <Row label="Internal Transfers">{area('description_picking', 'Description on Picking')}</Row>
+            </div>
+          </div>
+        )}
+        {tab === 'notes' && area('description', 'Description')}
+      </Sheet>
+      <div className="flex gap-2">{!readOnly && <PrimaryButton onClick={save}>Save</PrimaryButton>}<GhostButton onClick={onClose}>Discard</GhostButton></div>
     </div>
   )
 }

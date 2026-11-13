@@ -32,6 +32,12 @@ export type TabId =
   | 'settings'
   | 'inventory'
   | 'contacts'
+  | 'usr_customers'
+  | 'usr_vendors'
+  | 'usr_employees'
+  | 'usr_logins'
+  | 'usr_other'
+  | 'usr_archived'
   | 'inv_overview'
   | 'inv_products'
   | 'inv_categories'
@@ -41,7 +47,12 @@ export type TabId =
   | 'inv_receipts'
   | 'inv_deliveries'
   | 'inv_internal'
-  | 'inv_reorder'
+  | 'inv_transfers'
+  | 'inv_move_lines'
+  | 'inv_locations'
+  | 'inv_picking_types'
+  | 'inv_uom_categories'
+  | 'inv_uom'
 
 export type DrawerType = 
   | 'invoice' 
@@ -376,47 +387,3 @@ export interface FiscalPeriodConfig {
 }
 
 
-// --- Inventory adjustments ---
-export interface StockQuant {
-  id: string
-  companyId: CompanyId
-  productCode: string
-  productName: string
-  category: string
-  location: string
-  lot?: string // Lot / serial number
-  pack?: string // Package
-  owner?: string
-  uom: string
-  onHand: number
-  unitCost: number
-}
-
-export type AdjustmentReason = 'Physical count' | 'Damaged / scrapped' | 'Lost / theft' | 'Found / surplus' | 'Opening balance' | 'Other'
-
-export interface InventoryAdjustmentLine {
-  quantId: string
-  productCode: string
-  productName: string
-  location: string
-  lot?: string
-  uom: string
-  previousQty: number
-  countedQty: number
-  difference: number
-  unitCost: number
-}
-
-export interface InventoryAdjustment {
-  id: string
-  reference: string
-  companyId: CompanyId
-  accountingDate: string
-  appliedAt: string
-  responsible: string
-  reason: AdjustmentReason
-  notes?: string
-  lines: InventoryAdjustmentLine[]
-  netValue: number
-  journalEntryNumber: string
-}

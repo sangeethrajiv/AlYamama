@@ -1,13 +1,15 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import type { Contact } from '../contacts/types'
-import type { Product } from '../inventory/types'
+
+/** The slice of an inventory product that Accounting forms need. */
+export interface DirProduct { id: string; sku: string; name: string; salePrice: number; taxRate: number; canSell: boolean; uom: string; active: boolean }
 
 /** Read-only bridge: lets Accounting forms pick contacts and products without importing module internals. */
-interface Directory { customers: Contact[]; vendors: Contact[]; products: Product[]; stockOf: (sku: string) => number }
+interface Directory { customers: Contact[]; vendors: Contact[]; products: DirProduct[]; stockOf: (sku: string) => number }
 const Ctx = createContext<Directory>({ customers: [], vendors: [], products: [], stockOf: () => 0 })
 export const useDirectory = () => useContext(Ctx)
 
-export function DirectoryProvider({ contacts, products, stockOf, children }: { contacts: Contact[]; products: Product[]; stockOf: (sku: string) => number; children: ReactNode }) {
+export function DirectoryProvider({ contacts, products, stockOf, children }: { contacts: Contact[]; products: DirProduct[]; stockOf: (sku: string) => number; children: ReactNode }) {
   const value = useMemo<Directory>(() => ({
     customers: contacts.filter(c => c.active && c.isCustomer), vendors: contacts.filter(c => c.active && c.isVendor),
     products: products.filter(p => p.active), stockOf,

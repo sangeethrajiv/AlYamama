@@ -13,8 +13,6 @@ import type {
   ChequeRecord,
   AuditLogEntry,
   FiscalPeriodConfig,
-  InventoryAdjustmentLine,
-  AdjustmentReason,
   CreditNoteOptions,
 } from './types/accounting'
 import {
@@ -50,14 +48,13 @@ import BankingView from './components/BankingView'
 import ReportsView from './components/ReportsView'
 import AuditLogView from './components/AuditLogView'
 import SettingsAndLockView from './components/SettingsAndLockView'
-import InventoryAdjustmentView from './components/InventoryAdjustmentView'
 import ContactsModule from './modules/contacts/ContactsModule'
 import { useContacts } from './modules/contacts/useContacts'
 import InventoryModule from './modules/inventory/InventoryModule'
 import { useInventory } from './modules/inventory/useInventory'
 import { DirectoryProvider } from './modules/shared/directory'
 
-const VALID_TABS: TabId[] = ['dashboard', 'invoices', 'bills', 'payments', 'reconcile', 'journals', 'coa', 'banking', 'reports', 'audit', 'settings', 'inventory', 'contacts', 'inv_overview', 'inv_products', 'inv_categories', 'inv_warehouses', 'inv_stock', 'inv_moves', 'inv_receipts', 'inv_deliveries', 'inv_internal', 'inv_reorder']
+const VALID_TABS: TabId[] = ['dashboard', 'invoices', 'bills', 'payments', 'reconcile', 'journals', 'coa', 'banking', 'reports', 'audit', 'settings', 'inventory', 'contacts', 'usr_customers', 'usr_vendors', 'usr_employees', 'usr_logins', 'usr_other', 'usr_archived', 'inv_overview', 'inv_products', 'inv_categories', 'inv_warehouses', 'inv_stock', 'inv_moves', 'inv_receipts', 'inv_deliveries', 'inv_internal', 'inv_transfers', 'inv_move_lines', 'inv_locations', 'inv_picking_types', 'inv_uom_categories', 'inv_uom']
 function tabFromHash(): TabId {
   const h = window.location.hash.replace(/^#\/?/, '') as TabId
   return VALID_TABS.includes(h) ? h : 'dashboard'
@@ -114,7 +111,7 @@ export default function App() {
 
   // Independent modules: Contacts and Inventory own their data; Accounting reads them through the directory
   const contactsApi = useContacts(mockInvoices, mockBills)
-  const inventory = useInventory(activeCompanyId)
+  const inventory = useInventory(contactsApi.contacts)
   const [invoiceDefaultPartner, setInvoiceDefaultPartner] = useState<string | undefined>(undefined)
 
   // Modals & Drawers
@@ -877,66 +874,6 @@ export default function App() {
     )
   }
 
-  // --- Inventory Adjustments ---
-  const handleApplyAdjustment = (
-    meta: { reference: string; accountingDate: string; reason: AdjustmentReason; notes: string },
-    lines: InventoryAdjustmentLine[]
-  ) => {
-    if (lines.length === 0) return
-    const net = lines.reduce((s, l) => s + l.difference * l.unitCost, 0)
-    const gain = lines.filter(l => l.difference > 0).reduce((s, l) => s + l.difference * l.unitCost, 0)
-    const loss = lines.filter(l => l.difference < 0).reduce((s, l) => s - l.difference * l.unitCost, 0)
-    const jeNumber = `${meta.reference}-JE`
-    const stamp = Date.now()
-    const jeLines = [
-      ...(gain > 0 ? [
-        { id: `jel_ia_g1_${stamp}`, accountId: 'acc_180041', accountCode: '180041', accountName: 'Stock Valuation Account', label: `${meta.reason}: surplus`, debit: gain, credit: 0 },
-        { id: `jel_ia_g2_${stamp}`, accountId: 'acc_501', accountCode: '500000', accountName: 'Raw Materials - Chrome Rods & Tubes', label: 'Inventory adjustment gain', debit: 0, credit: gain },
-      ] : []),
-      ...(loss > 0 ? [
-        { id: `jel_ia_l1_${stamp}`, accountId: 'acc_501', accountCode: '500000', accountName: 'Raw Materials - Chrome Rods & Tubes', label: 'Inventory adjustment loss', debit: loss, credit: 0 },
-        { id: `jel_ia_l2_${stamp}`, accountId: 'acc_180041', accountCode: '180041', accountName: 'Stock Valuation Account', label: `${meta.reason}: shortage`, debit: 0, credit: loss },
-      ] : []),
-    ]
-    const je: JournalEntry = {
-      id: `je_ia_${stamp}`,
-      entryNumber: jeNumber,
-      companyId: activeCompanyId,
-      entryDate: meta.accountingDate,
-      journalId: 'jour_stock',
-      journalName: 'Stock Journal (SAR)',
-      reference: meta.reference,
-      state: 'posted',
-      narration: `Inventory adjustment (${meta.reason})${meta.notes ? `: ${meta.notes}` : ''}`,
-      sourceDocument: meta.reference,
-      lines: jeLines,
-    }
-    setJournalEntries(prev => [je, ...prev])
-    setAccounts(prev =>
-      prev.map(a =>
-        a.code === '180041' ? { ...a, balance: a.balance + net } : a.code === '500000' ? { ...a, balance: a.balance - net } : a
-      )
-    )
-    const diffs = new Map(lines.map(l => [l.quantId, l.countedQty]))
-    inventory.applyCounts(
-      diffs,
-      {
-        id: `adj_${stamp}`,
-        reference: meta.reference,
-        companyId: activeCompanyId,
-        accountingDate: meta.accountingDate,
-        appliedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        responsible: currentRole,
-        reason: meta.reason,
-        notes: meta.notes,
-        lines,
-        netValue: net,
-        journalEntryNumber: jeNumber,
-      }
-    )
-    addAuditLog('Inventory Adjustment', `adj_${stamp}`, meta.reference, 'inventory_adjustment', '—', 'applied', `${lines.length} line(s) adjusted (${meta.reason}). Net stock value ${net.toFixed(2)} SAR; journal entry ${jeNumber} posted.`)
-  }
-
   // --- Journal Entry Operations (§6) ---
   const handleSaveJE = (entry: JournalEntry) => {
     setJournalEntries(prev => [entry, ...prev])
@@ -1164,7 +1101,7 @@ export default function App() {
   if (!user) return <LoginPage notice={signedOutNotice} onLogin={handleLogin} />
 
   return (
-    <DirectoryProvider contacts={contactsApi.contacts} products={inventory.products} stockOf={sku => inventory.onHand(sku)}>
+    <DirectoryProvider contacts={contactsApi.contacts} products={inventory.dirProducts} stockOf={inventory.onHand}>
     <div className={`flex min-h-screen bg-slate-100 text-slate-800 ${arabic ? 'rtl' : 'ltr'}`} dir={arabic ? 'rtl' : 'ltr'}>
       {/* Navigation Sidebar */}
       <Sidebar
@@ -1349,16 +1286,16 @@ export default function App() {
               tab={activeTab}
               inv={inventory}
               contacts={contactsApi.contacts}
-              invoices={invoices}
               currentRole={currentRole}
               searchQuery={searchQuery}
               onSelectTab={setActiveTab}
-              onApplyAdjustment={handleApplyAdjustment}
             />
           )}
 
-          {activeTab === 'contacts' && (
+          {(activeTab === 'contacts' || activeTab.startsWith('usr_')) && (
             <ContactsModule
+              key={activeTab}
+              tab={activeTab}
               api={contactsApi}
               invoices={invoices}
               bills={bills}

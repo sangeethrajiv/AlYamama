@@ -1,5 +1,6 @@
 import type { Invoice, Bill } from '../../types/accounting'
 import type { Contact } from './types'
+import { USERS } from '../../auth/users'
 
 const known: Record<string, Partial<Contact>> = {
   'Innovex (Dril Quip TIW-SAUDI ARABIA Limited Company)': { vat: '310562291400003', crNumber: '2050087311', email: 'ap@innovex.example', phone: '+966 13 812 0000', paymentTerms: '30 days', creditLimit: 250000, addresses: [{ id: 'a1', type: 'invoice', street: 'Second Industrial City', city: 'Dammam', region: 'Eastern Province', zip: '34334', country: 'Saudi Arabia' }] },
@@ -33,5 +34,10 @@ export function seedContacts(invoices: Invoice[], bills: Bill[]): Contact[] {
   // A few people attached to their companies
   const first = list.find(c => c.isCustomer)
   if (first) list.push({ ...blank(), id: 'ct_p1', kind: 'individual', name: 'Khalid Al-Otaibi', parentId: first.id, jobTitle: 'Finance Manager', email: 'khalid@example.com', mobile: '+966 55 123 4567', isCustomer: true })
+  // System users: every login account has its own record. The first four are also staff.
+  USERS.forEach((u, i) => list.push({ ...blank(), id: `ct_u${i + 1}`, kind: 'individual', name: u.name, jobTitle: u.title, email: u.email, isLogin: true, isEmployee: i < 4 }))
+  // The company's own record and a bank
+  list.push({ ...blank(), id: 'ct_self', name: 'Al-Yamama Workshop (our company)', otherKind: 'own_company', email: 'info@alyamama.example', phone: '+966 13 000 0000' })
+  list.push({ ...blank(), id: 'ct_bank1', name: 'Saudi National Bank', otherKind: 'bank', website: 'www.snb.example', phone: '+966 920 000 000' })
   return list
 }
