@@ -38,7 +38,26 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
     if (!r) return `#${id}`
     return id === c.id ? r.display_name : <button onClick={() => onOpen(id)} className="font-bold text-emerald-700 hover:underline text-left">{r.display_name}</button>
   }
-  const children = partners.filter(x => x.parent_id === c.id)
+  const children = partners.filter(x => x.parent_id === c.id).sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name))
+  const companies = children.filter(x => x.is_company)
+  const people = children.filter(x => !x.is_company)
+  const relatedList = (rows: ResPartner[], empty: string) => rows.length === 0
+    ? <div className="text-xs text-slate-400 py-4 text-center">{empty}</div>
+    : <ul className="divide-y divide-slate-100">
+      {rows.map(ch => (
+        <li key={ch.id}>
+          <button onClick={() => onOpen(ch.id)} className={`w-full flex items-center gap-2.5 py-2 text-left hover:bg-emerald-50/40 rounded-lg px-1 ${ch.active ? '' : 'opacity-60'}`}>
+            <Avatar name={ch.name} size={28} round={!ch.is_company} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-bold text-slate-900 truncate">{ch.name}</span>
+              <span className="block text-[11px] text-slate-500 truncate">{[ch.is_company ? [ch.city, countryName(ch.country_id)].filter(Boolean).join(', ') : ch.function, ch.email].filter(Boolean).join(' · ') || typeLabel(ch.type)}</span>
+            </span>
+            {ch.type !== 'contact' && <Pill tone="amber">{typeLabel(ch.type)}</Pill>}
+            {!ch.active && <Pill>Archived</Pill>}
+          </button>
+        </li>
+      ))}
+    </ul>
 
   return (
     <div className="space-y-3">
@@ -148,24 +167,13 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
             <div className="sm:col-span-2"><Item label="Girfalco ID">{c.ext_res_id}</Item></div>
           </Grid>
         </Card>
-        <Card dense title={`Related Contacts & Addresses (${children.length})`}>
-          {children.length === 0
-            ? <div className="text-xs text-slate-400 py-4 text-center">No contacts or addresses are linked to {c.name}.</div>
-            : <ul className="divide-y divide-slate-100">
-              {children.map(ch => (
-                <li key={ch.id}>
-                  <button onClick={() => onOpen(ch.id)} className={`w-full flex items-center gap-2.5 py-2 text-left hover:bg-emerald-50/40 rounded-lg px-1 ${ch.active ? '' : 'opacity-60'}`}>
-                    <Avatar name={ch.name} size={28} round />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-xs font-bold text-slate-900 truncate">{ch.name}</span>
-                      <span className="block text-[11px] text-slate-500 truncate">{[ch.function, ch.email].filter(Boolean).join(' · ') || typeLabel(ch.type)}</span>
-                    </span>
-                    {ch.type !== 'contact' && <Pill tone="amber">{typeLabel(ch.type)}</Pill>}
-                    {!ch.active && <Pill>Archived</Pill>}
-                  </button>
-                </li>
-              ))}
-            </ul>}
+        {c.is_company && (
+          <Card dense title={`Child Companies (${companies.length})`}>
+            {relatedList(companies, `No child companies are linked to ${c.name}.`)}
+          </Card>
+        )}
+        <Card dense title={`Contacts & Addresses (${people.length})`}>
+          {relatedList(people, `No contacts or addresses are linked to ${c.name}.`)}
         </Card>
         </div>
       </div>

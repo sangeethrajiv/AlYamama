@@ -215,8 +215,8 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
           </Card>
           {mode === 'edit' && partner?.is_company && <ChildContacts parent={partner} partners={partners} />}
           {mode === 'add' && f.is_company && (
-            <Card dense title="Contacts & Addresses">
-              <p className="text-xs text-slate-500 py-2">Save this company first, then edit it to add its contacts, delivery and invoice addresses.</p>
+            <Card dense title="Child Companies, Contacts & Addresses">
+              <p className="text-xs text-slate-500 py-2">Save this company first, then edit it to add its child companies, contacts, and delivery and invoice addresses.</p>
             </Card>
           )}
           </div>

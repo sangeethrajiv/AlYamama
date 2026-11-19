@@ -4,7 +4,7 @@ import { Archive, ArchiveRestore, Pencil, Plus, X } from 'lucide-react'
 import { Avatar, Card, ConfirmDialog, Pill, inputCls } from '../shared/ui'
 import { Fld, errCls } from './parts'
 import { BLANK, EMAIL_RE, PHONE_RE, toDraft } from './defaults'
-import { COUNTRIES, PARTNER_TYPES, STATES, typeLabel } from './options'
+import { COUNTRIES, PARTNER_TYPES, STATES, countryName, typeLabel } from './options'
 import { createPartner, setPartnerActive, updatePartner } from './store'
 import type { PartnerDraft, ResPartner } from './types'
 
@@ -20,52 +20,64 @@ const idOrNull = (s: string) => (s === '' ? null : Number(s))
 const iconBtn = 'p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition'
 
 export default function ChildContacts({ parent, partners }: { parent: ResPartner; partners: ResPartner[] }) {
-  const children = partners.filter(x => x.parent_id === parent.id).sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name))
-  const [dialog, setDialog] = useState<{ child?: ResPartner } | null>(null)
+  const all = partners.filter(x => x.parent_id === parent.id).sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name))
+  const companies = all.filter(x => x.is_company)
+  const people = all.filter(x => !x.is_company)
+  const [dialog, setDialog] = useState<{ child?: ResPartner; company?: boolean } | null>(null)
   const [archiving, setArchiving] = useState<ResPartner | null>(null)
   const [note, setNote] = useState('')
   const say = (t: string) => { setNote(t); setTimeout(() => setNote(''), 4000) }
 
+  const addBtn = (label: string, company: boolean) => (
+    <button type="button" onClick={() => setDialog({ company })} className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1"><Plus size={12} /> {label}</button>
+  )
+  const list = (rows: ResPartner[], empty: string) => rows.length === 0
+    ? <div className="text-xs text-slate-400 py-4 text-center">{empty}</div>
+    : <ul className="divide-y divide-slate-100">
+      {rows.map(ch => (
+        <li key={ch.id} className={`flex items-center gap-2.5 py-1.5 ${ch.active ? '' : 'opacity-60'}`}>
+          <Avatar name={ch.name} size={28} round={!ch.is_company} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-bold text-slate-900 truncate">{ch.name}</span>
+            <span className="block text-[11px] text-slate-500 truncate">{[ch.is_company ? [ch.city, countryName(ch.country_id)].filter(Boolean).join(', ') : ch.function, ch.email || ch.phone].filter(Boolean).join(' · ') || typeLabel(ch.type)}</span>
+          </span>
+          {ch.type !== 'contact' && <Pill tone="amber">{typeLabel(ch.type)}</Pill>}
+          {!ch.active && <Pill>Archived</Pill>}
+          <span className="flex items-center">
+            <button type="button" aria-label={`Edit ${ch.name}`} title="Edit" onClick={() => setDialog({ child: ch })} className={iconBtn}><Pencil size={13} /></button>
+            {ch.active
+              ? <button type="button" aria-label={`Archive ${ch.name}`} title="Archive" onClick={() => setArchiving(ch)} className={iconBtn}><Archive size={13} /></button>
+              : <button type="button" aria-label={`Restore ${ch.name}`} title="Restore" onClick={() => { setPartnerActive(ch.id, true); say(`${ch.name} restored.`) }} className={iconBtn}><ArchiveRestore size={13} /></button>}
+          </span>
+        </li>
+      ))}
+    </ul>
+
   return (
-    <Card dense title={`Contacts & Addresses (${children.length})`}
-      actions={<button type="button" onClick={() => setDialog({})} className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1"><Plus size={12} /> Add</button>}>
-      <p className="text-[11px] text-slate-400 mb-2">Contacts, child companies and addresses of {parent.name}. Changes here are saved immediately.</p>
-      {children.length === 0
-        ? <div className="text-xs text-slate-400 py-4 text-center">No contacts or addresses yet. Use Add to create one.</div>
-        : <ul className="divide-y divide-slate-100">
-          {children.map(ch => (
-            <li key={ch.id} className={`flex items-center gap-2.5 py-1.5 ${ch.active ? '' : 'opacity-60'}`}>
-              <Avatar name={ch.name} size={28} round={!ch.is_company} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-xs font-bold text-slate-900 truncate">{ch.name}</span>
-                <span className="block text-[11px] text-slate-500 truncate">{[ch.is_company ? 'Company' : ch.function, ch.email || ch.phone].filter(Boolean).join(' · ') || typeLabel(ch.type)}</span>
-              </span>
-              {ch.type !== 'contact' && <Pill tone="amber">{typeLabel(ch.type)}</Pill>}
-              {!ch.active && <Pill>Archived</Pill>}
-              <span className="flex items-center">
-                <button type="button" aria-label={`Edit ${ch.name}`} title="Edit" onClick={() => setDialog({ child: ch })} className={iconBtn}><Pencil size={13} /></button>
-                {ch.active
-                  ? <button type="button" aria-label={`Archive ${ch.name}`} title="Archive" onClick={() => setArchiving(ch)} className={iconBtn}><Archive size={13} /></button>
-                  : <button type="button" aria-label={`Restore ${ch.name}`} title="Restore" onClick={() => { setPartnerActive(ch.id, true); say(`${ch.name} restored.`) }} className={iconBtn}><ArchiveRestore size={13} /></button>}
-              </span>
-            </li>
-          ))}
-        </ul>}
-      {note && <div role="status" className="mt-2 text-[11px] font-bold text-emerald-700">{note}</div>}
+    <>
+      <Card dense title={`Child Companies (${companies.length})`} actions={addBtn('Add Company', true)}>
+        <p className="text-[11px] text-slate-400 mb-2">Subsidiaries and branches of {parent.name}. Changes here are saved immediately.</p>
+        {list(companies, 'No child companies yet. Use Add Company to create one.')}
+      </Card>
+      <Card dense title={`Contacts & Addresses (${people.length})`} actions={addBtn('Add Contact', false)}>
+        <p className="text-[11px] text-slate-400 mb-2">People, invoice and delivery addresses of {parent.name}. Changes here are saved immediately.</p>
+        {list(people, 'No contacts or addresses yet. Use Add Contact to create one.')}
+        {note && <div role="status" className="mt-2 text-[11px] font-bold text-emerald-700">{note}</div>}
+      </Card>
 
       {dialog && createPortal(
-        <ChildDialog parent={parent} child={dialog.child} onClose={() => setDialog(null)}
+        <ChildDialog parent={parent} child={dialog.child} company={dialog.company} onClose={() => setDialog(null)}
           onDone={t => { setDialog(null); say(t) }} />, document.body)}
       {archiving && createPortal(
         <ConfirmDialog title={`Archive ${archiving.name}?`} text="It will be hidden from the default contact list. You can restore it from here at any time." confirmLabel="Archive"
           onConfirm={() => { setPartnerActive(archiving.id, false); say(`${archiving.name} archived.`); setArchiving(null) }} onCancel={() => setArchiving(null)} />, document.body)}
-    </Card>
+    </>
   )
 }
 
-function ChildDialog({ parent, child, onClose, onDone }: { parent: ResPartner; child?: ResPartner; onClose: () => void; onDone: (note: string) => void }) {
+function ChildDialog({ parent, child, company, onClose, onDone }: { parent: ResPartner; child?: ResPartner; company?: boolean; onClose: () => void; onDone: (note: string) => void }) {
   const [f, setF] = useState<Fields>(() => child ? pick(toDraft(child)) : {
-    is_company: false, name: '', type: 'contact', function: '', email: '', phone: '', mobile: '',
+    is_company: !!company, name: '', type: 'contact', function: '', email: '', phone: '', mobile: '',
     street: parent.street, city: parent.city, zip: parent.zip, country_id: parent.country_id, state_id: parent.state_id,
   })
   const [submitted, setSubmitted] = useState(false)
@@ -89,7 +101,7 @@ function ChildDialog({ parent, child, onClose, onDone }: { parent: ResPartner; c
       onDone(`${clean.name} added to ${parent.name}.`)
     }
   }
-  const title = child ? `Edit ${child.name}` : `Add contact to ${parent.name}`
+  const title = child ? `Edit ${child.name}` : company ? `Add child company to ${parent.name}` : `Add contact to ${parent.name}`
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[60] flex items-center justify-center p-3 sm:p-6" role="presentation">
@@ -136,7 +148,7 @@ function ChildDialog({ parent, child, onClose, onDone }: { parent: ResPartner; c
         </div>
         <div className="bg-white px-4 py-2.5 border-t border-slate-200 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-xs font-bold border border-slate-300 text-slate-700 bg-white hover:bg-slate-50">Cancel</button>
-          <button type="button" onClick={save} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm">{child ? 'Save' : 'Add Contact'}</button>
+          <button type="button" onClick={save} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm">{child ? 'Save' : company ? 'Add Company' : 'Add Contact'}</button>
         </div>
       </div>
     </div>
