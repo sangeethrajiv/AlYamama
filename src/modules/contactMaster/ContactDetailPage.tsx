@@ -1,7 +1,7 @@
 import { Archive, ArchiveRestore, Pencil, Trash2 } from 'lucide-react'
 import { Avatar, Card, EmptyState, GhostButton, Pill, PrimaryButton } from '../shared/ui'
 import { Breadcrumb, Item } from './parts'
-import { COLORS, companyName, countryName, industryName, langName, schemeName, stateName, tagNames, titleName, typeLabel, userName } from './options'
+import { countryName, langName, schemeName, stateName, tagNames, titleName, typeLabel } from './options'
 import type { ResPartner } from './types'
 
 /** Contact view: one read-only card per section, plus Edit / Archive / Restore / Delete actions. */
@@ -39,7 +39,6 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
     return id === c.id ? r.display_name : <button onClick={() => onOpen(id)} className="font-bold text-emerald-700 hover:underline text-left">{r.display_name}</button>
   }
   const children = partners.filter(x => x.parent_id === c.id)
-  const color = COLORS.find(x => x.id === c.color)
 
   return (
     <div className="space-y-4">
@@ -131,13 +130,8 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
 
         <Card title="Additional Information">
           <Grid>
-            <Item label="Barcode">{c.barcode}</Item>
             <Item label="Tags">{c.category_id.length > 0 && <span className="flex flex-wrap gap-1">{tagNames(c.category_id).map(t => <Pill key={t} tone="green">{t}</Pill>)}</span>}</Item>
-            <Item label="Date">{c.date}</Item>
-            <Item label="Industry">{industryName(c.industry_id)}</Item>
             <Item label="Language">{langName(c.lang)}</Item>
-            <Item label="Timezone">{c.tz}</Item>
-            <div className="sm:col-span-2"><Item label="Internal Notes"><span className="whitespace-pre-wrap">{c.comment}</span></Item></div>
           </Grid>
         </Card>
 
@@ -148,17 +142,12 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
             <Item label="Employee"><YesNo v={c.employee} /></Item>
             <Item label="Cash Customer"><YesNo v={c.cash_customer} /></Item>
             <Item label="Active"><YesNo v={c.active} /></Item>
-            <Item label="Credit Limit">{c.credit_limit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Item>
             <Item label="Customer Discount %">{c.customer_discount.toFixed(2)}</Item>
             <Item label="Discount (%)">{c.discount.toFixed(2)}</Item>
             <Item label="Customer Code">{c.customer_code}</Item>
             <Item label="Vendor No">{c.vandor_number}</Item>
             <Item label="Company Code">{c.company_name_code}</Item>
             <Item label="Girfalco ID">{c.ext_res_id}</Item>
-            <Item label="Salesperson">{userName(c.user_id)}</Item>
-            <Item label="Company">{companyName(c.company_id)}</Item>
-            <Item label="Share Partner"><YesNo v={c.partner_share} /></Item>
-            <Item label="Color Index">{color && <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded-full border border-slate-300" style={{ background: color.hex }} />{c.color} · {color.name}</span>}</Item>
           </Grid>
         </Card>
 

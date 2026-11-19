@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Eraser, Save } from 'lucide-react'
 import { Card, ConfirmDialog, GhostButton, PrimaryButton, inputCls } from '../shared/ui'
 import { Breadcrumb, Fld, TagPicker, Toggle, errCls } from './parts'
-import { COLORS, COMPANIES, COUNTRIES, ID_SCHEMES, INDUSTRIES, LANGS, PARTNER_TYPES, STATES, TAGS, TIMEZONES, TITLES, USERS } from './options'
+import { COUNTRIES, ID_SCHEMES, LANGS, PARTNER_TYPES, STATES, TAGS, TITLES } from './options'
 import { descendantIds } from './store'
 import type { PartnerDraft, ResPartner } from './types'
 
@@ -33,9 +33,8 @@ const toDraft = (c?: ResPartner): PartnerDraft => {
   const { id: _i, display_name: _d, commercial_partner_id: _c, ...rest } = c
   return rest
 }
-type NumKey = 'credit_limit' | 'customer_discount' | 'discount'
-const NUM_KEYS: NumKey[] = ['credit_limit', 'customer_discount', 'discount']
-const numStrings = (d: PartnerDraft): Record<NumKey, string> => ({ credit_limit: d.credit_limit ? String(d.credit_limit) : '', customer_discount: d.customer_discount ? String(d.customer_discount) : '', discount: d.discount ? String(d.discount) : '' })
+type NumKey = 'customer_discount' | 'discount'
+const numStrings = (d: PartnerDraft): Record<NumKey, string> => ({ customer_discount: d.customer_discount ? String(d.customer_discount) : '', discount: d.discount ? String(d.discount) : '' })
 const idOrNull = (s: string) => (s === '' ? null : Number(s))
 const Grid = ({ children }: { children: React.ReactNode }) => <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">{children}</div>
 
@@ -63,7 +62,6 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
     if (f.fax.trim() && !PHONE_RE.test(f.fax.trim())) e.fax = 'Enter a valid fax number (digits, spaces, + ( ) - .).'
     if (f.l10n_sa_edi_building_number.trim() && !/^\d{4}$/.test(f.l10n_sa_edi_building_number.trim())) e.l10n_sa_edi_building_number = 'Building number must be 4 digits.'
     const bad = (k: NumKey, max?: number) => nums[k].trim() && (!Number.isFinite(Number(nums[k])) || Number(nums[k]) < 0 || (max !== undefined && Number(nums[k]) > max))
-    if (bad('credit_limit')) e.credit_limit = 'Credit limit must be a number of 0 or more.'
     if (bad('customer_discount', 100)) e.customer_discount = 'Enter a percentage between 0 and 100.'
     if (bad('discount', 100)) e.discount = 'Enter a percentage between 0 and 100.'
     return e
@@ -76,7 +74,6 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
     return partners.filter(x => x.is_company && !banned.has(x.id) && (x.active || x.id === f.parent_id)).sort((a, b) => a.name.localeCompare(b.name))
   }, [partners, partner, f.parent_id])
   const states = STATES.filter(s => s.country_id === f.country_id)
-  const tzs = f.tz && !TIMEZONES.includes(f.tz) ? [f.tz, ...TIMEZONES] : TIMEZONES
   const parent = partners.find(x => x.id === f.parent_id)
   const displayName = f.name.trim() ? (!f.is_company && parent ? `${parent.name}, ${f.name.trim()}` : f.name.trim()) : ''
   const errorCount = Object.keys(errors).length
@@ -85,7 +82,7 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
     setSubmitted(true)
     const first = Object.keys(errors)[0]
     if (first) { root.current?.querySelector<HTMLElement>(`[data-f="${first}"]`)?.focus(); return }
-    onSave({ ...f, name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim(), mobile: f.mobile.trim(), website: f.website.trim(), fax: f.fax.trim(), credit_limit: Number(nums.credit_limit) || 0, customer_discount: Number(nums.customer_discount) || 0, discount: Number(nums.discount) || 0 })
+    onSave({ ...f, name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim(), mobile: f.mobile.trim(), website: f.website.trim(), fax: f.fax.trim(), customer_discount: Number(nums.customer_discount) || 0, discount: Number(nums.discount) || 0 })
   }
   const clear = () => { setF(BLANK); setNums(numStrings(BLANK)); setTouched(new Set()); setSubmitted(false) }
   const cancel = () => (dirty ? setConfirmLeave(true) : onCancel())
@@ -188,31 +185,14 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
                 <Toggle label="Employee" checked={f.employee} onChange={v => set('employee', v)} />
                 <Toggle label="Cash Customer" checked={f.cash_customer} onChange={v => set('cash_customer', v)} />
               </div>
-              <Fld label="Credit Limit" error={show('credit_limit')}><input {...bind('credit_limit')} type="number" min="0" step="any" className={errCls(show('credit_limit'))} value={nums.credit_limit} onChange={e => setNums(n => ({ ...n, credit_limit: e.target.value }))} placeholder="0.00" /></Fld>
               <Fld label="Customer Discount %" error={show('customer_discount')}><input {...bind('customer_discount')} type="number" min="0" max="100" step="any" className={errCls(show('customer_discount'))} value={nums.customer_discount} onChange={e => setNums(n => ({ ...n, customer_discount: e.target.value }))} placeholder="0.00" /></Fld>
               <Fld label="Discount (%)" error={show('discount')}><input {...bind('discount')} type="number" min="0" max="100" step="any" className={errCls(show('discount'))} value={nums.discount} onChange={e => setNums(n => ({ ...n, discount: e.target.value }))} placeholder="0.00" /></Fld>
               <Fld label="Customer Code"><input {...bind('customer_code')} className={inputCls} value={f.customer_code} onChange={e => set('customer_code', e.target.value)} /></Fld>
               <Fld label="Vendor No"><input {...bind('vandor_number')} className={inputCls} value={f.vandor_number} onChange={e => set('vandor_number', e.target.value)} /></Fld>
               <Fld label="Company Code"><input {...bind('company_name_code')} className={inputCls} value={f.company_name_code} onChange={e => set('company_name_code', e.target.value)} /></Fld>
               <Fld label="Girfalco ID" hint="External Resource ID, read-only"><input className={inputCls} readOnly disabled value={f.ext_res_id ?? ''} /></Fld>
-              <Fld label="Salesperson">
-                <select {...bind('user_id')} className={inputCls} value={f.user_id ?? ''} onChange={e => set('user_id', idOrNull(e.target.value))}>
-                  <option value="" />{USERS.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
-              </Fld>
-              <Fld label="Company">
-                <select {...bind('company_id')} className={inputCls} value={f.company_id ?? ''} onChange={e => set('company_id', idOrNull(e.target.value))}>
-                  <option value="">— Shared —</option>{COMPANIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </Fld>
-              <Fld label="Color Index">
-                <select {...bind('color')} className={inputCls} value={f.color} onChange={e => set('color', Number(e.target.value))}>
-                  {COLORS.map(c => <option key={c.id} value={c.id}>{c.id} · {c.name}</option>)}
-                </select>
-              </Fld>
-              <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+              <div className="sm:col-span-2">
                 <Toggle label="Active" hint={f.active ? 'Untick to archive this contact' : 'Archived — hidden from the default list'} checked={f.active} onChange={v => set('active', v)} />
-                <Toggle label="Share Partner" hint="External contact without an internal user" checked={f.partner_share} onChange={v => set('partner_share', v)} />
               </div>
             </Grid>
           </Card>
@@ -243,21 +223,10 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
           <Card dense title="Additional Information">
             <Grid>
               <Fld label="Tax ID"><input {...bind('vat')} className={inputCls} value={f.vat} onChange={e => set('vat', e.target.value)} /></Fld>
-              <Fld label="Barcode"><input {...bind('barcode')} className={inputCls} value={f.barcode} onChange={e => set('barcode', e.target.value)} /></Fld>
-              <Fld label="Industry">
-                <select {...bind('industry_id')} className={inputCls} value={f.industry_id ?? ''} onChange={e => set('industry_id', idOrNull(e.target.value))}>
-                  <option value="" />{INDUSTRIES.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-                </select>
-              </Fld>
-              <Fld label="Date"><input {...bind('date')} type="date" className={inputCls} value={f.date} onChange={e => set('date', e.target.value)} /></Fld>
               <Fld label="Language">
                 <select {...bind('lang')} className={inputCls} value={f.lang} onChange={e => set('lang', e.target.value)}>{LANGS.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}</select>
               </Fld>
-              <Fld label="Timezone">
-                <select {...bind('tz')} className={inputCls} value={f.tz} onChange={e => set('tz', e.target.value)}><option value="" />{tzs.map(t => <option key={t}>{t}</option>)}</select>
-              </Fld>
               <div className="sm:col-span-2"><TagPicker label="Tags" tags={TAGS} value={f.category_id} onChange={v => set('category_id', v)} /></div>
-              <Fld label="Internal Notes" span={2}><textarea {...bind('comment')} rows={3} className={inputCls} value={f.comment} onChange={e => set('comment', e.target.value)} /></Fld>
             </Grid>
           </Card>
           </div>
