@@ -50,12 +50,13 @@ import AuditLogView from './components/AuditLogView'
 import SettingsAndLockView from './components/SettingsAndLockView'
 import ContactsModule from './modules/contacts/ContactsModule'
 import AllUsersPage from './modules/contacts/AllUsersPage'
+import ContactMasterModule from './modules/contactMaster/ContactMasterModule'
 import { useContacts } from './modules/contacts/useContacts'
 import InventoryModule from './modules/inventory/InventoryModule'
 import { useInventory } from './modules/inventory/useInventory'
 import { DirectoryProvider } from './modules/shared/directory'
 
-const VALID_TABS: TabId[] = ['dashboard', 'invoices', 'bills', 'payments', 'reconcile', 'journals', 'coa', 'banking', 'reports', 'audit', 'settings', 'inventory', 'contacts', 'usr_customers', 'usr_vendors', 'usr_employees', 'usr_logins', 'usr_other', 'usr_archived', 'inv_overview', 'inv_products', 'inv_categories', 'inv_warehouses', 'inv_stock', 'inv_moves', 'inv_receipts', 'inv_deliveries', 'inv_internal', 'inv_transfers', 'inv_move_lines', 'inv_locations', 'inv_picking_types', 'inv_uom_categories', 'inv_uom']
+const VALID_TABS: TabId[] = ['dashboard', 'invoices', 'bills', 'payments', 'reconcile', 'journals', 'coa', 'banking', 'reports', 'audit', 'settings', 'inventory', 'contacts', 'cm_contacts', 'usr_customers', 'usr_vendors', 'usr_employees', 'usr_logins', 'usr_other', 'usr_archived', 'inv_overview', 'inv_products', 'inv_categories', 'inv_warehouses', 'inv_stock', 'inv_moves', 'inv_receipts', 'inv_deliveries', 'inv_internal', 'inv_transfers', 'inv_move_lines', 'inv_locations', 'inv_picking_types', 'inv_uom_categories', 'inv_uom']
 function tabFromHash(): TabId {
   const h = window.location.hash.replace(/^#\/?/, '').split('/')[0] as TabId
   return VALID_TABS.includes(h) ? h : 'dashboard'
@@ -1294,6 +1295,8 @@ export default function App() {
           )}
 
           {activeTab === 'contacts' && <AllUsersPage searchQuery={searchQuery} />}
+
+          {activeTab === 'cm_contacts' && <ContactMasterModule searchQuery={searchQuery} readOnly={currentRole === 'Auditor'} />}
 
           {activeTab.startsWith('usr_') && (
             <ContactsModule

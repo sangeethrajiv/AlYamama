@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, FileText, Receipt, CreditCard, Scale, BookOpen, Landmark, BarChart3, History, Settings, ChevronDown, FileCheck2, Boxes, Users, Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Layers, Activity, SlidersHorizontal, Tags, Gauge, UserCheck, Truck, IdCard, KeyRound, Archive } from 'lucide-react'
+import { LayoutDashboard, FileText, Receipt, CreditCard, Scale, BookOpen, Landmark, BarChart3, History, Settings, ChevronDown, FileCheck2, Boxes, Users, Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Layers, Activity, SlidersHorizontal, Tags, Gauge, UserCheck, Truck, IdCard, KeyRound, Archive, Contact } from 'lucide-react'
 import type { TabId, DrawerType, InvoiceCategory } from '../types/accounting'
 
 interface SidebarProps {
@@ -37,7 +37,8 @@ export default function Sidebar({
 }: SidebarProps) {
   const [invoicesSubmenuOpen, setInvoicesSubmenuOpen] = useState(true)
   const moduleOf = (t: TabId): 'accounting' | 'inventory' | 'contacts' | 'dashboard' =>
-    t === 'dashboard' ? 'dashboard' : t === 'contacts' || t.startsWith('usr_') ? 'contacts' : t === 'inventory' || t.startsWith('inv_') ? 'inventory' : 'accounting'
+    // Dashboard and Contact are single top-level entries, not expandable modules
+    t === 'dashboard' || t === 'cm_contacts' ? 'dashboard' : t === 'contacts' || t.startsWith('usr_') ? 'contacts' : t === 'inventory' || t.startsWith('inv_') ? 'inventory' : 'accounting'
   const [openModule, setOpenModule] = useState<'accounting' | 'inventory' | 'contacts' | null>(() => { const m = moduleOf(activeTab); return m === 'dashboard' ? null : m })
   useEffect(() => {
     const m = moduleOf(activeTab)
@@ -332,6 +333,15 @@ export default function Sidebar({
           {invItem('usr_other', 'Company & Banks', <Landmark size={15} />)}
           {invItem('usr_archived', 'Archived', <Archive size={15} />)}
         </div>)}
+
+        <button
+          onClick={() => { selectTab('cm_contacts'); if (window.location.hash !== '#/cm_contacts') window.location.hash = '#/cm_contacts' }}
+          aria-current={activeTab === 'cm_contacts' ? 'page' : undefined}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold transition ${activeTab === 'cm_contacts' ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}
+        >
+          <Contact size={17} />
+          <span>Contact</span>
+        </button>
 
         {modBtn('inventory', 'Inventory', <Boxes size={17} />)}
         {openModule === 'inventory' && (<div className="ml-3 pl-2 border-l border-slate-800 space-y-0.5">
