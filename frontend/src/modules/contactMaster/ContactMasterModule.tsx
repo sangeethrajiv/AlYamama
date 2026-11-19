@@ -4,7 +4,7 @@ import ContactListPage, { initialListState, type ListState } from './ContactList
 import ContactDetailPage, { ContactNotFound } from './ContactDetailPage'
 import ContactFormPage from './ContactFormPage'
 import { Toast } from './parts'
-import { createPartner, setPartnerActive, updatePartner, usePartners } from './store'
+import { createPartner, isOnline, loadPartners, setPartnerActive, updatePartner, usePartners, useLoadState } from './store'
 import type { PartnerDraft, ResPartner } from './types'
 
 /**
@@ -29,6 +29,7 @@ let loadedOnce = false // the list shows its loading state the first time it is 
 
 export default function ContactMasterModule({ searchQuery, readOnly }: { searchQuery: string; readOnly: boolean }) {
   const partners = usePartners()
+  const remote = useLoadState()
   const [route, setRoute] = useState<Route>(parseRoute)
   const [ls, setLs] = useState<ListState>(initialListState)
   const [loading, setLoading] = useState(!loadedOnce)
@@ -42,11 +43,21 @@ export default function ContactMasterModule({ searchQuery, readOnly }: { searchQ
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
   }, [])
+  // With the API configured the records are fetched; otherwise the short delay
+  // below just shows the list's loading state once per session.
+  useEffect(() => {
+    if (!isOnline()) return
+    void loadPartners().catch(() => { /* the message is shown from remote.error */ })
+  }, [])
   useEffect(() => {
     if (!loading) return
+    if (isOnline()) {
+      if (!remote.loading) { loadedOnce = true; setLoading(false) }
+      return
+    }
     const t = setTimeout(() => { loadedOnce = true; setLoading(false) }, 500)
     return () => clearTimeout(t)
-  }, [loading])
+  }, [loading, remote.loading])
 
   const restore = (c: ResPartner) => { setPartnerActive(c.id, true); setToast(`${c.name} restored.`) }
   const doConfirm = () => {
@@ -83,6 +94,11 @@ export default function ContactMasterModule({ searchQuery, readOnly }: { searchQ
 
   return (
     <>
+      {remote.error && (
+        <div className="mx-4 mt-3 rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+          {remote.error}
+        </div>
+      )}
       {page}
       {confirm && (
         <ConfirmDialog

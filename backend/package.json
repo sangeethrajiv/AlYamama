@@ -1,0 +1,52 @@
+{
+  "name": "alyamama-erp-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Al Yamama ERP API service (Express + PostgreSQL). Phase 1: Contacts.",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node --transpile-only src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:create": "ts-node --transpile-only scripts/db-create.ts",
+    "migrate": "ts-node --transpile-only scripts/migrate.ts",
+    "import:odoo": "ts-node --transpile-only scripts/import-odoo.ts",
+    "test": "ts-node --transpile-only run_all_tests.ts",
+    "import:inventory": "ts-node --transpile-only scripts/import-inventory.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "compression": "^1.8.2",
+    "cors": "^2.8.6",
+    "decimal.js": "^10.6.0",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "helmet": "^8.3.0",
+    "pg": "^8.23.1",
+    "reflect-metadata": "^0.2.2",
+    "sequelize": "^6.37.8",
+    "sequelize-typescript": "^2.1.6",
+    "umzug": "^3.8.3",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.20",
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "@types/sinon": "^22.0.2",
+    "@types/supertest": "^7.2.1",
+    "chai": "^4.5.0",
+    "mocha": "^12.0.3",
+    "sinon": "^22.1.0",
+    "supertest": "^7.3.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

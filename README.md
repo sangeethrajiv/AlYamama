@@ -1,38 +1,37 @@
-# Al-Yamama Accounting React Module
+# Al-Yamama ERP
 
-A Vite + React + TypeScript frontend prototype based on the supplied accounting UI source.
+| Folder | What |
+|---|---|
+| `backend/` | Node 20 + Express 5 + TypeScript + sequelize-typescript on PostgreSQL. Contacts module first. |
+| `frontend/` | React + Vite prototype UI (another developer owns it; the final UI will be Angular). |
+| `docs/` | Analysis, field maps, architecture handover and `SYSTEM_REFERENCE.md` (setup, databases, rules). |
 
-## Included
-- Dashboard with KPI cards and financial snapshot
-- Invoices list with status filters and text search
-- Vendor bills list
-- Payments activity list
-- Create invoice, vendor bill, and receive-payment side panels
-- Progressive / milestone invoice toggle
-- Responsive layout for desktop and mobile
-- Arabic language toggle direction (RTL shell)
-- Local in-memory record creation for prototype testing
-
-## Requirements
-- Node.js 18.0 or later
-- npm
-
-## Run locally
+## Run the backend
 ```bash
+cd backend
+cp .env.example .env        # fill PGUSER / PGPASSWORD / ODOO_PGDATABASE (see docs/SYSTEM_REFERENCE.md)
 npm install
-npm run dev
+npm run db:create           # accounting_26_test + accounting_26_test_unit
+npm run migrate             # schema, from migrations/*.sql
+npm run import:odoo         # copy contacts from the Odoo 12 copy (read-only source)
+npm run import:inventory    # UoMs, categories, locations, warehouses, operation types + 50 varied products
+npm run dev                 # http://localhost:3000/v2   (health: /health)
+npm test                    # recreates the unit DB, runs every *.test.ts
 ```
-Open the local URL printed by Vite.
 
-## Production build
+## Run the frontend
 ```bash
-npm run build
-npm run preview
+cd frontend
+npm install
+cp .env.example .env.local  # VITE_API_URL=http://localhost:3000/v2 ; delete it to use sample data
+npm run dev                 # http://localhost:5173  (login: see src/auth/users.ts)
 ```
+Open **Contact Master** or **Inventory** in the sidebar. Inventory operations (receipts, deliveries, transfers, adjustments, stock reports) show "Coming soon".
 
-## Important notes
-- This is a frontend prototype. It uses sample data and React state only.
-- Records created in the UI are not persisted after refresh.
-- No API, authentication, database, accounting ledger, ZATCA integration, or real payment processing is connected.
-- Currency values are displayed as SAR (SR); sample values are illustrative.
-- To connect this to a backend, replace the sample data and save handlers in `src/App.tsx` with API service calls.
+## Contacts API (`/v2`)
+`GET /contacts` (q, field, filters, active, order, page, limit, counts=1, group_by) · `GET /contacts/search-view` · `GET /contacts/read-group` · `GET /contacts/name-search` · `GET|PUT /contacts/:id` · `POST /contacts` · `POST /contacts/:id/archive|unarchive` · `DELETE /contacts/:id` · `/partner-banks` · lookups: `/partner-titles`, `/partner-industries`, `/partner-categories`, `/banks`, `/countries`, `/countries/:id/states`, `/companies`, `/users`.
+
+### Inventory API (`/v2`)
+`/products` (search view, read-group, name-search, archive) · `/product-categories` · `/uom-categories` · `/uoms` · `/warehouses` · `/locations` (archive) · `/operation-types`.
+
+Auth is a stub: send `X-User-Id`, `X-Company-Id`, `X-Allowed-Company-Ids`. Real JWT comes later.

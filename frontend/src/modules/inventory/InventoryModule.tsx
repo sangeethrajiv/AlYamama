@@ -9,13 +9,35 @@ import { AdjustmentsPage } from './AdjustmentsPage'
 import { ProductsPage } from './ProductsPage'
 import { StockPage, MovesPage, MoveLinesPage } from './ReportPages'
 import { WarehousesPage, LocationsPage, PickingTypesPage, CategoriesPage, UomCategoriesPage, UomsPage } from './ConfigPages'
+import { ComingSoon } from './ComingSoon'
+import { ErrorBanner } from './components'
+
+/** Screens that need stock moves, which are not built yet. With the API they show a placeholder. */
+const COMING_SOON: Partial<Record<TabId, string>> = {
+  inv_overview: 'Overview', inv_transfers: 'Transfers', inv_receipts: 'Receipts', inv_deliveries: 'Delivery Orders',
+  inv_internal: 'Internal Transfers', inventory: 'Inventory Adjustments', inv_stock: 'Inventory Report',
+  inv_moves: 'Stock Moves', inv_move_lines: 'Moves History',
+}
 
 const TAB_OF: Record<PickingTypeCode, TabId> = { incoming: 'inv_receipts', outgoing: 'inv_deliveries', internal: 'inv_internal' }
 
 interface Props { tab: TabId; inv: InventoryApi; contacts: Contact[]; currentRole: UserRole; searchQuery: string; onSelectTab: (t: TabId) => void }
 
 /** Routes an Inventory sidebar tab to its screen. Screens follow the Odoo 12 Inventory menus. */
-export default function InventoryModule({ tab, inv, contacts, currentRole, searchQuery, onSelectTab }: Props) {
+export default function InventoryModule(props: Props) {
+  const { inv, tab } = props
+  const soon = inv.online ? COMING_SOON[tab] : undefined
+  return (
+    <>
+      {inv.error && <div className="mb-3"><ErrorBanner text={inv.error} /></div>}
+      {inv.online && inv.loading && inv.s.products.length === 0 && !inv.error
+        ? <p className="text-sm text-slate-500 py-10 text-center">Loading inventory…</p>
+        : soon ? <ComingSoon title={soon} /> : <InventoryScreens {...props} />}
+    </>
+  )
+}
+
+function InventoryScreens({ tab, inv, contacts, currentRole, searchQuery, onSelectTab }: Props) {
   const readOnly = currentRole === 'Auditor'
   // Overview cards open a transfers list for one operation type
   const [nav, setNav] = useState<{ tab: TabId; typeId: ID } | null>(null)

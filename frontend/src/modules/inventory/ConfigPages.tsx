@@ -101,7 +101,7 @@ export function PickingTypesPage({ inv, readOnly, searchQuery }: P) {
   const blank = (): PickingType => ({ id: 0, name: '', code: 'incoming', sequence: 10, sequence_prefix: '', sequence_next: 1, warehouse_id: s.warehouses[0]?.id ?? 0, barcode: '', active: true })
   const locs = s.locations.filter(l => l.active && l.usage !== 'view').map(l => ({ id: l.id, label: completeName(s, l.id) }))
   return <Crud<PickingType> title="Operation Types" head={['Operation Type', 'Warehouse', 'Type of Operation', 'Reference Sequence', 'Status']} rows={s.picking_types} readOnly={readOnly} searchQuery={searchQuery} searchText={t => `${t.name} ${t.sequence_prefix}`}
-    cells={t => [t.name, s.warehouses.find(w => w.id === t.warehouse_id)?.name ?? '—', CODE[t.code], `${t.sequence_prefix}${String(t.sequence_next).padStart(5, '0')}`, yes(t.active)]} blank={blank}
+    cells={t => [t.name, s.warehouses.find(w => w.id === t.warehouse_id)?.name ?? '—', (CODE[t.code] ?? t.code), `${t.sequence_prefix}${String(t.sequence_next).padStart(5, '0')}`, yes(t.active)]} blank={blank}
     validate={t => (!t.name.trim() ? 'Operation Type is required.' : !t.sequence_prefix.trim() ? 'Reference Sequence prefix is required.' : '')} onSave={t => inv.save('picking_types', { ...t, name: t.name.trim() })}
     form={(t, set, dis) => <>
       <Field dense label="Operation Type">{txt(t.name, v => set('name', v), dis, 'Operation Type')}</Field>
@@ -132,7 +132,7 @@ const MEASURE: Record<MeasureType, string> = { unit: 'Units', weight: 'Weight', 
 export function UomCategoriesPage({ inv, readOnly, searchQuery }: P) {
   const { s } = inv
   return <Crud<UomCategory> title="UoM Categories" head={['Unit of Measure Category', 'Type of Measure']} rows={s.uom_categories} readOnly={readOnly} searchQuery={searchQuery} searchText={c => c.name}
-    cells={c => [c.name, MEASURE[c.measure_type]]} blank={() => ({ id: 0, name: '', measure_type: 'unit' })} validate={c => (c.name.trim() ? '' : 'Unit of Measure Category is required.')} onSave={c => inv.save('uom_categories', { ...c, name: c.name.trim() })}
+    cells={c => [c.name, MEASURE[c.measure_type] ?? '—']} blank={() => ({ id: 0, name: '', measure_type: 'unit' })} validate={c => (c.name.trim() ? '' : 'Unit of Measure Category is required.')} onSave={c => inv.save('uom_categories', { ...c, name: c.name.trim() })}
     form={(c, set, dis) => <>
       <Field dense label="Unit of Measure Category">{txt(c.name, v => set('name', v), dis, 'Unit of Measure Category')}</Field>
       <Field dense label="Type of Measure"><select aria-label="Type of Measure" disabled={dis} className={inputCls} value={c.measure_type} onChange={e => set('measure_type', e.target.value as MeasureType)}>{Object.entries(MEASURE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
