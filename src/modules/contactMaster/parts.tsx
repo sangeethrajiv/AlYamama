@@ -48,6 +48,29 @@ export function Item({ label, children }: { label: string; children?: ReactNode 
   )
 }
 
+/** Many2many tag picker: chips for chosen tags plus a select to add another. */
+export function TagPicker({ label, tags, value, onChange }: { label: string; tags: { id: number; name: string }[]; value: number[]; onChange: (v: number[]) => void }) {
+  const free = tags.filter(t => !value.includes(t.id))
+  return (
+    <div className="text-xs">
+      <span className="block text-slate-600 font-bold mb-0.5 text-[11px]">{label}</span>
+      <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 min-h-[2.25rem]">
+        {value.map(id => (
+          <span key={id} className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full pl-2 pr-1 py-0.5 text-[11px] font-bold">
+            {tags.find(t => t.id === id)?.name ?? `#${id}`}
+            <button type="button" aria-label={`Remove tag ${tags.find(t => t.id === id)?.name ?? id}`} onClick={() => onChange(value.filter(v => v !== id))} className="p-0.5 rounded-full hover:bg-emerald-200"><X size={10} /></button>
+          </span>
+        ))}
+        <select aria-label={`Add ${label.toLowerCase()}`} value="" disabled={free.length === 0} onChange={e => e.target.value && onChange([...value, Number(e.target.value)])}
+          className="flex-1 min-w-[7rem] bg-transparent text-xs text-slate-500 focus:outline-none">
+          <option value="">{free.length ? 'Add a tag…' : 'All tags added'}</option>
+          {free.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+      </div>
+    </div>
+  )
+}
+
 export function Pagination({ page, pages, total, size, onPage, onSize }: { page: number; pages: number; total: number; size: number; onPage: (p: number) => void; onSize: (n: number) => void }) {
   const from = total === 0 ? 0 : (page - 1) * size + 1
   const to = Math.min(total, page * size)

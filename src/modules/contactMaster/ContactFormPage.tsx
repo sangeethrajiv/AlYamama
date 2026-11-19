@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { Eraser, Save } from 'lucide-react'
 import { Card, ConfirmDialog, GhostButton, PrimaryButton, inputCls } from '../shared/ui'
-import { Breadcrumb, Fld, Toggle, errCls } from './parts'
-import { COLORS, COMPANIES, COUNTRIES, INDUSTRIES, LANGS, PARTNER_TYPES, STATES, TIMEZONES, TITLES, USERS } from './options'
+import { Breadcrumb, Fld, TagPicker, Toggle, errCls } from './parts'
+import { COLORS, COMPANIES, COUNTRIES, ID_SCHEMES, INDUSTRIES, LANGS, PARTNER_TYPES, STATES, TAGS, TIMEZONES, TITLES, USERS } from './options'
 import { descendantIds } from './store'
 import type { PartnerDraft, ResPartner } from './types'
 
@@ -17,10 +17,11 @@ interface Props {
 
 const BLANK: PartnerDraft = {
   name: '', is_company: false, type: 'contact', title: null, function: '', parent_id: null, company_name: '', ref: '',
-  email: '', phone: '', mobile: '', website: '',
-  street: '', street2: '', city: '', state_id: null, zip: '', country_id: null,
+  email: '', phone: '', mobile: '', website: '', fax: '', category_id: [],
+  street: '', street2: '', arabic_street2_name: '', city: '', arabic_city_name: '', l10n_sa_edi_building_number: '', l10n_sa_edi_plot_identification: '', state_id: null, zip: '', country_id: null,
+  arabic_name: '', l10n_sa_registered_name: '', l10n_sa_additional_identification_scheme: 'OTH', l10n_sa_additional_identification_number: '', vat_arabic: '', cr_number: '',
   vat: '', barcode: '', date: '', comment: '', lang: 'en_US', tz: 'Asia/Riyadh', industry_id: null,
-  customer: false, supplier: false, employee: false, credit_limit: 0, user_id: null, company_id: 1, partner_share: true, color: 0, active: true,
+  customer: false, supplier: false, employee: false, cash_customer: false, customer_discount: 0, discount: 0, customer_code: '', vandor_number: '', company_name_code: '', ext_res_id: null, credit_limit: 0, user_id: null, company_id: 1, partner_share: true, color: 0, active: true,
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -32,20 +33,23 @@ const toDraft = (c?: ResPartner): PartnerDraft => {
   const { id: _i, display_name: _d, commercial_partner_id: _c, ...rest } = c
   return rest
 }
+type NumKey = 'credit_limit' | 'customer_discount' | 'discount'
+const NUM_KEYS: NumKey[] = ['credit_limit', 'customer_discount', 'discount']
+const numStrings = (d: PartnerDraft): Record<NumKey, string> => ({ credit_limit: d.credit_limit ? String(d.credit_limit) : '', customer_discount: d.customer_discount ? String(d.customer_discount) : '', discount: d.discount ? String(d.discount) : '' })
 const idOrNull = (s: string) => (s === '' ? null : Number(s))
-const Grid = ({ children }: { children: React.ReactNode }) => <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5">{children}</div>
+const Grid = ({ children }: { children: React.ReactNode }) => <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">{children}</div>
 
 export default function ContactFormPage({ mode, partner, partners, onSave, onCancel }: Props) {
   const initial = useMemo(() => toDraft(partner), [partner])
-  const initialCredit = initial.credit_limit ? String(initial.credit_limit) : ''
+  const initialNums = useMemo(() => numStrings(initial), [initial])
   const [f, setF] = useState<PartnerDraft>(initial)
-  const [credit, setCredit] = useState(initialCredit)
+  const [nums, setNums] = useState(initialNums)
   const [touched, setTouched] = useState<Set<string>>(new Set())
   const [submitted, setSubmitted] = useState(false)
   const [confirmLeave, setConfirmLeave] = useState(false)
   const root = useRef<HTMLDivElement>(null)
 
-  const dirty = JSON.stringify([f, credit]) !== JSON.stringify([initial, initialCredit])
+  const dirty = JSON.stringify([f, nums]) !== JSON.stringify([initial, initialNums])
   const set = <K extends keyof PartnerDraft>(k: K, v: PartnerDraft[K]) => setF(p => ({ ...p, [k]: v }))
   const touch = (k: string) => setTouched(t => (t.has(k) ? t : new Set(t).add(k)))
 
@@ -56,9 +60,14 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
     if (f.phone.trim() && !PHONE_RE.test(f.phone.trim())) e.phone = 'Enter a valid phone number (digits, spaces, + ( ) - .).'
     if (f.mobile.trim() && !PHONE_RE.test(f.mobile.trim())) e.mobile = 'Enter a valid mobile number (digits, spaces, + ( ) - .).'
     if (f.website.trim() && !SITE_RE.test(f.website.trim())) e.website = 'Enter a valid website, e.g. www.example.com.'
-    if (credit.trim() && (!Number.isFinite(Number(credit)) || Number(credit) < 0)) e.credit_limit = 'Credit limit must be a number of 0 or more.'
+    if (f.fax.trim() && !PHONE_RE.test(f.fax.trim())) e.fax = 'Enter a valid fax number (digits, spaces, + ( ) - .).'
+    if (f.l10n_sa_edi_building_number.trim() && !/^\d{4}$/.test(f.l10n_sa_edi_building_number.trim())) e.l10n_sa_edi_building_number = 'Building number must be 4 digits.'
+    const bad = (k: NumKey, max?: number) => nums[k].trim() && (!Number.isFinite(Number(nums[k])) || Number(nums[k]) < 0 || (max !== undefined && Number(nums[k]) > max))
+    if (bad('credit_limit')) e.credit_limit = 'Credit limit must be a number of 0 or more.'
+    if (bad('customer_discount', 100)) e.customer_discount = 'Enter a percentage between 0 and 100.'
+    if (bad('discount', 100)) e.discount = 'Enter a percentage between 0 and 100.'
     return e
-  }, [f, credit])
+  }, [f, nums])
   const show = (k: string) => (submitted || touched.has(k) ? errors[k] : undefined)
   const bind = (k: string) => ({ 'data-f': k, onBlur: () => touch(k), 'aria-invalid': show(k) ? true : undefined })
 
@@ -76,9 +85,9 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
     setSubmitted(true)
     const first = Object.keys(errors)[0]
     if (first) { root.current?.querySelector<HTMLElement>(`[data-f="${first}"]`)?.focus(); return }
-    onSave({ ...f, name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim(), mobile: f.mobile.trim(), website: f.website.trim(), credit_limit: credit.trim() ? Number(credit) : 0 })
+    onSave({ ...f, name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim(), mobile: f.mobile.trim(), website: f.website.trim(), fax: f.fax.trim(), credit_limit: Number(nums.credit_limit) || 0, customer_discount: Number(nums.customer_discount) || 0, discount: Number(nums.discount) || 0 })
   }
-  const clear = () => { setF(BLANK); setCredit(''); setTouched(new Set()); setSubmitted(false) }
+  const clear = () => { setF(BLANK); setNums(numStrings(BLANK)); setTouched(new Set()); setSubmitted(false) }
   const cancel = () => (dirty ? setConfirmLeave(true) : onCancel())
   const setKind = (company: boolean) => setF(p => company
     ? { ...p, is_company: true, title: null, function: '', company_name: '' }
@@ -87,7 +96,7 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
   const title = mode === 'add' ? 'New Contact' : `Edit ${partner?.name ?? 'Contact'}`
 
   return (
-    <div ref={root} className="space-y-4">
+    <div ref={root} className="space-y-3">
       <Breadcrumb parent="Contacts" current={title} onBack={cancel} />
       <div>
         <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{title}</h1>
@@ -100,26 +109,28 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
         </div>
       )}
 
-      <form onSubmit={e => { e.preventDefault(); save() }} noValidate className="space-y-4">
-        <div className="grid lg:grid-cols-2 gap-4 items-start">
-          <Card title="General Information">
+      <form onSubmit={e => { e.preventDefault(); save() }} noValidate className="space-y-3">
+        <div className="grid lg:grid-cols-2 gap-3 items-start">
+          <div className="space-y-3 min-w-0">
+<Card dense title="General Information">
             <Grid>
               <div className="sm:col-span-2">
-                <span className="block text-slate-600 font-bold mb-1 text-[11px]">Contact kind</span>
+                <span className="block text-slate-600 font-bold mb-0.5 text-[11px]">Contact kind</span>
                 <div role="radiogroup" aria-label="Individual or Company" className="inline-flex bg-slate-100 p-1 rounded-xl text-xs font-bold gap-1">
                   {([['Individual', false], ['Company', true]] as const).map(([label, v]) => (
                     <button key={label} type="button" role="radio" aria-checked={f.is_company === v} onClick={() => setKind(v)}
-                      className={`px-4 py-1.5 rounded-lg transition ${f.is_company === v ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>{label}</button>
+                      className={`px-3 py-1 rounded-lg transition ${f.is_company === v ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>{label}</button>
                   ))}
                 </div>
               </div>
               <Fld label={f.is_company ? 'Company Name' : 'Contact Name'} required error={show('name')} span={2}>
                 <input {...bind('name')} className={errCls(show('name'))} value={f.name} onChange={e => set('name', e.target.value)} placeholder={f.is_company ? 'e.g. Gulf Petrochem Industries' : 'e.g. Faisal Al-Harbi'} />
               </Fld>
-              <Fld label="Display Name" hint="Built from the related company and the name">
+              <Fld label="Arabic Name" span={2}><input {...bind('arabic_name')} dir="rtl" className={inputCls} value={f.arabic_name} onChange={e => set('arabic_name', e.target.value)} placeholder="الاسم بالعربية" /></Fld>
+              <Fld label="Display Name">
                 <input className={inputCls} value={displayName || (mode === 'edit' ? partner?.display_name ?? '' : '')} readOnly disabled />
               </Fld>
-              <Fld label="Commercial Entity" hint="Set automatically from the related company">
+              <Fld label="Commercial Entity">
                 <input className={inputCls} readOnly disabled value={f.is_company || !parent ? (displayName || 'This contact') : parent.name} />
               </Fld>
               <Fld label="Contact Type">
@@ -147,20 +158,12 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
               <Fld label="Internal Reference"><input {...bind('ref')} className={inputCls} value={f.ref} onChange={e => set('ref', e.target.value)} /></Fld>
             </Grid>
           </Card>
-
-          <Card title="Contact Information">
-            <Grid>
-              <Fld label="Email" error={show('email')}><input {...bind('email')} type="email" className={errCls(show('email'))} value={f.email} onChange={e => set('email', e.target.value)} placeholder="name@company.com" /></Fld>
-              <Fld label="Website" error={show('website')}><input {...bind('website')} className={errCls(show('website'))} value={f.website} onChange={e => set('website', e.target.value)} placeholder="www.example.com" /></Fld>
-              <Fld label="Phone" error={show('phone')}><input {...bind('phone')} type="tel" className={errCls(show('phone'))} value={f.phone} onChange={e => set('phone', e.target.value)} placeholder="+966 13 000 0000" /></Fld>
-              <Fld label="Mobile" error={show('mobile')}><input {...bind('mobile')} type="tel" className={errCls(show('mobile'))} value={f.mobile} onChange={e => set('mobile', e.target.value)} placeholder="+966 50 000 0000" /></Fld>
-            </Grid>
-          </Card>
-
-          <Card title="Address">
+          <Card dense title="Address">
             <Grid>
               <Fld label="Street"><input {...bind('street')} className={inputCls} value={f.street} onChange={e => set('street', e.target.value)} /></Fld>
-              <Fld label="Street 2"><input {...bind('street2')} className={inputCls} value={f.street2} onChange={e => set('street2', e.target.value)} /></Fld>
+              <Fld label="Street 2 / Neighborhood"><input {...bind('street2')} className={inputCls} value={f.street2} onChange={e => set('street2', e.target.value)} placeholder="Neighborhood" /></Fld>
+              <Fld label="Arabic Street 2"><input {...bind('arabic_street2_name')} dir="rtl" className={inputCls} value={f.arabic_street2_name} onChange={e => set('arabic_street2_name', e.target.value)} /></Fld>
+              <Fld label="Arabic City"><input {...bind('arabic_city_name')} dir="rtl" className={inputCls} value={f.arabic_city_name} onChange={e => set('arabic_city_name', e.target.value)} /></Fld>
               <Fld label="City"><input {...bind('city')} className={inputCls} value={f.city} onChange={e => set('city', e.target.value)} /></Fld>
               <Fld label="ZIP"><input {...bind('zip')} className={inputCls} value={f.zip} onChange={e => set('zip', e.target.value)} /></Fld>
               <Fld label="Country">
@@ -173,37 +176,25 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
                   <option value="" />{states.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </Fld>
+              <Fld label="Building Number" error={show('l10n_sa_edi_building_number')}><input {...bind('l10n_sa_edi_building_number')} inputMode="numeric" maxLength={4} className={errCls(show('l10n_sa_edi_building_number'))} value={f.l10n_sa_edi_building_number} onChange={e => set('l10n_sa_edi_building_number', e.target.value)} placeholder="4 digits" /></Fld>
+              <Fld label="Plot Identification"><input {...bind('l10n_sa_edi_plot_identification')} className={inputCls} value={f.l10n_sa_edi_plot_identification} onChange={e => set('l10n_sa_edi_plot_identification', e.target.value)} /></Fld>
             </Grid>
           </Card>
-
-          <Card title="Additional Information">
+          <Card dense title="Business Information">
             <Grid>
-              <Fld label="Tax ID"><input {...bind('vat')} className={inputCls} value={f.vat} onChange={e => set('vat', e.target.value)} /></Fld>
-              <Fld label="Barcode"><input {...bind('barcode')} className={inputCls} value={f.barcode} onChange={e => set('barcode', e.target.value)} /></Fld>
-              <Fld label="Industry">
-                <select {...bind('industry_id')} className={inputCls} value={f.industry_id ?? ''} onChange={e => set('industry_id', idOrNull(e.target.value))}>
-                  <option value="" />{INDUSTRIES.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-                </select>
-              </Fld>
-              <Fld label="Date"><input {...bind('date')} type="date" className={inputCls} value={f.date} onChange={e => set('date', e.target.value)} /></Fld>
-              <Fld label="Language">
-                <select {...bind('lang')} className={inputCls} value={f.lang} onChange={e => set('lang', e.target.value)}>{LANGS.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}</select>
-              </Fld>
-              <Fld label="Timezone">
-                <select {...bind('tz')} className={inputCls} value={f.tz} onChange={e => set('tz', e.target.value)}><option value="" />{tzs.map(t => <option key={t}>{t}</option>)}</select>
-              </Fld>
-              <Fld label="Internal Notes" span={2}><textarea {...bind('comment')} rows={3} className={inputCls} value={f.comment} onChange={e => set('comment', e.target.value)} /></Fld>
-            </Grid>
-          </Card>
-
-          <Card title="Business Information">
-            <Grid>
-              <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-6">
+              <div className="sm:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-x-4">
                 <Toggle label="Customer" checked={f.customer} onChange={v => set('customer', v)} />
                 <Toggle label="Supplier" checked={f.supplier} onChange={v => set('supplier', v)} />
                 <Toggle label="Employee" checked={f.employee} onChange={v => set('employee', v)} />
+                <Toggle label="Cash Customer" checked={f.cash_customer} onChange={v => set('cash_customer', v)} />
               </div>
-              <Fld label="Credit Limit" error={show('credit_limit')}><input {...bind('credit_limit')} type="number" min="0" step="any" className={errCls(show('credit_limit'))} value={credit} onChange={e => setCredit(e.target.value)} placeholder="0.00" /></Fld>
+              <Fld label="Credit Limit" error={show('credit_limit')}><input {...bind('credit_limit')} type="number" min="0" step="any" className={errCls(show('credit_limit'))} value={nums.credit_limit} onChange={e => setNums(n => ({ ...n, credit_limit: e.target.value }))} placeholder="0.00" /></Fld>
+              <Fld label="Customer Discount %" error={show('customer_discount')}><input {...bind('customer_discount')} type="number" min="0" max="100" step="any" className={errCls(show('customer_discount'))} value={nums.customer_discount} onChange={e => setNums(n => ({ ...n, customer_discount: e.target.value }))} placeholder="0.00" /></Fld>
+              <Fld label="Discount (%)" error={show('discount')}><input {...bind('discount')} type="number" min="0" max="100" step="any" className={errCls(show('discount'))} value={nums.discount} onChange={e => setNums(n => ({ ...n, discount: e.target.value }))} placeholder="0.00" /></Fld>
+              <Fld label="Customer Code"><input {...bind('customer_code')} className={inputCls} value={f.customer_code} onChange={e => set('customer_code', e.target.value)} /></Fld>
+              <Fld label="Vendor No"><input {...bind('vandor_number')} className={inputCls} value={f.vandor_number} onChange={e => set('vandor_number', e.target.value)} /></Fld>
+              <Fld label="Company Code"><input {...bind('company_name_code')} className={inputCls} value={f.company_name_code} onChange={e => set('company_name_code', e.target.value)} /></Fld>
+              <Fld label="Girfalco ID" hint="External Resource ID, read-only"><input className={inputCls} readOnly disabled value={f.ext_res_id ?? ''} /></Fld>
               <Fld label="Salesperson">
                 <select {...bind('user_id')} className={inputCls} value={f.user_id ?? ''} onChange={e => set('user_id', idOrNull(e.target.value))}>
                   <option value="" />{USERS.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -219,16 +210,61 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
                   {COLORS.map(c => <option key={c.id} value={c.id}>{c.id} · {c.name}</option>)}
                 </select>
               </Fld>
-              <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+              <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                 <Toggle label="Active" hint={f.active ? 'Untick to archive this contact' : 'Archived — hidden from the default list'} checked={f.active} onChange={v => set('active', v)} />
                 <Toggle label="Share Partner" hint="External contact without an internal user" checked={f.partner_share} onChange={v => set('partner_share', v)} />
               </div>
             </Grid>
           </Card>
+          </div>
+          <div className="space-y-3 min-w-0">
+          <Card dense title="Contact Information">
+            <Grid>
+              <Fld label="Email" error={show('email')}><input {...bind('email')} type="email" className={errCls(show('email'))} value={f.email} onChange={e => set('email', e.target.value)} placeholder="name@company.com" /></Fld>
+              <Fld label="Website" error={show('website')}><input {...bind('website')} className={errCls(show('website'))} value={f.website} onChange={e => set('website', e.target.value)} placeholder="www.example.com" /></Fld>
+              <Fld label="Phone" error={show('phone')}><input {...bind('phone')} type="tel" className={errCls(show('phone'))} value={f.phone} onChange={e => set('phone', e.target.value)} placeholder="+966 13 000 0000" /></Fld>
+              <Fld label="Mobile" error={show('mobile')}><input {...bind('mobile')} type="tel" className={errCls(show('mobile'))} value={f.mobile} onChange={e => set('mobile', e.target.value)} placeholder="+966 50 000 0000" /></Fld>
+              <Fld label="Fax" error={show('fax')}><input {...bind('fax')} type="tel" className={errCls(show('fax'))} value={f.fax} onChange={e => set('fax', e.target.value)} /></Fld>
+            </Grid>
+          </Card>
+          <Card dense title="ZATCA & Tax Identification">
+            <Grid>
+              <Fld label="ZATCA Registered Name" span={2}><input {...bind('l10n_sa_registered_name')} className={inputCls} value={f.l10n_sa_registered_name} onChange={e => set('l10n_sa_registered_name', e.target.value)} /></Fld>
+              <Fld label="Identification Scheme">
+                <select {...bind('l10n_sa_additional_identification_scheme')} className={inputCls} value={f.l10n_sa_additional_identification_scheme} onChange={e => set('l10n_sa_additional_identification_scheme', e.target.value)}>
+                  {ID_SCHEMES.map(x => <option key={x.code} value={x.code}>{x.name}</option>)}
+                </select>
+              </Fld>
+              <Fld label="Identification Number (SA)"><input {...bind('l10n_sa_additional_identification_number')} className={inputCls} value={f.l10n_sa_additional_identification_number} onChange={e => set('l10n_sa_additional_identification_number', e.target.value)} /></Fld>
+              <Fld label="Tax ID Arabic"><input {...bind('vat_arabic')} dir="rtl" className={inputCls} value={f.vat_arabic} onChange={e => set('vat_arabic', e.target.value)} /></Fld>
+              <Fld label="CR Number"><input {...bind('cr_number')} className={inputCls} value={f.cr_number} onChange={e => set('cr_number', e.target.value)} /></Fld>
+            </Grid>
+          </Card>
+          <Card dense title="Additional Information">
+            <Grid>
+              <Fld label="Tax ID"><input {...bind('vat')} className={inputCls} value={f.vat} onChange={e => set('vat', e.target.value)} /></Fld>
+              <Fld label="Barcode"><input {...bind('barcode')} className={inputCls} value={f.barcode} onChange={e => set('barcode', e.target.value)} /></Fld>
+              <Fld label="Industry">
+                <select {...bind('industry_id')} className={inputCls} value={f.industry_id ?? ''} onChange={e => set('industry_id', idOrNull(e.target.value))}>
+                  <option value="" />{INDUSTRIES.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                </select>
+              </Fld>
+              <Fld label="Date"><input {...bind('date')} type="date" className={inputCls} value={f.date} onChange={e => set('date', e.target.value)} /></Fld>
+              <Fld label="Language">
+                <select {...bind('lang')} className={inputCls} value={f.lang} onChange={e => set('lang', e.target.value)}>{LANGS.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}</select>
+              </Fld>
+              <Fld label="Timezone">
+                <select {...bind('tz')} className={inputCls} value={f.tz} onChange={e => set('tz', e.target.value)}><option value="" />{tzs.map(t => <option key={t}>{t}</option>)}</select>
+              </Fld>
+              <div className="sm:col-span-2"><TagPicker label="Tags" tags={TAGS} value={f.category_id} onChange={v => set('category_id', v)} /></div>
+              <Fld label="Internal Notes" span={2}><textarea {...bind('comment')} rows={3} className={inputCls} value={f.comment} onChange={e => set('comment', e.target.value)} /></Fld>
+            </Grid>
+          </Card>
+          </div>
         </div>
       </form>
 
-      <div className="sticky bottom-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-slate-100/95 backdrop-blur border-t border-slate-200 flex flex-wrap items-center justify-end gap-2">
+      <div className="sticky bottom-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-slate-100/95 backdrop-blur border-t border-slate-200 flex flex-wrap items-center justify-end gap-2">
           <GhostButton onClick={cancel}>Cancel</GhostButton>
           {mode === 'add' && <GhostButton onClick={clear}><span className="flex items-center gap-1.5"><Eraser size={13} /> Clear</span></GhostButton>}
           <PrimaryButton onClick={save}><Save size={14} /> {mode === 'add' ? 'Save Contact' : 'Save Changes'}</PrimaryButton>

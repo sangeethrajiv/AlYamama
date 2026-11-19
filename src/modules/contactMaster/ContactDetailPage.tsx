@@ -1,7 +1,7 @@
 import { Archive, ArchiveRestore, Pencil, Trash2 } from 'lucide-react'
 import { Avatar, Card, EmptyState, GhostButton, Pill, PrimaryButton } from '../shared/ui'
 import { Breadcrumb, Item } from './parts'
-import { COLORS, companyName, countryName, industryName, langName, stateName, titleName, typeLabel, userName } from './options'
+import { COLORS, companyName, countryName, industryName, langName, schemeName, stateName, tagNames, titleName, typeLabel, userName } from './options'
 import type { ResPartner } from './types'
 
 /** Contact view: one read-only card per section, plus Edit / Archive / Restore / Delete actions. */
@@ -80,6 +80,7 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
         <Card title="General Information">
           <Grid>
             <Item label="Name">{c.name}</Item>
+            <Item label="Arabic Name">{c.arabic_name && <span dir="rtl">{c.arabic_name}</span>}</Item>
             <Item label="Display Name">{c.display_name}</Item>
             <Item label="Is a Company">{<YesNo v={c.is_company} />}</Item>
             <Item label="Address Type">{typeLabel(c.type)}</Item>
@@ -98,24 +99,40 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
             <Item label="Phone">{c.phone && <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="hover:underline">{c.phone}</a>}</Item>
             <Item label="Mobile">{c.mobile && <a href={`tel:${c.mobile.replace(/\s/g, '')}`} className="hover:underline">{c.mobile}</a>}</Item>
             <Item label="Website">{c.website && <a href={href(c.website)} target="_blank" rel="noopener noreferrer" className="text-emerald-700 font-bold hover:underline">{c.website}</a>}</Item>
+            <Item label="Fax">{c.fax}</Item>
           </Grid>
         </Card>
 
         <Card title="Address">
           <Grid>
             <Item label="Street">{c.street}</Item>
-            <Item label="Street 2">{c.street2}</Item>
+            <Item label="Street 2 / Neighborhood">{c.street2}</Item>
+            <Item label="Arabic Street 2">{c.arabic_street2_name && <span dir="rtl">{c.arabic_street2_name}</span>}</Item>
             <Item label="City">{c.city}</Item>
+            <Item label="Arabic City">{c.arabic_city_name && <span dir="rtl">{c.arabic_city_name}</span>}</Item>
             <Item label="State">{stateName(c.state_id)}</Item>
             <Item label="ZIP">{c.zip}</Item>
             <Item label="Country">{countryName(c.country_id)}</Item>
+            <Item label="Building Number">{c.l10n_sa_edi_building_number}</Item>
+            <Item label="Plot Identification">{c.l10n_sa_edi_plot_identification}</Item>
+          </Grid>
+        </Card>
+
+        <Card title="ZATCA & Tax Identification">
+          <Grid>
+            <div className="sm:col-span-2"><Item label="ZATCA Registered Name">{c.l10n_sa_registered_name}</Item></div>
+            <Item label="Identification Scheme">{schemeName(c.l10n_sa_additional_identification_scheme)}</Item>
+            <Item label="Identification Number (SA)">{c.l10n_sa_additional_identification_number}</Item>
+            <Item label="Tax ID">{c.vat}</Item>
+            <Item label="Tax ID Arabic">{c.vat_arabic && <span dir="rtl">{c.vat_arabic}</span>}</Item>
+            <Item label="CR Number">{c.cr_number}</Item>
           </Grid>
         </Card>
 
         <Card title="Additional Information">
           <Grid>
-            <Item label="Tax ID">{c.vat}</Item>
             <Item label="Barcode">{c.barcode}</Item>
+            <Item label="Tags">{c.category_id.length > 0 && <span className="flex flex-wrap gap-1">{tagNames(c.category_id).map(t => <Pill key={t} tone="green">{t}</Pill>)}</span>}</Item>
             <Item label="Date">{c.date}</Item>
             <Item label="Industry">{industryName(c.industry_id)}</Item>
             <Item label="Language">{langName(c.lang)}</Item>
@@ -129,8 +146,15 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
             <Item label="Customer"><YesNo v={c.customer} /></Item>
             <Item label="Supplier"><YesNo v={c.supplier} /></Item>
             <Item label="Employee"><YesNo v={c.employee} /></Item>
+            <Item label="Cash Customer"><YesNo v={c.cash_customer} /></Item>
             <Item label="Active"><YesNo v={c.active} /></Item>
             <Item label="Credit Limit">{c.credit_limit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Item>
+            <Item label="Customer Discount %">{c.customer_discount.toFixed(2)}</Item>
+            <Item label="Discount (%)">{c.discount.toFixed(2)}</Item>
+            <Item label="Customer Code">{c.customer_code}</Item>
+            <Item label="Vendor No">{c.vandor_number}</Item>
+            <Item label="Company Code">{c.company_name_code}</Item>
+            <Item label="Girfalco ID">{c.ext_res_id}</Item>
             <Item label="Salesperson">{userName(c.user_id)}</Item>
             <Item label="Company">{companyName(c.company_id)}</Item>
             <Item label="Share Partner"><YesNo v={c.partner_share} /></Item>

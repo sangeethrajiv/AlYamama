@@ -34,6 +34,23 @@ export const INDUSTRIES: { id: number; name: string }[] = [
   { id: 12, name: 'Government' },
 ]
 
+/** l10n_sa_additional_identification_scheme selection. */
+export const ID_SCHEMES: { code: string; name: string }[] = [
+  { code: 'TIN', name: 'Tax Identification Number' },
+  { code: 'CRN', name: 'Commercial Registration Number' },
+  { code: 'MOM', name: 'Momra License' },
+  { code: 'MLS', name: 'MLSD License' },
+  { code: '700', name: '700 Number' },
+  { code: 'SAG', name: 'Sagia License' },
+  { code: 'OTH', name: 'Other ID' },
+]
+
+/** res.partner.category (Tags), sample list. */
+export const TAGS: { id: number; name: string }[] = [
+  { id: 1, name: 'VIP' }, { id: 2, name: 'Key Account' }, { id: 3, name: 'Industrial' }, { id: 4, name: 'Government' },
+  { id: 5, name: 'Overseas Supplier' }, { id: 6, name: 'Distributor' }, { id: 7, name: 'Contractor' },
+]
+
 /** Salespersons (res.users): active internal users. */
 export const USERS: { id: number; name: string }[] = RES_USERS.filter(u => u.active && !u.share).map(u => ({ id: u.id, name: u.name }))
 
@@ -53,4 +70,6 @@ export const industryName = (id: number | null) => nameOf(INDUSTRIES, id)
 export const userName = (id: number | null) => nameOf(USERS, id)
 export const companyName = (id: number | null) => nameOf(COMPANIES, id)
 export const typeLabel = (t: PartnerType) => PARTNER_TYPES.find(x => x.id === t)?.label ?? t
+export const tagNames = (ids: number[]) => ids.map(i => TAGS.find(t => t.id === i)?.name ?? `#${i}`)
+export const schemeName = (code: string) => ID_SCHEMES.find(x => x.code === code)?.name ?? code
 export const langName = (code: string) => LANGS.find(l => l.code === code)?.name ?? code

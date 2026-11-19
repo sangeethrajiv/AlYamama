@@ -22,9 +22,16 @@ export interface ResPartner {
   mobile: string
   website: string
 
+  fax: string
+  category_id: number[] // many2many res.partner.category (Tags)
+
   street: string
-  street2: string
+  street2: string // labelled "Neighborhood" in the Odoo form
+  arabic_street2_name: string
   city: string
+  arabic_city_name: string
+  l10n_sa_edi_building_number: string
+  l10n_sa_edi_plot_identification: string
   state_id: number | null
   zip: string
   country_id: number | null
@@ -37,9 +44,23 @@ export interface ResPartner {
   tz: string
   industry_id: number | null
 
+  arabic_name: string
+  l10n_sa_registered_name: string
+  l10n_sa_additional_identification_scheme: string
+  l10n_sa_additional_identification_number: string
+  vat_arabic: string
+  cr_number: string
+
   customer: boolean
   supplier: boolean
   employee: boolean
+  cash_customer: boolean
+  customer_discount: number
+  discount: number
+  customer_code: string
+  vandor_number: string // sic: the real column name
+  company_name_code: string
+  ext_res_id: number | null // "External Resource ID", shown as Girfalco ID (read-only)
   credit_limit: number
   user_id: number | null
   company_id: number | null

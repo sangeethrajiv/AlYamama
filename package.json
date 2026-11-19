@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "push": "./push-live.sh",
+    "push:live": "./push-live.sh"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

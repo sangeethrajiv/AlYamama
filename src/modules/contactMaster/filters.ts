@@ -28,7 +28,7 @@ export function applyFilters(list: ResPartner[], f: Filters, term: string): ResP
     (!f.type || c.type === f.type) &&
     tri(f.customer, c.customer) && tri(f.supplier, c.supplier) && tri(f.employee, c.employee) &&
     (!f.country_id || c.country_id === f.country_id) &&
-    (!t || [c.name, c.display_name, c.email, c.phone, c.mobile, c.city, c.vat, c.ref, c.website].some(v => v.toLowerCase().includes(t))),
+    (!t || [c.name, c.display_name, c.arabic_name, c.email, c.phone, c.mobile, c.city, c.vat, c.ref, c.website, c.customer_code, c.vandor_number, c.cr_number, c.l10n_sa_registered_name].some(v => v.toLowerCase().includes(t))),
   )
 }
 

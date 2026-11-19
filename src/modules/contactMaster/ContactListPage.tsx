@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, ArchiveRestore, Archive, Check, Columns3, Eye, Filt
 import { Avatar, EmptyState, GhostButton, Kpi, PageHeader, Pill, PrimaryButton, SearchBox, inputCls } from '../shared/ui'
 import { Pagination } from './parts'
 import { DEFAULT_FILTERS, activeChips, applyFilters, type Filters, type Tri } from './filters'
-import { COUNTRIES, PARTNER_TYPES, countryName, stateName, typeLabel, companyName } from './options'
+import { COUNTRIES, PARTNER_TYPES, countryName, stateName, typeLabel, companyName, schemeName, tagNames } from './options'
 import type { ResPartner } from './types'
 
 /** Contacts list: search, advanced filters, sortable/selectable columns, pagination and row actions. */
@@ -58,6 +58,25 @@ const COLS: Col[] = [
   { key: 'vat', label: 'Tax ID', val: c => c.vat },
   { key: 'website', label: 'Website', val: c => c.website },
   { key: 'company_id', label: 'Company', val: c => companyName(c.company_id) },
+  { key: 'arabic_name', label: 'Arabic Name', val: c => c.arabic_name },
+  { key: 'fax', label: 'Fax', val: c => c.fax },
+  { key: 'category_id', label: 'Tags', val: c => tagNames(c.category_id).join(', ') },
+  { key: 'arabic_street2_name', label: 'Arabic Street 2', val: c => c.arabic_street2_name },
+  { key: 'arabic_city_name', label: 'Arabic City', val: c => c.arabic_city_name },
+  { key: 'l10n_sa_edi_building_number', label: 'Building Number', val: c => c.l10n_sa_edi_building_number },
+  { key: 'l10n_sa_edi_plot_identification', label: 'Plot Identification', val: c => c.l10n_sa_edi_plot_identification },
+  { key: 'l10n_sa_registered_name', label: 'ZATCA Registered Name', val: c => c.l10n_sa_registered_name },
+  { key: 'l10n_sa_additional_identification_scheme', label: 'Identification Scheme', val: c => schemeName(c.l10n_sa_additional_identification_scheme) },
+  { key: 'l10n_sa_additional_identification_number', label: 'Identification Number (SA)', val: c => c.l10n_sa_additional_identification_number },
+  { key: 'vat_arabic', label: 'Tax ID Arabic', val: c => c.vat_arabic },
+  { key: 'cr_number', label: 'CR Number', val: c => c.cr_number },
+  { key: 'cash_customer', label: 'Cash Customer', val: c => c.cash_customer, cell: c => yes(c.cash_customer) },
+  { key: 'customer_discount', label: 'Customer Discount %', val: c => c.customer_discount },
+  { key: 'discount', label: 'Discount (%)', val: c => c.discount },
+  { key: 'customer_code', label: 'Customer Code', val: c => c.customer_code },
+  { key: 'vandor_number', label: 'Vendor No', val: c => c.vandor_number },
+  { key: 'company_name_code', label: 'Company Code', val: c => c.company_name_code },
+  { key: 'ext_res_id', label: 'Girfalco ID', val: c => c.ext_res_id ?? '' },
 ]
 
 const selCls = 'w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600'
