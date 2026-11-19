@@ -17,7 +17,7 @@ interface Props {
   onDelete: () => void
 }
 
-const Grid = ({ children }: { children: React.ReactNode }) => <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5">{children}</dl>
+const Grid = ({ children }: { children: React.ReactNode }) => <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">{children}</dl>
 const YesNo = ({ v }: { v: boolean }) => <Pill tone={v ? 'green' : 'slate'}>{v ? 'Yes' : 'No'}</Pill>
 const href = (u: string) => (/^https?:\/\//i.test(u) ? u : `https://${u}`)
 
@@ -41,7 +41,7 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
   const children = partners.filter(x => x.parent_id === c.id)
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Breadcrumb parent="Contacts" current={c.display_name || c.name} onBack={onBack} />
 
       <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap items-center gap-4">
@@ -75,12 +75,13 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
         </div>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-4 items-start">
-        <Card title="General Information">
+      <div className="grid lg:grid-cols-2 gap-3 items-start">
+        <div className="space-y-3 min-w-0">
+        <Card dense title="General Information">
           <Grid>
             <Item label="Name">{c.name}</Item>
             <Item label="Arabic Name">{c.arabic_name && <span dir="rtl">{c.arabic_name}</span>}</Item>
-            <Item label="Display Name">{c.display_name}</Item>
+            <div className="sm:col-span-2"><Item label="Display Name">{c.display_name}</Item></div>
             <Item label="Is a Company">{<YesNo v={c.is_company} />}</Item>
             <Item label="Address Type">{typeLabel(c.type)}</Item>
             <Item label="Title">{titleName(c.title)}</Item>
@@ -91,18 +92,16 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
             <Item label="Internal Reference">{c.ref}</Item>
           </Grid>
         </Card>
-
-        <Card title="Contact Information">
+        <Card dense title="Contact Information">
           <Grid>
             <Item label="Email">{c.email && <a href={`mailto:${c.email}`} className="text-emerald-700 font-bold hover:underline">{c.email}</a>}</Item>
             <Item label="Phone">{c.phone && <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="hover:underline">{c.phone}</a>}</Item>
             <Item label="Mobile">{c.mobile && <a href={`tel:${c.mobile.replace(/\s/g, '')}`} className="hover:underline">{c.mobile}</a>}</Item>
-            <Item label="Website">{c.website && <a href={href(c.website)} target="_blank" rel="noopener noreferrer" className="text-emerald-700 font-bold hover:underline">{c.website}</a>}</Item>
             <Item label="Fax">{c.fax}</Item>
+            <div className="sm:col-span-2"><Item label="Website">{c.website && <a href={href(c.website)} target="_blank" rel="noopener noreferrer" className="text-emerald-700 font-bold hover:underline">{c.website}</a>}</Item></div>
           </Grid>
         </Card>
-
-        <Card title="Address">
+        <Card dense title="Address">
           <Grid>
             <Item label="Street">{c.street}</Item>
             <Item label="Street 2 / Neighborhood">{c.street2}</Item>
@@ -116,8 +115,9 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
             <Item label="Plot Identification">{c.l10n_sa_edi_plot_identification}</Item>
           </Grid>
         </Card>
-
-        <Card title="ZATCA & Tax Identification">
+        </div>
+        <div className="space-y-3 min-w-0">
+        <Card dense title="ZATCA & Tax Identification">
           <Grid>
             <div className="sm:col-span-2"><Item label="ZATCA Registered Name">{c.l10n_sa_registered_name}</Item></div>
             <Item label="Identification Scheme">{schemeName(c.l10n_sa_additional_identification_scheme)}</Item>
@@ -127,15 +127,13 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
             <Item label="CR Number">{c.cr_number}</Item>
           </Grid>
         </Card>
-
-        <Card title="Additional Information">
+        <Card dense title="Additional Information">
           <Grid>
             <Item label="Tags">{c.category_id.length > 0 && <span className="flex flex-wrap gap-1">{tagNames(c.category_id).map(t => <Pill key={t} tone="green">{t}</Pill>)}</span>}</Item>
             <Item label="Language">{langName(c.lang)}</Item>
           </Grid>
         </Card>
-
-        <Card title="Business Information">
+        <Card dense title="Business Information">
           <Grid>
             <Item label="Customer"><YesNo v={c.customer} /></Item>
             <Item label="Supplier"><YesNo v={c.supplier} /></Item>
@@ -147,11 +145,10 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
             <Item label="Customer Code">{c.customer_code}</Item>
             <Item label="Vendor No">{c.vandor_number}</Item>
             <Item label="Company Code">{c.company_name_code}</Item>
-            <Item label="Girfalco ID">{c.ext_res_id}</Item>
+            <div className="sm:col-span-2"><Item label="Girfalco ID">{c.ext_res_id}</Item></div>
           </Grid>
         </Card>
-
-        <Card title={`Related Contacts & Addresses (${children.length})`}>
+        <Card dense title={`Related Contacts & Addresses (${children.length})`}>
           {children.length === 0
             ? <div className="text-xs text-slate-400 py-4 text-center">No contacts or addresses are linked to {c.name}.</div>
             : <ul className="divide-y divide-slate-100">
@@ -170,6 +167,7 @@ export default function ContactDetailPage({ partner: c, partners, readOnly, onBa
               ))}
             </ul>}
         </Card>
+        </div>
       </div>
     </div>
   )
