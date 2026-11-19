@@ -32,6 +32,7 @@ export type TabId =
   | 'settings'
   | 'inventory'
   | 'contacts'
+  | 'cm_contacts'
   | 'usr_customers'
   | 'usr_vendors'
   | 'usr_employees'
