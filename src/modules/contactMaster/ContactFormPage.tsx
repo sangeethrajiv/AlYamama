@@ -4,6 +4,8 @@ import { Card, ConfirmDialog, GhostButton, PrimaryButton, inputCls } from '../sh
 import { Breadcrumb, Fld, TagPicker, Toggle, errCls } from './parts'
 import { COUNTRIES, ID_SCHEMES, LANGS, PARTNER_TYPES, STATES, TAGS, TITLES } from './options'
 import { descendantIds } from './store'
+import { BLANK, EMAIL_RE, PHONE_RE, SITE_RE, toDraft } from './defaults'
+import ChildContacts from './ChildContacts'
 import type { PartnerDraft, ResPartner } from './types'
 
 /** Add / Edit Contact form (one component for both). Validation runs on blur and again when Save is pressed. */
@@ -15,24 +17,6 @@ interface Props {
   onCancel: () => void
 }
 
-const BLANK: PartnerDraft = {
-  name: '', is_company: false, type: 'contact', title: null, function: '', parent_id: null, company_name: '', ref: '',
-  email: '', phone: '', mobile: '', website: '', fax: '', category_id: [],
-  street: '', street2: '', arabic_street2_name: '', city: '', arabic_city_name: '', l10n_sa_edi_building_number: '', l10n_sa_edi_plot_identification: '', state_id: null, zip: '', country_id: null,
-  arabic_name: '', l10n_sa_registered_name: '', l10n_sa_additional_identification_scheme: 'OTH', l10n_sa_additional_identification_number: '', vat_arabic: '', cr_number: '',
-  vat: '', barcode: '', date: '', comment: '', lang: 'en_US', tz: 'Asia/Riyadh', industry_id: null,
-  customer: false, supplier: false, employee: false, cash_customer: false, customer_discount: 0, discount: 0, customer_code: '', vandor_number: '', company_name_code: '', ext_res_id: null, credit_limit: 0, user_id: null, company_id: 1, partner_share: true, color: 0, active: true,
-}
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-const PHONE_RE = /^\+?[0-9\s().-]{6,20}$/
-const SITE_RE = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/\S*)?$/i
-
-const toDraft = (c?: ResPartner): PartnerDraft => {
-  if (!c) return BLANK
-  const { id: _i, display_name: _d, commercial_partner_id: _c, ...rest } = c
-  return rest
-}
 type NumKey = 'customer_discount' | 'discount'
 const numStrings = (d: PartnerDraft): Record<NumKey, string> => ({ customer_discount: d.customer_discount ? String(d.customer_discount) : '', discount: d.discount ? String(d.discount) : '' })
 const idOrNull = (s: string) => (s === '' ? null : Number(s))
@@ -229,6 +213,12 @@ export default function ContactFormPage({ mode, partner, partners, onSave, onCan
               <div className="sm:col-span-2"><TagPicker label="Tags" tags={TAGS} value={f.category_id} onChange={v => set('category_id', v)} /></div>
             </Grid>
           </Card>
+          {mode === 'edit' && partner?.is_company && <ChildContacts parent={partner} partners={partners} />}
+          {mode === 'add' && f.is_company && (
+            <Card dense title="Contacts & Addresses">
+              <p className="text-xs text-slate-500 py-2">Save this company first, then edit it to add its contacts, delivery and invoice addresses.</p>
+            </Card>
+          )}
           </div>
         </div>
       </form>
