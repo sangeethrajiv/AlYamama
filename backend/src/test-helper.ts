@@ -27,7 +27,7 @@ export async function resetTables() {
     stock_location, product_category, uom_uom, uom_category, res_partner_res_partner_category_rel, res_partner_bank,
     res_company_users_rel, res_users, res_company, res_partner, res_partner_category,
     res_partner_industry, res_partner_title, res_bank, res_country_state, res_country,
-    res_currency, ir_model_data RESTART IDENTITY CASCADE`)
+    res_currency, account_account_type, account_analytic_group, account_analytic_tag, account_tax_group, ir_model_data RESTART IDENTITY CASCADE`)
 }
 
 export const closeDb = () => sequelize.close()

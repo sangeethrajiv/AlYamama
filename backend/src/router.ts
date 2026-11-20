@@ -7,6 +7,7 @@ import * as lookups from './contacts/lookups.controller'
 import ProductRouter from './inventory/product/product.router'
 import ProductCategoryRouter from './inventory/category/product-category.controller'
 import { uomCategoryRouter, uomRouter } from './inventory/uom/uom.controller'
+import accountingRouter from './accounting/accounting.router'
 import { locationRouter, operationTypeRouter, warehouseRouter } from './inventory/warehouse/warehouse.controller'
 
 /**
@@ -26,6 +27,9 @@ router.use('/uoms', isAuthenticated, uomRouter)
 router.use('/warehouses', isAuthenticated, warehouseRouter)
 router.use('/locations', isAuthenticated, locationRouter)
 router.use('/operation-types', isAuthenticated, operationTypeRouter)
+
+// Accounting: core ledger (moves, accounts, journals, taxes, terms, fiscal positions, currencies).
+router.use('/accounting', isAuthenticated, accountingRouter)
 
 // Lookups behind the Contacts form dropdowns.
 router.get('/partner-titles', isAuthenticated, handle(lookups.titles))

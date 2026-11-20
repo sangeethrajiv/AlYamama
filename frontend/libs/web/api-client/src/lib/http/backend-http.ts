@@ -2,6 +2,8 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, InjectionToken, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiError } from '../api/api-error';
+import { RequestContext } from '../api/api-context';
+import type { UserRole } from '@erp/shared/contracts';
 
 /**
  * Where the Express backend lives and who the stub auth says we are. Until JWT exists the backend reads these three
@@ -12,11 +14,17 @@ export interface BackendConfig {
   userId: number;
   companyId: number;
   allowedCompanyIds: number[];
+  /** The backend user (res.users id) each demo role acts as, so approval by a second person can be shown. */
+  userIdByRole?: Partial<Record<UserRole, number>>;
 }
 
 export const BACKEND_CONFIG = new InjectionToken<BackendConfig>('BACKEND_CONFIG', {
   providedIn: 'root',
-  factory: () => ({ baseUrl: 'http://localhost:3000/v2', userId: 1, companyId: 1, allowedCompanyIds: [1, 5, 6, 7, 9, 12] }),
+  factory: () => ({
+    baseUrl: 'http://localhost:3000/v2', userId: 2, companyId: 1, allowedCompanyIds: [1, 5, 6, 7, 9, 12],
+    // res.users ids in the Odoo copy: 2 is admin, 6 to 9 are staff
+    userIdByRole: { 'Accounts Manager': 2, 'Finance Director': 6, 'Senior Accountant': 7, Accountant: 8, Auditor: 9 },
+  }),
 });
 
 type Query = Record<string, string | number | boolean | undefined | null>;
@@ -28,12 +36,22 @@ interface ListData<T> { records: T[]; total: number; page: number; limit: number
 export class BackendHttp {
   private readonly http = inject(HttpClient);
   private readonly cfg = inject(BACKEND_CONFIG);
+  private readonly ctx = inject(RequestContext);
 
-  private headers() {
+  /** The backend id of the active company (`co_5` -> 5); falls back to the configured one. */
+  activeCompanyId(): number {
+    const n = Number(String(this.ctx.companyId()).replace(/^co_/, ''));
+    return Number.isInteger(n) && n > 0 ? n : this.cfg.companyId;
+  }
+
+  /** Contacts and products are shared across companies; accounting records belong to exactly one, the active one. */
+  private headers(path: string) {
+    const active = this.activeCompanyId();
+    const accounting = path.startsWith('/accounting');
     return {
-      'X-User-Id': String(this.cfg.userId),
-      'X-Company-Id': String(this.cfg.companyId),
-      'X-Allowed-Company-Ids': this.cfg.allowedCompanyIds.join(','),
+      'X-User-Id': String(this.cfg.userIdByRole?.[this.ctx.actorRole()] ?? this.cfg.userId),
+      'X-Company-Id': String(active),
+      'X-Allowed-Company-Ids': accounting ? String(active) : [...new Set([...this.cfg.allowedCompanyIds, active])].join(','),
     };
   }
 
@@ -42,7 +60,7 @@ export class BackendHttp {
     for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined && v !== null && v !== '') params[k] = String(v);
     try {
       const res = await firstValueFrom(
-        this.http.request<Envelope<T>>(method, this.cfg.baseUrl + path, { headers: this.headers(), params, body: opts.body }),
+        this.http.request<Envelope<T>>(method, this.cfg.baseUrl + path, { headers: this.headers(path), params, body: opts.body }),
       );
       return res.data;
     } catch (e) {

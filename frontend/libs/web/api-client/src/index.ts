@@ -10,3 +10,4 @@ export * from './lib/api/accounting.api';
 export * from './lib/api/catalog.api';
 export * from './lib/api/product.api';
 export * from './lib/http/backend-http';
+export * from './lib/http/accounting-backend';

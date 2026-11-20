@@ -14,6 +14,7 @@ import { MockCatalogApi } from './mock/mock-catalog.api';
 import { MockProductApi } from './mock/mock-product.api';
 import { HttpContactsApi } from './http/http-contacts.api';
 import { HttpProductApi } from './http/http-product.api';
+import { HttpIdentityApi } from './http/http-identity.api';
 
 /**
  * Wires the feature-specific MOCK adapters. The backend (NestJS `/api/v1`) is not part of this build; when it exists
@@ -37,7 +38,7 @@ export function provideMockApiClient(...extra: Provider[]): EnvironmentProviders
  */
 export function provideHttpApiClient(...extra: Provider[]): EnvironmentProviders {
   return makeEnvironmentProviders([
-    { provide: IdentityApi, useClass: MockIdentityApi },
+    { provide: IdentityApi, useClass: HttpIdentityApi },
     { provide: SystemApi, useClass: MockSystemApi },
     MockContactsApi,
     { provide: ContactsApi, useClass: HttpContactsApi },

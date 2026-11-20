@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, ou
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { IconComponent, TabsComponent, I18n } from '@erp/web/ui';
+import { IconComponent, MultiSelectComponent, SelectComponent, TabsComponent, I18n } from '@erp/web/ui';
 import { dec } from '@erp/shared/utils';
 import { startWith } from 'rxjs';
 import { DECIMAL_RE, type FieldDef, type Lookups, type Option, type Rec, type SectionDef, type ViewDef } from './view.model';
@@ -17,7 +17,7 @@ const SPAN: Record<string, string> = { 1: '', 2: 'sm:col-span-2', 3: 'lg:col-spa
  */
 @Component({
   selector: 'erp-metadata-form',
-  imports: [NgTemplateOutlet, ReactiveFormsModule, TranslocoPipe, IconComponent, TabsComponent],
+  imports: [NgTemplateOutlet, ReactiveFormsModule, TranslocoPipe, IconComponent, TabsComponent, SelectComponent, MultiSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (view().tabs; as tabs) {
@@ -54,19 +54,10 @@ const SPAN: Record<string, string> = { 1: '', 2: 'sm:col-span-2', 3: 'lg:col-spa
                           </select>
                         }
                         @case ('many2one') {
-                          <select class="erp-input" [formControl]="ctrl(f.key)">
-                            @if (f.emptyOption !== false) { <option [ngValue]="null"></option> }
-                            @for (o of optionsOf(f); track o.value) { <option [ngValue]="o.value">{{ o.label }}</option> }
-                          </select>
+                          <erp-select [formControl]="ctrl(f.key)" [options]="optionsOf(f)" [search]="f.search" [labelHint]="labelHint(f)" [clearable]="f.emptyOption !== false" [placeholder]="ph(f)" />
                         }
                         @case ('many2many') {
-                          <div class="flex flex-wrap gap-1.5 rounded-lg border border-slate-300 bg-white p-2" [class.opacity-60]="ctrl(f.key).disabled">
-                            @for (o of optionsOf(f); track o.value) {
-                              <button type="button" [disabled]="ctrl(f.key).disabled" (click)="toggleMany(f, o)"
-                                class="rounded-full border px-2 py-0.5 text-[11px] font-semibold transition"
-                                [class]="hasMany(f, o) ? 'border-emerald-300 bg-emerald-100 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'">{{ o.label }}</button>
-                            }
-                          </div>
+                          <erp-multi-select [formControl]="ctrl(f.key)" [options]="optionsOf(f)" [search]="f.search" [placeholder]="ph(f)" />
                         }
                         @case ('money') { <input type="text" inputmode="decimal" class="erp-input text-end font-mono" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" (blur)="normalizeMoney(f)" /> }
                         @case ('number') { <input type="number" class="erp-input" [class.font-mono]="f.mono" [formControl]="ctrl(f.key)" [attr.min]="f.min" [attr.max]="f.max" [placeholder]="ph(f)" /> }
@@ -238,6 +229,10 @@ export class MetadataFormComponent {
   protected optionsOf(f: FieldDef): Option[] {
     const o = f.options ?? (f.resource ? this.lookups()[f.resource] : undefined) ?? [];
     return typeof o === 'function' ? o(this.snapshot(), this.lookups()) : o;
+  }
+  /** The name that came with a many2one record (`<key>_label`), shown until the async source returns the label. */
+  protected labelHint(f: FieldDef): string {
+    return String(this.snapshot()[`${f.key}_label`] ?? '');
   }
   protected suggestionsOf(f: FieldDef): Option[] {
     return (f.suggestions ? this.lookups()[f.suggestions] : undefined) ?? [];

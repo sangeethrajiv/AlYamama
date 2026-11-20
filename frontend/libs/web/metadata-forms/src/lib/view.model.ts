@@ -50,6 +50,11 @@ export interface FieldDef {
   options?: Option[] | ((value: Rec, lookups: Lookups) => Option[]);
   /** Free-text field with suggestions taken from this `lookups` resource (an HTML datalist). */
   suggestions?: string;
+  /**
+   * Async option source for many2one / many2many on big tables (partners, accounts, products).
+   * Called with the typed text, or with `ids` to get the labels of values already chosen.
+   */
+  search?: (query: string, ids?: Primitive[]) => Promise<Option[]>;
   /** Key into the `lookups` input for select / many2one / many2many. */
   resource?: string;
   /** Option labels are translation keys. */

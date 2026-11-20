@@ -74,3 +74,27 @@ Odoo 12 CE; 6 companies; ~6,364 partners (6,291 active); `type` also has `manage
 - `GET /contacts?full=1` returns every column except images; `GET /states` lists all states. CORS allows http://localhost:4200.
 - Warehouses, locations and operation types: API only, no Angular screens.
 - Checked in Chrome: 6,054 contacts and the 50 products, categories and UoMs load from the database; creating a product and a contact persisted (test rows deleted).
+
+## Status (Accounting, 2026-11-20)
+**Built (backend `src/accounting/`, Angular `libs/web/features/accounting/src/lib/v2/`)**
+- Migrations 005 core ledger, 006 payments / bank / analytic, 007 invoicing flows and assets, 008 extras (cash-basis journal, statement import ids, notes, attachments), 009 fix-ups for databases that applied the first 005.
+- Ledger rules: posting, numbering, lock dates, journal controls, cancel / reset, reversal, taxes (percent, fixed, division, group, price-included, **cash basis**), payment terms, reconcile / unreconcile with **foreign-currency exchange differences**.
+- Customers: cash, credit, proforma (convert), progressive invoices, credit notes, internal voucher, payments. Vendors: bills, approval (send / approve / reject, a preparer cannot approve their own), refunds, payable voucher, payments.
+- Accounting: journal entries and items, analytic items, assets (types, depreciation board, Generate Assets Entries), bank statements (manual and CSV / OFX import, reconcile with write-off), tax adjustments.
+- Reporting: trial balance, general ledger, partner ledger, aged receivable / payable, profit and loss, balance sheet, tax report, journals audit. Overview dashboard with one card per journal.
+- Configuration screens for accounts, types, groups, taxes, terms, fiscal positions and years, journals, currencies and rates, incoterms, reconciliation models, analytic, asset types, settings (lock dates, defaults, exchange and cash-basis journals).
+- Notes and attachments on documents; live tax and total on the invoice form; role checks on buttons (UI only).
+
+**Data.** `npm run import:accounting` copies the accounting configuration from Odoo (read-only). No transactions are imported on purpose.
+**Demo databases.** `accounting_26_test` is the dev database; `accounting_26_demo` was built with the same scripts for browser checks. `npm test` rebuilds `accounting_26_test_unit` every time, so never point a running API at it.
+
+**Choices that differ from Odoo 12**
+- Invoices are rows of `account_move` with a `move_type` (Odoo 13+ style); the old `account_invoice` table is not recreated.
+- `account_journal.code` is indexed, not unique: the live data has two `INV` journals in company 12.
+- Exchange differences use the exchange journal's default accounts (Odoo 12 has no separate accounts).
+- Company-dependent properties (partner accounts and terms) hold one value per partner: the lowest company id wins.
+
+**Not built**
+- Budgets (not installed in Odoo), importing transactions, PDF / print of invoices, Arabic labels on the accounting screens, bank formats other than CSV / OFX.
+- External apps (columns exist, no behaviour): ZATCA e-invoicing, subscriptions and vehicles, approval-level routing, payment providers, asset rental.
+- Role checks are UI only; the backend still trusts the `X-User-Id` header (stub auth).
