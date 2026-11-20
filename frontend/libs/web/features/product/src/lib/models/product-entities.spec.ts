@@ -22,9 +22,9 @@ describe('product entity configs', () => {
     const keys = (k: keyof typeof ENTITY_BY_KEY) => ENTITY_BY_KEY[k].sections.flatMap(sec => sec.fields.map(f => f.key));
     const product = Object.keys(s.products[0]).filter(k => k !== 'id');
     // The product form shows only the Odoo General Information fields; these stay on the record but are not on the screen.
-    const notShown = ['tracking', 'active', 'weight', 'volume', 'responsible_id', 'description_sale', 'description_purchase'];
+    const notShown = ['tracking', 'active', 'weight', 'volume', 'responsible_id', 'description_sale', 'description_purchase', 'arabic_name'];
     expect(product.filter(k => !keys('products').includes(k))).toEqual(notShown);
-    const category = Object.keys(s.categories[0]).filter(k => k !== 'id');
+    const category = Object.keys(s.categories[0]).filter(k => k !== 'id' && k !== 'arabic_name');
     expect(category.filter(k => !keys('categories').includes(k))).toEqual([]);
     const uom = Object.keys(s.uoms[0]).filter(k => k !== 'id');
     expect(uom.filter(k => !keys('uoms').includes(k))).toEqual([]);
@@ -110,7 +110,7 @@ describe('product form view', () => {
     const create = buildView(ENTITY_BY_KEY.categories, 'create', () => ctx);
     const edit = buildView(ENTITY_BY_KEY.categories, 'edit', () => ctx);
     const keys = (v: ReturnType<typeof buildView>) => v.sections.flatMap(x => x.fields.map(f => f.key));
-    expect(keys(create)).toEqual(expect.arrayContaining(['name', 'parent_id', 'arabic_name', 'sequence_code', 'active']));
+    expect(keys(create)).toEqual(expect.arrayContaining(['name', 'parent_id', 'sequence_code', 'active']));
     const completeName = edit.sections.flatMap(x => x.fields).find(f => f.key === 'complete_name')!;
     expect(completeName.visible?.({})).toBe(true);
     expect(create.sections.flatMap(x => x.fields).find(f => f.key === 'complete_name')).toBeUndefined();

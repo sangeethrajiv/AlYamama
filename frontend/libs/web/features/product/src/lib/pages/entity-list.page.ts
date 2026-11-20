@@ -2,9 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { PermissionService, SearchService } from '@erp/web/core';
-import { EmptyStateComponent, I18n, IconComponent, PageHeaderComponent, PagerComponent, PillComponent, SegmentedComponent } from '@erp/web/ui';
+import { EmptyStateComponent, I18n, IconComponent, PageHeaderComponent, PagerComponent, SegmentedComponent } from '@erp/web/ui';
 import { PERM, type ProductEntityKey } from '@erp/shared/contracts';
-import { ProductActions } from '../data/product-actions.service';
 import { ProductListMemory, type ListState } from '../data/list-memory';
 import { ProductStore } from '../data/product.store';
 import { ProductBreadcrumbComponent, type Crumb } from '../components/product-breadcrumb.component';
@@ -24,7 +23,7 @@ const PAGE_SIZES = [10, 25, 50];
  */
 @Component({
   selector: 'erp-product-list-page',
-  imports: [RouterLink, TranslocoPipe, IconComponent, PageHeaderComponent, SegmentedComponent, PagerComponent, EmptyStateComponent, PillComponent, ProductBreadcrumbComponent, ProductCellComponent],
+  imports: [RouterLink, TranslocoPipe, IconComponent, PageHeaderComponent, SegmentedComponent, PagerComponent, EmptyStateComponent, ProductBreadcrumbComponent, ProductCellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-1">
@@ -92,8 +91,6 @@ const PAGE_SIZES = [10, 25, 50];
                       } @else { {{ c.labelKey | transloco }} }
                     </th>
                   }
-                  <th scope="col">{{ 'product.l.status' | transloco }}</th>
-                  <th scope="col" class="!text-end">{{ 'product.l.actions' | transloco }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -106,21 +103,6 @@ const PAGE_SIZES = [10, 25, 50];
                         } @else { <erp-product-cell [cell]="c.cell(r, ctx())" /> }
                       </td>
                     }
-                    <td><erp-pill [tone]="r.active ? 'green' : 'slate'">{{ (r.active ? 'product.l.active' : 'product.l.archived') | transloco }}</erp-pill></td>
-                    <td>
-                      <div class="flex items-center justify-end gap-0.5">
-                        <a class="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900" [routerLink]="['/product', cfg().route, r.id]" (click)="$event.stopPropagation()" [attr.aria-label]="'product.act.view' | transloco" [title]="'product.act.view' | transloco"><erp-icon name="eye" [size]="15" /></a>
-                        @if (canWrite()) {
-                          <a class="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900" [routerLink]="['/product', cfg().route, r.id, 'edit']" (click)="$event.stopPropagation()" [attr.aria-label]="'product.act.edit' | transloco" [title]="'product.act.edit' | transloco"><erp-icon name="pencil" [size]="15" /></a>
-                          @if (r.active) {
-                            <button type="button" class="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900" (click)="$event.stopPropagation(); archive(r)" [attr.aria-label]="'product.act.archive' | transloco" [title]="'product.act.archive' | transloco"><erp-icon name="archive" [size]="15" /></button>
-                          } @else {
-                            <button type="button" class="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900" (click)="$event.stopPropagation(); restore(r)" [attr.aria-label]="'product.act.restore' | transloco" [title]="'product.act.restore' | transloco"><erp-icon name="archive-restore" [size]="15" /></button>
-                          }
-                          <button type="button" class="rounded-md p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600" (click)="$event.stopPropagation(); remove(r)" [attr.aria-label]="'product.act.delete' | transloco" [title]="'product.act.delete' | transloco"><erp-icon name="trash" [size]="15" /></button>
-                        }
-                      </div>
-                    </td>
                   </tr>
                 }
               </tbody>
@@ -143,7 +125,6 @@ const PAGE_SIZES = [10, 25, 50];
 export class EntityListPage {
   private readonly store = inject(ProductStore);
   private readonly memory = inject(ProductListMemory);
-  private readonly actions = inject(ProductActions);
   private readonly perms = inject(PermissionService);
   private readonly search = inject(SearchService);
   private readonly i18n = inject(I18n);
@@ -166,7 +147,7 @@ export class EntityListPage {
 
   protected readonly title = computed(() => this.i18n.tr(titleKey(this.entity())));
   protected readonly singular = computed(() => this.i18n.tr(singularKey(this.entity())));
-  protected readonly subtitle = computed(() => `${this.i18n.tr(`product.e.${this.entity()}.subtitle`)}  ·  ${this.cfg().model}`);
+  protected readonly subtitle = computed(() => this.i18n.tr(`product.e.${this.entity()}.subtitle`));
   protected readonly searchPlaceholder = computed(() => this.i18n.tr(`product.e.${this.entity()}.search`));
   protected readonly crumbs = computed<Crumb[]>(() => [
     { label: this.i18n.tr('product.crumb.root'), link: ['/product', 'overview'] },
@@ -231,7 +212,4 @@ export class EntityListPage {
     return s.key === key ? (s.dir === 'asc' ? 'ascending' : 'descending') : null;
   }
   protected open(r: Rec): void { void this.router.navigate(['/product', this.cfg().route, r.id]); }
-  protected archive(r: Rec): void { void this.actions.requestArchive(this.cfg(), r); }
-  protected restore(r: Rec): void { void this.actions.restore(this.cfg(), r); }
-  protected remove(r: Rec): void { void this.actions.requestDelete(this.cfg(), r); }
 }

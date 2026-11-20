@@ -22,7 +22,7 @@ const activeField = (e: ProductEntityKey, helpKey: string): FieldSpec => ({ key:
 // ---------------------------------------------------------------- Products (product.template)
 const productColumns: ColumnSpec[] = [
   { key: 'default_code', labelKey: f('products', 'default_code_col'), sort: r => lc(r['default_code']), cell: r => mono(r['default_code']) },
-  { key: 'name', labelKey: f('products', 'name_col'), primary: true, sort: r => lc(r['name']), cell: r => ({ kind: 'name', text: r['name'], sub: r['arabic_name'] || undefined }) },
+  { key: 'name', labelKey: f('products', 'name_col'), primary: true, sort: r => lc(r['name']), cell: r => ({ kind: 'name', text: r['name'] }) },
   { key: 'list_price', labelKey: f('products', 'list_price_col'), right: true, sort: r => num(r['list_price']), cell: r => ({ kind: 'text', text: fmtMoney(r['list_price']) }) },
   { key: 'standard_price', labelKey: f('products', 'standard_price_col'), right: true, hide: 'lg', sort: r => num(r['standard_price']), cell: r => ({ kind: 'text', text: fmtMoney(r['standard_price']) }) },
   { key: 'categ_id', labelKey: f('products', 'categ_id_col'), hide: 'md', wrap: true, sort: (r, c) => lc(relLabel(c.s, 'categories', r['categ_id'])), cell: (r, c) => ({ kind: 'text', text: relLabel(c.s, 'categories', r['categ_id']).replace(/^All \/ /, '') }) },
@@ -35,7 +35,7 @@ const productColumns: ColumnSpec[] = [
 const products: EntityConfig = {
   key: 'products', route: 'products', model: 'product.template', icon: 'package',
   nameOf: r => r['name'],
-  searchText: (r, c) => [r['name'], r['arabic_name'], r['default_code'], r['barcode'], r['internal_short_code'], relLabel(c.s, 'categories', r['categ_id'])].join(' '),
+  searchText: (r, c) => [r['name'], r['default_code'], r['barcode'], r['internal_short_code'], relLabel(c.s, 'categories', r['categ_id'])].join(' '),
   defaultSort: { key: 'name', dir: 'asc' },
   columns: productColumns,
   filters: [
@@ -54,7 +54,6 @@ const products: EntityConfig = {
       titleKey: 'product.s.basic',
       fields: [
         { key: 'name', labelKey: f('products', 'name'), kind: 'text', required: true, span: 2, placeholderKey: 'product.ph.productName', maxLength: 255 },
-        { key: 'arabic_name', labelKey: f('products', 'arabic_name'), kind: 'text', rtl: true, span: 2, placeholderKey: 'product.ph.arabicName', maxLength: 255 },
         { key: 'sale_ok', labelKey: f('products', 'sale_ok'), kind: 'boolean' },
         { key: 'purchase_ok', labelKey: f('products', 'purchase_ok'), kind: 'boolean' },
       ],
@@ -119,11 +118,10 @@ const products: EntityConfig = {
 const categories: EntityConfig = {
   key: 'categories', route: 'categories', model: 'product.category', icon: 'tags', uiOnlyActive: true,
   nameOf: (r, c) => categoryName(c.s, r.id),
-  searchText: (r, c) => [categoryName(c.s, r.id), r['arabic_name'], r['sequence_code']].join(' '),
+  searchText: (r, c) => [categoryName(c.s, r.id), r['sequence_code']].join(' '),
   defaultSort: { key: 'name', dir: 'asc' },
   columns: [
     { key: 'name', labelKey: f('categories', 'name_col'), primary: true, sort: (r, c) => lc(categoryName(c.s, r.id)), cell: (r, c) => ({ kind: 'text', text: categoryName(c.s, r.id) }) },
-    { key: 'arabic_name', labelKey: f('categories', 'arabic_name'), hide: 'sm', sort: r => r['arabic_name'], cell: r => (r['arabic_name'] ? { kind: 'rtl', text: r['arabic_name'] } : dash) },
     { key: 'sequence_code', labelKey: f('categories', 'sequence_code'), hide: 'md', sort: r => lc(r['sequence_code']), cell: r => mono(r['sequence_code']) },
     { key: 'parent_id', labelKey: f('categories', 'parent_id_col'), hide: 'lg', sort: (r, c) => lc(relLabel(c.s, 'categories', r['parent_id'])), cell: (r, c) => (r['parent_id'] == null ? { kind: 'pill', text: c.tr('product.root'), tone: 'slate' } : { kind: 'text', text: relLabel(c.s, 'categories', r['parent_id']) }) },
     { key: 'child_id', labelKey: f('categories', 'child_id'), right: true, hide: 'xl', sort: (r, c) => c.s.categories.filter(x => x.parent_id === r.id).length, cell: (r, c) => ({ kind: 'text', text: String(c.s.categories.filter(x => x.parent_id === r.id).length) }) },
@@ -144,7 +142,6 @@ const categories: EntityConfig = {
       fields: [
         { key: 'name', labelKey: f('categories', 'name'), kind: 'text', required: true, maxLength: 128 },
         { key: 'parent_id', labelKey: f('categories', 'parent_id'), kind: 'relation', rel: 'categories' },
-        { key: 'arabic_name', labelKey: f('categories', 'arabic_name'), kind: 'text', rtl: true, maxLength: 128 },
         { key: 'sequence_code', labelKey: f('categories', 'sequence_code'), kind: 'text', mono: true, maxLength: 16 },
         { key: 'complete_name', labelKey: f('categories', 'complete_name'), kind: 'readonly', get: (r, c) => categoryName(c.s, r.id) },
         { key: 'product_count', labelKey: f('categories', 'product_count'), kind: 'readonly', get: (r, c) => String(countProducts(c.s, r.id)) },
@@ -161,7 +158,7 @@ const categories: EntityConfig = {
   },
   related: [
     { titleKey: 'product.rel.products', entity: 'products', items: (r, c) => c.s.products.filter(p => p.categ_id === r.id) as unknown as Rec[], meta: p => p['default_code'] },
-    { titleKey: 'product.rel.subCategories', entity: 'categories', items: (r, c) => c.s.categories.filter(x => x.parent_id === r.id) as unknown as Rec[], meta: x => x['arabic_name'] },
+    { titleKey: 'product.rel.subCategories', entity: 'categories', items: (r, c) => c.s.categories.filter(x => x.parent_id === r.id) as unknown as Rec[] },
   ],
 };
 

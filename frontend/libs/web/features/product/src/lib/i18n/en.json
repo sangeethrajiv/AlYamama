@@ -15,13 +15,13 @@
         "title": "Products",
         "singular": "Product",
         "subtitle": "Items you stock, buy, sell and service.",
-        "search": "Search name, Arabic name, reference, barcode…"
+        "search": "Search name, reference, barcode…"
       },
       "categories": {
         "title": "Product Categories",
         "singular": "Category",
         "subtitle": "Hierarchy used to group products.",
-        "search": "Search name, Arabic name, short code…"
+        "search": "Search name, short code…"
       },
       "uoms": {
         "title": "Units of Measure",
@@ -101,7 +101,6 @@
         "default_code": "Product Code",
         "default_code_col": "Product Code",
         "barcode": "Barcode",
-        "arabic_name": "Arabic Name",
         "internal_short_code": "Internal Ref",
         "product_genre": "Product Genre",
         "is_teltonika": "Is Teltonika Product",
@@ -140,7 +139,6 @@
         "name_col": "Category",
         "parent_id": "Parent Category",
         "parent_id_col": "Parent",
-        "arabic_name": "Arabic Name",
         "sequence_code": "Short Code",
         "child_id": "Sub-categories",
         "product_count": "Product Count",
@@ -233,8 +231,7 @@
     },
     "ph": {
       "productName": "Product Name",
-      "reference": "e.g. HH1-050",
-      "arabicName": "Arabic Name"
+      "reference": "e.g. HH1-050"
     },
     "v": {
       "maxLength": "Must be at most {{max}} characters.",

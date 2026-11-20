@@ -5,7 +5,7 @@ import { provideTranslocoScope } from '@jsverse/transloco';
 
 const scope = provideTranslocoScope({
   scope: 'product',
-  loader: { en: () => import('./i18n/en.json').then(m => m.default.product), ar: () => import('./i18n/ar.json').then(m => m.default.product) },
+  loader: { en: () => import('./i18n/en.json').then(m => m.default.product) },
 });
 // Permission ids keep their original `inventory.*` names so existing roles and access rights are unaffected.
 const read = [permissionGuard(PERM.inventory.read)];

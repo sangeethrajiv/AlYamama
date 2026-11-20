@@ -54,10 +54,10 @@ test.describe('product master data', () => {
     const rows = page.locator('erp-product-list-page tbody tr');
     await rows.first().waitFor();
     const total = await rows.count();
-    await page.getByPlaceholder(/Search name, Arabic name/).fill('gear pump');
+    await page.getByPlaceholder(/Search name, /).fill('gear pump');
     await expect(rows.first()).toContainText(/gear pump/i);
     expect(await rows.count()).toBeLessThan(total);
-    await page.getByPlaceholder(/Search name, Arabic name/).fill('');
+    await page.getByPlaceholder(/Search name, /).fill('');
     // eight filters: the panel starts collapsed (as in the React module) and opens with the Filters button
     await expect(page.getByLabel('Type', { exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: /Filters/ }).click();
@@ -71,7 +71,6 @@ test.describe('product master data', () => {
     await header.getByRole('button').click();
     await expect(header).toHaveAttribute('aria-sort', 'descending');
     await page.getByRole('tab', { name: /Archived/ }).click();
-    await expect(rows.first()).toContainText('Archived');
     await expect(page.locator('erp-product-list-page tbody')).toContainText(/Legacy Gear Pump|discontinued/);
   });
 
@@ -79,10 +78,9 @@ test.describe('product master data', () => {
     await page.goto('/product/products/1');
     const d = page.locator('erp-product-detail-page');
     await expect(d.getByRole('heading', { level: 1 })).toContainText('Hydraulic Hose 1SN');
-    await expect(d).toContainText('product.template');
     for (const label of ['General Information', 'Internal Type', 'Sales Price', 'Margin(%)', 'No Discount', 'Product Type', 'Is Teltonika Product', 'Product Category', 'Customer Taxes',
       'Product Code', 'Cost', 'Internal Ref', 'Company', 'Barcode', 'Is Vehicle Subscription Product', 'Product Genre', 'Unit of Measure', 'Purchase Unit of Measure',
-      'Arabic Name', 'Quantity On Hand', 'Forecasted Quantity']) {
+      'Quantity On Hand', 'Forecasted Quantity']) {
       await expect(d.getByText(label, { exact: true }).first()).toBeVisible();
     }
     await d.getByRole('link', { name: 'Hose' }).first().waitFor();

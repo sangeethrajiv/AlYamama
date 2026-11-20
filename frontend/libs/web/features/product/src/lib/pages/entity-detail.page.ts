@@ -26,7 +26,7 @@ const ENTITY_REL = new Set<string>(['products', 'categories', 'uoms', 'uomCatego
   template: `
     @if (!store.loaded()) { <p class="py-10 text-center text-sm text-slate-400">{{ 'common.loading' | transloco }}</p> }
     @else {
-      <div class="space-y-4">
+      <div class="space-y-3">
         <erp-product-breadcrumb [crumbs]="crumbs()" />
         @let r = rec();
         @if (!r) {
@@ -44,7 +44,7 @@ const ENTITY_REL = new Set<string>(['products', 'categories', 'uoms', 'uomCatego
                 <erp-pill [tone]="r.active ? 'green' : 'slate'">{{ (r.active ? 'product.l.active' : 'product.l.archived') | transloco }}</erp-pill>
                 @for (b of badges(); track b.text) { <erp-pill [tone]="b.tone">{{ b.text }}</erp-pill> }
               </div>
-              <p class="mt-1 text-xs text-slate-500"><span class="font-mono text-[11px]">{{ cfg().model }}</span> · ID {{ r.id }}</p>
+              <p class="mt-1 text-xs text-slate-500">ID {{ r.id }}</p>
             </div>
             @if (canWrite()) {
               <div class="flex flex-wrap items-center gap-2">
@@ -72,11 +72,11 @@ const ENTITY_REL = new Set<string>(['products', 'categories', 'uoms', 'uomCatego
             </div>
           }
 
-          <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <div class="min-w-0 space-y-4 xl:col-span-2">
+          <div class="grid grid-cols-1 gap-3" [class]="related().length > 0 ? 'xl:grid-cols-3' : ''">
+            <div class="min-w-0 space-y-3" [class]="related().length > 0 ? 'xl:col-span-2' : ''">
               @for (sec of sections(); track sec.titleKey) {
-                <erp-card [title]="sec.titleKey | transloco">
-                  <dl class="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                <erp-card [title]="sec.titleKey | transloco" [dense]="true">
+                  <dl class="grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
                     @for (f of sec.fields; track f.key) {
                       <div [class]="f.span === 2 || f.kind === 'textarea' ? 'sm:col-span-2' : ''">
                         <dt class="text-[11px] font-medium text-slate-500">{{ f.labelKey | transloco }}</dt>
@@ -96,7 +96,7 @@ const ENTITY_REL = new Set<string>(['products', 'categories', 'uoms', 'uomCatego
               }
             </div>
             @if (related().length > 0) {
-              <div class="min-w-0 space-y-4">
+              <div class="min-w-0 space-y-3">
                 @for (rel of related(); track rel.titleKey) {
                   <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
                     <header class="border-b border-slate-100 px-4 py-2.5"><h3 class="text-xs font-extrabold uppercase tracking-wide text-slate-800">{{ rel.titleKey | transloco }} ({{ rel.items.length }})</h3></header>

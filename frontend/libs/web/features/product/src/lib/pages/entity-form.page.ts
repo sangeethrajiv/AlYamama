@@ -38,7 +38,7 @@ const CODE_FIELD: Record<string, string> = { PRODUCT_DUPLICATE_REFERENCE: 'defau
       <div class="max-w-5xl space-y-3">
         <erp-product-breadcrumb [crumbs]="crumbs()" />
         <a [routerLink]="backLink()" class="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900"><erp-icon name="chevron-left" [size]="13" [flip]="true" />{{ (mode() === 'create' ? title() : ('product.f.backToRecord' | transloco)) }}</a>
-        <erp-page-header [title]="heading()" [subtitle]="cfg().model">
+        <erp-page-header [title]="heading()">
           <ng-container actions>
             <button type="button" class="erp-btn-ghost" (click)="cancel()">{{ 'product.f.cancel' | transloco }}</button>
             <button type="button" class="erp-btn-primary" [disabled]="busy()" (click)="save()"><erp-icon name="save" [size]="14" />{{ (mode() === 'create' ? 'product.f.create' : 'product.f.saveChanges') | transloco }}</button>
