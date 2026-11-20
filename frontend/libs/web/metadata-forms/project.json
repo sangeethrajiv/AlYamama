@@ -1,0 +1,10 @@
+{
+  "name": "web-metadata-forms",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/metadata-forms/src",
+  "prefix": "erp",
+  "projectType": "library",
+  "tags": ["scope:web", "type:core"],
+  "// targets": "to see all targets run: nx show project web-metadata-forms --web",
+  "targets": {}
+}

@@ -1,0 +1,38 @@
+import {
+  LucideActivity, LucideArchive, LucideArrowDown, LucideArrowDownToLine, LucideArrowLeftRight, LucideArrowUp, LucideArrowUpDown,
+  LucideArrowUpFromLine, LucideBanknote, LucideBell, LucideBoxes, LucideBookOpen, LucideBuilding, LucideCamera, LucideChartColumn,
+  LucideCheck, LucideCheckCheck, LucideChevronDown, LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight,
+  LucideCircleCheck, LucideCircleCheckBig, LucideCircleX, LucideClock, LucideColumns3, LucideContact, LucideCopy, LucideCreditCard,
+  LucideDownload, LucideEllipsis, LucideEraser, LucideExternalLink, LucideEye, LucideEyeOff, LucideFileCheck, LucideFileText,
+  LucideFolderCog, LucideFunnel, LucideGauge, LucideGlobe, LucideGrid3x3, LucideIdCard, LucideInbox, LucideInfo, LucideKeyRound,
+  LucideLandmark, LucideLanguages, LucideLayers, LucideLayoutDashboard, LucideLayoutGrid, LucideList, LucideLoaderCircle, LucideLock,
+  LucideLogOut, LucideMail, LucideMenu, LucideMessageSquare, LucidePackage, LucidePaperclip, LucidePencil, LucidePhone, LucidePlus,
+  LucidePrinter, LucideReceipt, LucideRefreshCw, LucideSave, LucideScale, LucideSearch, LucideSend, LucideSettings, LucideSettings2,
+  LucideShieldCheck, LucideShoppingCart, LucideSlidersHorizontal, LucideTags, LucideTrash, LucideTriangleExclamationPoint,
+  LucideTruck, LucideUndo2, LucideUpload, LucideUser, LucideUserCheck, LucideUsers, LucideWarehouse, LucideWallet, LucideX,
+  type LucideIcon,
+} from '@lucide/angular';
+
+/** Names used by the manifest and templates. Unknown names fall back to a neutral dot at render time. */
+export const ICONS: Readonly<Record<string, LucideIcon>> = {
+  activity: LucideActivity, archive: LucideArchive, 'archive-restore': LucideUndo2, 'arrow-down': LucideArrowDown,
+  'arrow-down-to-line': LucideArrowDownToLine, 'arrow-left-right': LucideArrowLeftRight, 'arrow-up': LucideArrowUp,
+  'arrow-up-down': LucideArrowUpDown, 'arrow-up-from-line': LucideArrowUpFromLine, banknote: LucideBanknote, bell: LucideBell,
+  boxes: LucideBoxes, 'book-open': LucideBookOpen, building: LucideBuilding, camera: LucideCamera, 'bar-chart-3': LucideChartColumn,
+  check: LucideCheck, 'check-check': LucideCheckCheck, 'chevron-down': LucideChevronDown, 'chevron-left': LucideChevronLeft,
+  'chevron-right': LucideChevronRight, 'chevrons-left': LucideChevronsLeft, 'chevrons-right': LucideChevronsRight,
+  'check-circle': LucideCircleCheckBig, 'check-circle-2': LucideCircleCheck, 'x-circle': LucideCircleX, 'alert-circle': LucideInfo,
+  clock: LucideClock, 'columns-3': LucideColumns3, contact: LucideContact, copy: LucideCopy, 'credit-card': LucideCreditCard,
+  download: LucideDownload, more: LucideEllipsis, eraser: LucideEraser, 'external-link': LucideExternalLink, eye: LucideEye,
+  'eye-off': LucideEyeOff, 'file-check-2': LucideFileCheck, 'file-text': LucideFileText, 'folder-cog': LucideFolderCog,
+  filter: LucideFunnel, gauge: LucideGauge, globe: LucideGlobe, grid: LucideGrid3x3, history: LucideClock, 'id-card': LucideIdCard,
+  inbox: LucideInbox, info: LucideInfo, 'key-round': LucideKeyRound, landmark: LucideLandmark, languages: LucideLanguages,
+  layers: LucideLayers, 'layout-dashboard': LucideLayoutDashboard, 'layout-grid': LucideLayoutGrid, list: LucideList,
+  loader: LucideLoaderCircle, lock: LucideLock, 'log-out': LucideLogOut, mail: LucideMail, menu: LucideMenu,
+  'message-square': LucideMessageSquare, package: LucidePackage, paperclip: LucidePaperclip, pencil: LucidePencil, phone: LucidePhone,
+  plus: LucidePlus, printer: LucidePrinter, receipt: LucideReceipt, refresh: LucideRefreshCw, save: LucideSave, scale: LucideScale,
+  search: LucideSearch, send: LucideSend, settings: LucideSettings, 'settings-2': LucideSettings2, 'shield-check': LucideShieldCheck,
+  'shopping-cart': LucideShoppingCart, 'sliders-horizontal': LucideSlidersHorizontal, tags: LucideTags, trash: LucideTrash,
+  'alert-triangle': LucideTriangleExclamationPoint, truck: LucideTruck, undo: LucideUndo2, upload: LucideUpload, user: LucideUser,
+  'user-check': LucideUserCheck, users: LucideUsers, warehouse: LucideWarehouse, wallet: LucideWallet, x: LucideX,
+};

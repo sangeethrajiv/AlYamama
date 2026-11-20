@@ -1,0 +1,10 @@
+{
+  "name": "web-feature-contacts",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/features/contacts/src",
+  "prefix": "erp",
+  "projectType": "library",
+  "tags": ["scope:web", "type:feature"],
+  "// targets": "to see all targets run: nx show project web-feature-contacts --web",
+  "targets": {}
+}

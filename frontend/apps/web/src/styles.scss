@@ -1,0 +1,39 @@
+@use '@angular/material' as mat;
+@use '../../../libs/web/ui/src/styles' as ui;
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  @include mat.theme((
+    color: mat.$green-palette,
+    typography: ('DM Sans', sans-serif),
+    density: 0,
+  ));
+}
+
+:root { font-family: 'DM Sans', sans-serif; color: #202b3c; background: #f4f6f9; font-synthesis: none; text-rendering: optimizeLegibility; }
+html[dir='rtl'] body, html[dir='rtl'] :root { font-family: 'Noto Naskh Arabic', 'DM Sans', sans-serif; }
+body { margin: 0; min-width: 320px; background: #f1f5f9; }
+button { cursor: pointer; font: inherit; }
+button:disabled { cursor: not-allowed; opacity: 0.55; }
+:focus-visible { outline: 2px solid #208b50; outline-offset: 2px; border-radius: 6px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; }
+::selection { background: #bbf7d0; }
+table { font-variant-numeric: tabular-nums; }
+.page-fade { animation: pageFade 0.22s ease-out; }
+@keyframes pageFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+@media print {
+  aside, header, .no-print { display: none !important; }
+  /* While the invoice PDF dialog is open only the invoice sheet prints: hide the app and the overlay chrome around it. */
+  body:has(#invoice-sheet) erp-root { display: none !important; }
+  body:has(#invoice-sheet) .cdk-overlay-backdrop { display: none !important; }
+  body:has(#invoice-sheet) .cdk-overlay-container,
+  body:has(#invoice-sheet) .cdk-global-overlay-wrapper,
+  body:has(#invoice-sheet) .cdk-overlay-pane { position: static !important; display: block !important; overflow: visible !important; height: auto !important; max-height: none !important; width: auto !important; max-width: none !important; }
+  #invoice-sheet { max-width: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+}

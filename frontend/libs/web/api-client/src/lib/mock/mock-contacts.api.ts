@@ -1,0 +1,100 @@
+import { Injectable, inject } from '@angular/core';
+import { ApiError } from '../api/api-error';
+import { ContactsApi, type PartnerActivity } from '../api/contacts.api';
+import type { Contact, ContactLookups, PartnerDraft, ResPartner, ResUser } from '@erp/shared/contracts';
+import { newId } from '@erp/shared/utils';
+import { MockDb, copy } from './mock-db';
+
+/** display_name and commercial_partner_id are recomputed on every write, as the source system does. */
+function normalize(list: ResPartner[]): ResPartner[] {
+  const byId = new Map(list.map(x => [x.id, x]));
+  const commercial = (x: ResPartner): number => {
+    let cur = x;
+    for (let i = 0; i < 20 && !cur.is_company && cur.parent_id != null; i++) {
+      const up = byId.get(cur.parent_id);
+      if (!up) break;
+      cur = up;
+    }
+    return cur.id;
+  };
+  return list.map(x => {
+    const parent = !x.is_company && x.parent_id != null ? byId.get(x.parent_id) : undefined;
+    const display_name = parent ? `${parent.name}, ${x.name}` : x.name;
+    const commercial_partner_id = commercial(x);
+    return x.display_name === display_name && x.commercial_partner_id === commercial_partner_id ? x : { ...x, display_name, commercial_partner_id };
+  });
+}
+
+@Injectable()
+export class MockContactsApi extends ContactsApi {
+  private readonly db = inject(MockDb);
+
+  constructor() {
+    super();
+    this.db.partners = normalize(this.db.partners);
+  }
+
+  override async lookups(): Promise<ContactLookups> {
+    return this.db.lookups;
+  }
+
+  override async directory(): Promise<Contact[]> {
+    return copy(this.db.contacts);
+  }
+
+  override async saveContact(contact: Contact): Promise<Contact> {
+    const name = contact.name.trim();
+    if (!name) throw ApiError.validation([{ field: 'name', message: 'Name is required.' }]);
+    const dup = this.db.contacts.find(o => o.id !== contact.id && o.name.trim().toLowerCase() === name.toLowerCase());
+    if (dup) throw ApiError.businessRule('CONTACT_DUPLICATE_NAME', 'Duplicate contact', `A contact named "${dup.name}" already exists.`);
+    const stored: Contact = { ...copy(contact), name, id: contact.id || newId('ct') };
+    const exists = this.db.contacts.some(c => c.id === stored.id);
+    this.db.contacts = exists ? this.db.contacts.map(c => (c.id === stored.id ? stored : c)) : [stored, ...this.db.contacts];
+    this.db.touch();
+    return copy(stored);
+  }
+
+  override async archiveContact(id: string, active: boolean): Promise<void> {
+    this.db.contacts = this.db.contacts.map(c => (c.id === id ? { ...c, active } : c));
+    this.db.touch();
+  }
+
+  override async activity(): Promise<PartnerActivity> {
+    return { invoices: copy(this.db.accounting.invoices), bills: copy(this.db.accounting.bills) };
+  }
+
+  override async users(): Promise<ResUser[]> {
+    return copy(this.db.users);
+  }
+
+  override async saveUser(user: ResUser): Promise<ResUser> {
+    if (!user.name.trim()) throw ApiError.validation([{ field: 'name', message: 'Name is required.' }]);
+    if (!user.login.trim()) throw ApiError.validation([{ field: 'login', message: 'Login is required.' }]);
+    this.db.users = this.db.users.map(x => (x.id === user.id ? copy(user) : x));
+    this.db.touch();
+    return copy(user);
+  }
+
+  override async partners(): Promise<ResPartner[]> {
+    return copy(this.db.partners);
+  }
+
+  override async createPartner(draft: PartnerDraft): Promise<ResPartner> {
+    const id = this.db.partners.reduce((m, x) => Math.max(m, x.id), 0) + 1;
+    this.db.partners = normalize([{ ...copy(draft), id, display_name: '', commercial_partner_id: id }, ...this.db.partners]);
+    this.db.touch();
+    return copy(this.db.partners.find(x => x.id === id) as ResPartner);
+  }
+
+  override async updatePartner(id: number, draft: PartnerDraft): Promise<ResPartner> {
+    if (!this.db.partners.some(x => x.id === id)) throw ApiError.notFound('Contact');
+    this.db.partners = normalize(this.db.partners.map(x => (x.id === id ? { ...x, ...copy(draft) } : x)));
+    this.db.touch();
+    return copy(this.db.partners.find(x => x.id === id) as ResPartner);
+  }
+
+  override async setPartnerActive(id: number, active: boolean): Promise<void> {
+    this.db.partners = normalize(this.db.partners.map(x => (x.id === id ? { ...x, active } : x)));
+    this.db.touch();
+  }
+}

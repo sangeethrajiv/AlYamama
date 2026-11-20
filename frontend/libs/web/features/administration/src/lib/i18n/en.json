@@ -1,0 +1,104 @@
+{
+  "admin": {
+    "audit": {
+      "allTypes": "All record types",
+      "banner": "Regulatory Compliance & Immutability Enforced",
+      "bannerText": "Audit log entries cannot be modified or silently deleted by any user or automated job. Purges from cold storage require written Finance Director authorisation and generate an immutable audit record.",
+      "col": {
+        "field": "Field",
+        "new": "New value",
+        "notes": "Notes",
+        "old": "Old value",
+        "record": "Record",
+        "time": "Timestamp",
+        "user": "User"
+      },
+      "empty": "No audit entries match",
+      "export": "Export Audit Log (CSV)",
+      "filterType": "Filter by record type",
+      "retention": "Retention: 7 Years",
+      "subtitle": "Full compliance audit trail with before/after changes, user accountability, and 7-year regulatory retention policy.",
+      "title": "Audit Log & Activity History"
+    },
+    "settings": {
+      "companies": {
+        "cr": "Commercial Reg:",
+        "currency": "Base Currency:",
+        "enabled": "Enabled",
+        "subtitle": "Isolated accounting books per legal entity with automatic inter-company synchronization.",
+        "sync": "Inter-Company Sync:",
+        "tax": "Tax ID:",
+        "title": "Multi-Company Configuration"
+      },
+      "currencies": {
+        "code": "Currency Code",
+        "effective": "Effective Date",
+        "fetch": "Fetch Daily Rates",
+        "fetchNote": "Not available in this prototype: there is no exchange-rate provider connected.",
+        "name": "Currency Name",
+        "rate": "Rate to SAR",
+        "subtitle": "Monetary amounts are tracked in transaction currency and converted to base currency for financial reporting.",
+        "symbol": "Symbol",
+        "title": "Active Foreign Currencies & Exchange Rates"
+      },
+      "limits": {
+        "director": "Finance Director Approval Limit",
+        "directorText": "High-value documents of {{amount}} SR or more require director approval.",
+        "manager": "Accounts Manager Approval Limit",
+        "managerText": "Supplier bills of {{amount}} SR or more require manager approval.",
+        "subtitle": "Configured per company. Documents exceeding a threshold need approval before posting.",
+        "title": "Approval Thresholds"
+      },
+      "opening": {
+        "completed": "COMPLETED",
+        "cutoff": "Cut-off date: Dec 31, 2025. Trial Balance verified and confirmed.",
+        "reconciled": "Opening Balance Journal Reconciled",
+        "subtitle": "Opening balance migration and Trial Balance reconciliation report.",
+        "title": "Opening Balances"
+      },
+      "periods": {
+        "active": "Active Accounting Period",
+        "activeText": "Transactions and invoices can be posted freely",
+        "closing": "Period Closing Date",
+        "closingText": "Historical entries on or before this date are finalized",
+        "controls": "Automated Accounting Controls",
+        "controlsText": "All transactions, customer billing, and supplier payments validate against the active fiscal period. Closing dates advance periodically after month-end financial reviews.",
+        "denied": "Only the Accounts Manager or Finance Director can update the closing date.",
+        "entity": "Current Entity:",
+        "fiscalYear": "Fiscal Year",
+        "fiscalYearText": "Starts January 01 • Ends December 31",
+        "open": "OPEN",
+        "title": "Fiscal Year & Accounting Period",
+        "update": "Update Accounting Period",
+        "year": "Year"
+      },
+      "subtitle": "Manage accounting periods, legal entities, foreign currency rates, and approval limits.",
+      "title": "Settings & Configuration",
+      "wizard": {
+        "checklist": "Period-close checklist",
+        "current": "Current hard lock date: {{date}}",
+        "done": "Lock date advanced.",
+        "err": {
+          "checklist": "All items in the period-close checklist must be verified before locking."
+        },
+        "execute": "Close period & advance lock date",
+        "newDate": "New closing date",
+        "subtitle": "Confirm every check before the lock date advances.",
+        "title": "Close accounting period",
+        "check": {
+          "entriesPosted": "All journal entries for the period are posted",
+          "unreconciled": "Unreconciled bank and payment items reviewed",
+          "tbBalanced": "Trial balance is balanced",
+          "retainedEarnings": "Retained earnings carried forward"
+        }
+      },
+      "tab": {
+        "periods": "Fiscal Periods",
+        "companies": "Multi-Company",
+        "currencies": "Currencies & Rates",
+        "thresholds": "Approval Limits",
+        "migration": "Opening Balances"
+      }
+    }
+  }
+}

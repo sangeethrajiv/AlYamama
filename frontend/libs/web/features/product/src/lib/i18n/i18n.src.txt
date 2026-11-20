@@ -1,0 +1,313 @@
+# Product master data: overview, products, product categories, units of measure and UoM categories.
+# Source for en.json / ar.json (run `npm run i18n`). Format: key = English | Arabic
+
+# ---- breadcrumb / common ----
+product.crumb.root = Product
+product.crumb.masterData = Master Data
+product.crumb.dashboard = Dashboard
+product.crumb.new = New
+product.crumb.edit = Edit
+product.ok = OK
+product.root = Root
+product.archivedTag = archived
+
+# ---- models ----
+product.e.products.title = Products
+product.e.products.singular = Product
+product.e.products.subtitle = Items you stock, buy, sell and service.
+product.e.products.search = Search name, reference, barcode…
+product.e.categories.title = Product Categories
+product.e.categories.singular = Category
+product.e.categories.subtitle = Hierarchy used to group products.
+product.e.categories.search = Search name, short code…
+product.e.uoms.title = Units of Measure
+product.e.uoms.singular = Unit of Measure
+product.e.uoms.subtitle = Units used for stock, purchase and sales quantities.
+product.e.uoms.search = Search unit or display name…
+product.e.uomCategories.title = UoM Categories
+product.e.uomCategories.singular = UoM Category
+product.e.uomCategories.subtitle = Groups of units that can be converted into each other.
+product.e.uomCategories.search = Search UoM categories…
+
+# ---- sections ----
+product.s.basic = Product
+product.s.general = General Information
+product.s.units = Units & Tracking
+product.s.sales = Sales & Purchase
+product.s.notes = Notes
+
+# ---- option lists ----
+product.o.type.product = Storable Product
+product.o.type.consu = Consumable
+product.o.type.service = Service
+product.o.typeShort.product = Storable
+product.o.typeShort.consu = Consumable
+product.o.typeShort.service = Service
+product.o.tracking.none = No Tracking
+product.o.tracking.lot = By Lots
+product.o.tracking.serial = By Unique Serial Number
+product.o.internal.material = Material
+product.o.internal.labour = Labour
+product.o.internal.overhead = Overhead
+product.o.measure.unit = Units
+product.o.measure.weight = Weight
+product.o.measure.time = Time
+product.o.measure.length = Length
+product.o.measure.volume = Volume
+product.o.uomType.reference = Reference Unit of Measure for this category
+product.o.uomType.bigger = Bigger than the reference Unit of Measure
+product.o.uomType.smaller = Smaller than the reference Unit of Measure
+product.o.uomTypeShort.reference = Reference
+product.o.uomTypeShort.bigger = Bigger
+product.o.uomTypeShort.smaller = Smaller
+product.o.uomTypeFilter.reference = Reference unit
+product.o.uomTypeFilter.bigger = Bigger than reference
+product.o.uomTypeFilter.smaller = Smaller than reference
+product.o.yes = Yes
+product.o.no = No
+product.o.rootOnly = Root categories only
+product.o.withProducts = With products
+product.o.withoutProducts = Without products
+product.o.oneReference = 1 (reference)
+
+# ---- field labels: product.f.<model>.<odoo field>; *_col is the list column header ----
+product.f.active = Active
+product.f.products.name = Product Name
+product.f.products.name_col = Name
+product.f.products.default_code = Product Code
+product.f.products.default_code_col = Product Code
+product.f.products.barcode = Barcode
+product.f.products.internal_short_code = Internal Ref
+product.f.products.product_genre = Product Genre
+product.f.products.is_teltonika = Is Teltonika Product
+product.f.products.is_vehicle_subscription = Is Vehicle Subscription Product
+product.f.products.taxes_id = Customer Taxes
+product.f.products.type = Product Type
+product.f.products.type_col = Product Type
+product.f.products.categ_id = Product Category
+product.f.products.categ_id_col = Product Category
+product.f.products.internal_type = Internal Type
+product.f.products.company_id = Company
+product.f.products.responsible_id = Responsible
+product.f.products.uom_id = Unit of Measure
+product.f.products.uom_id_col = Unit of Measure
+product.f.products.uom_po_id = Purchase Unit of Measure
+product.f.products.tracking = Tracking
+product.f.products.weight = Weight
+product.f.products.volume = Volume
+product.f.products.qty_available = Quantity On Hand
+product.f.products.qty_available_col = Quantity On Hand
+product.f.products.virtual_available_col = Forecasted Quantity
+product.f.products.virtual_available = Forecasted Quantity
+product.f.products.sale_ok = Can be Sold
+product.f.products.purchase_ok = Can be Purchased
+product.f.products.no_discount = No Discount
+product.f.products.list_price = Sales Price
+product.f.products.list_price_col = Sales Price
+product.f.products.standard_price = Cost
+product.f.products.standard_price_col = Cost
+product.f.products.margin_perc = Margin(%)
+product.f.products.description_sale = Sales Description
+product.f.products.description_purchase = Purchase Description
+product.f.categories.name = Category Name
+product.f.categories.name_col = Category
+product.f.categories.parent_id = Parent Category
+product.f.categories.parent_id_col = Parent
+product.f.categories.sequence_code = Short Code
+product.f.categories.child_id = Sub-categories
+product.f.categories.product_count = Product Count
+product.f.categories.product_count_col = Products
+product.f.categories.complete_name = Complete Name
+product.f.uomCategories.name = Category Name
+product.f.uomCategories.name_col = Category
+product.f.uomCategories.measure_type = Type of Measure
+product.f.uomCategories.reference = Reference Unit
+product.f.uomCategories.uoms = Units
+product.f.uoms.name = Unit of Measure
+product.f.uoms.name_col = Unit
+product.f.uoms.category_id = Category
+product.f.uoms.uom_type = Type
+product.f.uoms.ratio_col = Ratio
+product.f.uoms.factor = Ratio
+product.f.uoms.factor_inv = Bigger Ratio
+product.f.uoms.ratio_ref = Ratio
+product.f.uoms.rounding = Rounding Precision
+product.f.uoms.rounding_col = Rounding
+product.f.uoms.view_name = Display Name
+product.f.uoms.measure_type = Type of Measure
+product.f.uoms.used = Products
+
+# ---- form labels that carry a unit ----
+product.fu.products.weight = Weight (kg)
+product.fu.products.volume = Volume (m³)
+product.fu.products.list_price = Sales Price
+product.fu.products.standard_price = Cost
+product.fu.products.margin_perc = Margin(%)
+
+# ---- list filter labels ----
+product.fl.products.type = Type
+product.fl.products.categ_id = Category
+product.fl.products.tracking = Tracking
+product.fl.products.internal_type = Internal Type
+product.fl.products.sale_ok = Can be Sold
+product.fl.products.purchase_ok = Can be Purchased
+product.fl.products.company_id = Company
+product.fl.products.responsible_id = Responsible
+product.fl.categories.parent = Parent
+product.fl.categories.has_products = Products
+product.fl.uomCategories.measure_type = Type of Measure
+product.fl.uoms.category_id = Category
+product.fl.uoms.uom_type = Type
+
+# ---- field help text ----
+product.h.products.type = Storable: stock is managed. Consumable: no stock tracking. Service: not physical.
+product.h.products.active = Uncheck to archive the product.
+product.h.products.uom_id = Default unit for stock and sales.
+product.h.products.uom_po_id = Must be in the same category as the Unit of Measure.
+product.h.products.tracking = Only storable products can be tracked by lot or serial number.
+product.h.products.no_discount = Customer discounts are not applied to this product.
+product.h.categories.active = Odoo 12 has no active flag on categories; archive is UI-only here.
+product.h.uomCategories.active = Odoo 12 has no active flag on UoM categories; archive is UI-only here.
+product.h.uoms.factor = How many of this unit make up 1 reference unit (e.g. 1 kg = 1000 g).
+product.h.uoms.factor_inv = How many reference units make up 1 of this unit (e.g. 1 t = 1000 kg).
+product.h.uoms.rounding = Quantities are rounded to a multiple of this value.
+product.h.uoms.view_name = Short name shown on documents.
+product.h.uoms.active = Uncheck to disable this unit without deleting it.
+
+# ---- placeholders ----
+product.ph.productName = Product Name
+product.ph.reference = e.g. HH1-050
+
+# ---- validation ----
+product.v.maxLength = Must be at most {{max}} characters.
+product.v.dupReference = Another product already uses this internal reference.
+product.v.dupBarcode = This barcode is already assigned to another product.
+product.v.uomCategory = Purchase unit must be in the same category as the Unit of Measure.
+product.v.trackStorable = Only storable products can be tracked.
+product.v.catCycle = A category cannot be its own parent or a descendant of itself.
+product.v.catDup = A category with this name already exists under the same parent.
+product.v.ucDup = A UoM category with this name already exists.
+product.v.ratioPositive = Ratio must be greater than 0.
+product.v.biggerPositive = Bigger ratio must be greater than 0.
+product.v.roundingPositive = Rounding precision must be greater than 0.
+product.v.oneReference = Category already has the reference unit "{{name}}". Only one reference unit is allowed.
+product.v.noReference = This category has no reference unit yet. Create the reference unit first.
+product.v.keepReference = A category must keep exactly one reference unit.
+product.v.uomDup = This category already has a unit with this name.
+
+# ---- stats on the detail screen ----
+product.stat.salesPrice = Sales Price (SAR)
+product.stat.canSell = Can be sold
+product.stat.notForSale = Not for sale
+product.stat.cost = Cost (SAR)
+product.stat.margin = Margin {{n}}%
+product.stat.onHand = On Hand
+product.stat.fromMoves = Computed from stock moves
+product.stat.notStock = Not stock-managed
+product.stat.forecast = Forecasted
+product.stat.forecastHint = On hand + incoming − outgoing
+product.stat.productsDirect = Products (direct)
+product.stat.productsAll = Products (incl. sub-categories)
+product.stat.subCategories = Sub-categories
+product.stat.units = Units of measure
+product.stat.referenceUnit = Reference unit
+product.stat.category = Category
+product.stat.type = Type
+product.stat.usedBy = Used by products
+
+# ---- related records ----
+product.rel.products = Products
+product.rel.subCategories = Sub-categories
+product.rel.uoms = Units of Measure
+product.rel.productsUsing = Products using this unit
+
+# ---- list ----
+product.l.new = New {{what}}
+product.l.filters = Filters
+product.l.all = All
+product.l.allRecords = All
+product.l.active = Active
+product.l.archived = Archived
+product.l.status = Status
+product.l.actions = Actions
+product.l.results = {{n}} result(s)
+product.l.clear = Clear search & filters
+product.l.clearSearch = Clear search
+product.l.rows = Rows
+product.l.emptyMatch = No {{what}} match your search
+product.l.emptyTry = Try different keywords or clear the filters.
+product.l.emptyArchived = No archived {{what}}
+product.l.emptyNone = No {{what}} yet
+
+# ---- actions, confirmations, messages ----
+product.act.view = View
+product.act.edit = Edit
+product.act.archive = Archive
+product.act.restore = Restore
+product.act.delete = Delete
+product.confirm.archiveTitle = Archive {{what}}?
+product.confirm.archiveMsg = "{{name}}" will be hidden from selection lists and default views. You can restore it any time from the Archived filter.
+product.confirm.deleteTitle = Delete {{what}}?
+product.confirm.deleteMsg = "{{name}}" will be permanently deleted. This cannot be undone. Archive it instead if you only want to hide it.
+product.blocked.archive = Cannot archive {{what}}
+product.blocked.delete = Cannot delete {{what}}
+product.toast.created = {{what}} "{{name}}" created.
+product.toast.saved = {{what}} "{{name}}" saved.
+product.toast.archived = {{what}} "{{name}}" archived.
+product.toast.restored = {{what}} "{{name}}" restored.
+product.toast.deleted = {{what}} "{{name}}" deleted.
+product.block.catProducts = {{n}} active product(s) use this category. Move or archive them first.
+product.block.catKids = {{n}} active sub-category(ies) exist under this category.
+product.block.ucUnits = {{n}} active unit(s) of measure belong to this category. Archive them first.
+product.block.uomProducts = {{n}} active product(s) use this unit of measure.
+product.block.uomReference = This is the reference unit of its category and other active units depend on it.
+product.block.prodStock = This product has {{n}} units on hand and stock history. Archive it instead.
+product.block.catDelProducts = {{n}} product(s) use this category.
+product.block.catDelKids = This category has {{n}} sub-category(ies).
+product.block.ucDelUnits = This category contains {{n}} unit(s) of measure.
+product.block.uomDelProducts = {{n}} product(s) use this unit of measure.
+
+# ---- detail ----
+product.d.notFound = {{what}} not found
+product.d.notFoundHint = It may have been deleted.
+product.d.backTo = Back to {{what}}
+product.d.archivedBanner = This {{what}} is archived and hidden from selection lists. Restore it to use it again.
+product.d.nothing = Nothing here yet.
+product.d.showingFirst = Showing first {{n}} of {{total}}.
+
+# ---- form ----
+product.f.backToRecord = Back to record
+product.f.cancel = Cancel
+product.f.create = Create
+product.f.saveChanges = Save changes
+product.f.edit = Edit {{name}}
+product.f.fixFields = Please fix the highlighted fields.
+
+# ---- overview ----
+product.ov.title = Product Overview
+product.ov.subtitle = Product master data at a glance. All data on this screen is local mock data.
+product.ov.newProduct = New Product
+product.ov.kpiProducts = Active products
+product.ov.kpiCategories = Product categories
+product.ov.kpiUoms = Units of measure
+product.ov.kpiUomCats = UoM categories
+product.ov.nArchived = {{n}} archived
+product.ov.nRoot = {{n}} root
+product.ov.nCategories = {{n}} categories
+product.ov.uomCatsHint = Weight, length, volume…
+product.ov.byType = Products by type
+product.ov.activeProducts = {{n}} active products
+product.ov.byTracking = Tracking of storable products
+product.ov.trackingHint = Lot / serial traceability
+product.ov.topCats = Largest categories
+product.ov.topCatsHint = Active products per category
+product.ov.attention = Needs attention
+product.ov.attentionHint = Quick data-quality checks on active products
+product.ov.allGood = All good
+product.ov.more = +{{n}} more
+product.ov.noReference = Products without an internal reference
+product.ov.noTracking = Storable products without lot or serial tracking
+product.ov.outOfStock = Storable products out of stock
+product.ov.stock = Stock snapshot
+product.ov.stockHint = Computed from on-hand quantities × cost
+product.ov.stockDetail = Estimated value of {{units}} units across {{n}} storable products.

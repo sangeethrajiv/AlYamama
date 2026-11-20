@@ -1,0 +1,69 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2022",
+    "module": "esnext",
+    "lib": [
+      "es2022",
+      "dom"
+    ],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@erp/web/core": [
+        "./libs/web/core/src/index.ts"
+      ],
+      "@erp/web/ui": [
+        "./libs/web/ui/src/index.ts"
+      ],
+      "@erp/web/metadata-forms": [
+        "./libs/web/metadata-forms/src/index.ts"
+      ],
+      "@erp/web/api-client": [
+        "./libs/web/api-client/src/index.ts"
+      ],
+      "@erp/web/features/accounting": [
+        "./libs/web/features/accounting/src/index.ts"
+      ],
+      "@erp/web/features/contacts": [
+        "./libs/web/features/contacts/src/index.ts"
+      ],
+      "@erp/web/features/product": [
+        "./libs/web/features/product/src/index.ts"
+      ],
+      "@erp/web/features/reports": [
+        "./libs/web/features/reports/src/index.ts"
+      ],
+      "@erp/web/features/administration": [
+        "./libs/web/features/administration/src/index.ts"
+      ],
+      "@erp/web/features/dashboard": [
+        "./libs/web/features/dashboard/src/index.ts"
+      ],
+      "@erp/shared/contracts": [
+        "./libs/shared/contracts/src/index.ts"
+      ],
+      "@erp/shared/utils": [
+        "./libs/shared/utils/src/index.ts"
+      ]
+    },
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
+}

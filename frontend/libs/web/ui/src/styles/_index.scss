@@ -1,0 +1,37 @@
+/* Design-system classes shared by every feature. Imported once by the app stylesheet. */
+@layer components {
+  .erp-input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 placeholder-slate-400 transition focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/25 disabled:bg-slate-100 disabled:text-slate-500; }
+  .erp-input-sm { @apply py-1.5; }
+  .erp-btn { @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-3.5 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50; }
+  .erp-btn-primary { @apply erp-btn bg-emerald-600 text-white hover:bg-emerald-700; }
+  .erp-btn-ghost { @apply erp-btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50; }
+  .erp-btn-danger { @apply erp-btn border border-rose-200 bg-white text-rose-700 hover:bg-rose-50; }
+  .erp-btn-danger-solid { @apply erp-btn bg-rose-600 text-white hover:bg-rose-700; }
+  .erp-btn-sm { @apply h-7 px-2.5 text-[11px]; }
+  .erp-card { @apply rounded-xl border border-slate-200 bg-white shadow-sm; }
+  .erp-th { @apply bg-slate-50 px-3 py-2.5 text-start text-[10px] font-bold uppercase tracking-wider text-slate-500; }
+  .erp-td { @apply px-3 py-2.5 text-xs text-slate-600; }
+  .erp-chip { @apply inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600; }
+  .erp-link { @apply font-semibold text-emerald-700 hover:underline; }
+}
+.erp-panel { background: #f8fafc; box-shadow: 0 20px 50px rgb(15 23 42 / 0.25); outline: none; }
+.erp-panel-drawer { height: 100vh; max-width: 100vw; }
+.erp-panel-drawer.erp-panel-normal { width: min(760px, 100vw); }
+.erp-panel-drawer.erp-panel-wide { width: min(1100px, 100vw); }
+.erp-panel-modal { border-radius: 14px; overflow: hidden; max-height: 90vh; max-width: calc(100vw - 24px); }
+.erp-panel-modal.erp-panel-normal { width: min(460px, 100vw); }
+.erp-panel-modal.erp-panel-wide { width: min(820px, 100vw); }
+.erp-backdrop { background: rgb(15 23 42 / 0.5); backdrop-filter: blur(2px); }
+.erp-toast-success .mdc-snackbar__surface { background: #047857 !important; }
+.erp-toast-error .mdc-snackbar__surface { background: #be123c !important; }
+.erp-toast-info .mdc-snackbar__surface { background: #334155 !important; }
+[dir='rtl'] .rtl-flip { transform: scaleX(-1); }
+@layer components {
+  .erp-table { @apply w-full text-xs; }
+  .erp-table thead { @apply bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500; }
+  .erp-table tbody { @apply divide-y divide-slate-100; }
+  .erp-table th { @apply px-3 py-2.5 text-start font-bold; }
+  .erp-table td { @apply px-3 py-2.5 text-slate-600; }
+  .erp-table tbody tr:hover { @apply bg-slate-50/60; }
+  .erp-num { @apply text-end tabular-nums; }
+}

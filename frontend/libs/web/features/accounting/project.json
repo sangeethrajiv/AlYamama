@@ -1,0 +1,10 @@
+{
+  "name": "web-feature-accounting",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/features/accounting/src",
+  "prefix": "erp",
+  "projectType": "library",
+  "tags": ["scope:web", "type:feature"],
+  "// targets": "to see all targets run: nx show project web-feature-accounting --web",
+  "targets": {}
+}
