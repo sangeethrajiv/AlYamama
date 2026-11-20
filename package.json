@@ -3,14 +3,17 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "postinstall": "npm --prefix frontend install",
-    "start": "npm --prefix frontend start",
-    "build": "npm --prefix frontend run build",
-    "test": "npm --prefix frontend test",
-    "lint": "npm --prefix frontend run lint",
+    "postinstall": "cd frontend && npm install --include=dev",
+    "start": "cd frontend && npx nx serve web",
+    "build": "cd frontend && npm install --include=dev && npx nx build web",
+    "test": "cd frontend && npx nx run-many -t test",
+    "lint": "cd frontend && npx nx run-many -t lint",
     "i18n": "npm --prefix frontend run i18n",
     "push": "./push.sh",
     "live": "./push.sh",
     "push:live": "./push.sh"
+  },
+  "devDependencies": {
+    "nx": "24.0.6"
   }
 }
