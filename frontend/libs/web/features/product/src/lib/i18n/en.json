@@ -37,6 +37,7 @@
       }
     },
     "s": {
+      "basic": "Product",
       "general": "General Information",
       "units": "Units & Tracking",
       "sales": "Sales & Purchase",
@@ -96,27 +97,32 @@
       "active": "Active",
       "products": {
         "name": "Product Name",
-        "name_col": "Product",
-        "default_code": "Internal Reference",
-        "default_code_col": "Reference",
+        "name_col": "Name",
+        "default_code": "Product Code",
+        "default_code_col": "Product Code",
         "barcode": "Barcode",
         "arabic_name": "Arabic Name",
-        "internal_short_code": "Internal Short Code",
+        "internal_short_code": "Internal Ref",
+        "product_genre": "Product Genre",
+        "is_teltonika": "Is Teltonika Product",
+        "is_vehicle_subscription": "Is Vehicle Subscription Product",
+        "taxes_id": "Customer Taxes",
         "type": "Product Type",
-        "type_col": "Type",
+        "type_col": "Product Type",
         "categ_id": "Product Category",
-        "categ_id_col": "Category",
+        "categ_id_col": "Product Category",
         "internal_type": "Internal Type",
         "company_id": "Company",
         "responsible_id": "Responsible",
         "uom_id": "Unit of Measure",
-        "uom_id_col": "UoM",
+        "uom_id_col": "Unit of Measure",
         "uom_po_id": "Purchase Unit of Measure",
         "tracking": "Tracking",
         "weight": "Weight",
         "volume": "Volume",
         "qty_available": "Quantity On Hand",
-        "qty_available_col": "On Hand",
+        "qty_available_col": "Quantity On Hand",
+        "virtual_available_col": "Forecasted Quantity",
         "virtual_available": "Forecasted Quantity",
         "sale_ok": "Can be Sold",
         "purchase_ok": "Can be Purchased",
@@ -125,7 +131,7 @@
         "list_price_col": "Sales Price",
         "standard_price": "Cost",
         "standard_price_col": "Cost",
-        "margin_perc": "Margin (%)",
+        "margin_perc": "Margin(%)",
         "description_sale": "Sales Description",
         "description_purchase": "Purchase Description"
       },
@@ -174,9 +180,9 @@
       "products": {
         "weight": "Weight (kg)",
         "volume": "Volume (m³)",
-        "list_price": "Sales Price (SAR)",
-        "standard_price": "Cost (SAR)",
-        "margin_perc": "Margin (%)"
+        "list_price": "Sales Price",
+        "standard_price": "Cost",
+        "margin_perc": "Margin(%)"
       }
     },
     "fl": {
@@ -226,9 +232,9 @@
       }
     },
     "ph": {
-      "productName": "e.g. Hydraulic Hose 1SN 1/2\"",
+      "productName": "Product Name",
       "reference": "e.g. HH1-050",
-      "arabicName": "Arabic name"
+      "arabicName": "Arabic Name"
     },
     "v": {
       "maxLength": "Must be at most {{max}} characters.",

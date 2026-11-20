@@ -10,7 +10,7 @@ export type Tr = (key: string, params?: Record<string, unknown>) => string;
 /** What every config callback may need: the current data and translation. */
 export interface Ctx { s: ProductState; tr: Tr }
 
-export type RelKey = ProductEntityKey | 'companies' | 'users';
+export type RelKey = ProductEntityKey | 'companies' | 'users' | 'taxes';
 export type PillTone = 'slate' | 'green' | 'amber' | 'red' | 'blue';
 /** Option whose label is a translation key. */
 export interface Opt { value: string; labelKey: string }

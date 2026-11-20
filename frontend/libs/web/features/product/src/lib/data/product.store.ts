@@ -4,7 +4,7 @@ import { I18n } from '@erp/web/ui';
 import type { ProductState } from '@erp/shared/contracts';
 import type { Ctx } from '../models/product-types';
 
-const EMPTY: ProductState = { uom_categories: [], uoms: [], categories: [], products: [], companies: [], users: [] };
+const EMPTY: ProductState = { uom_categories: [], uoms: [], categories: [], products: [], companies: [], users: [], taxes: [] };
 
 /** Feature-local state: the product master-data snapshot, refreshed whenever data changes. */
 @Injectable({ providedIn: 'root' })

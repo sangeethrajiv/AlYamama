@@ -19,18 +19,10 @@ libs/web/features/*           accounting, contacts, product, reports, administra
 
 Module boundaries are enforced by `@nx/enforce-module-boundaries` (see `eslint.config.mjs`); features cannot import each other.
 
-## Location
-
-This workspace lives in the `frontend/` folder of the repository (branch `frontend`); the Nx workspace root is this folder. Run every command below from here:
-
-```sh
-cd frontend
-```
-
 ## Commands
 
 ```sh
-npm ci                 # clean install from package-lock.json (.npmrc sets legacy-peer-deps)
+npm install            # .npmrc sets legacy-peer-deps
 npm start              # dev server on http://localhost:4200
 npx nx build web       # production build
 npx nx run-many -t lint test

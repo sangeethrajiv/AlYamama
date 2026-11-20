@@ -45,6 +45,7 @@ export function relLabel(s: ProductState, rel: RelKey, id: ID | null | undefined
     case 'uomCategories': return s.uom_categories.find(x => x.id === id)?.name ?? '';
     case 'companies': return s.companies.find(x => x.id === id)?.name ?? '';
     case 'users': return s.users.find(x => x.id === id)?.name ?? '';
+    case 'taxes': return s.taxes.find(x => x.id === id)?.name ?? '';
   }
 }
 

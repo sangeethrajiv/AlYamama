@@ -30,6 +30,7 @@ product.e.uomCategories.subtitle = Groups of units that can be converted into ea
 product.e.uomCategories.search = Search UoM categories… | بحث في فئات وحدات القياس…
 
 # ---- sections ----
+product.s.basic = Product | المنتج
 product.s.general = General Information | معلومات عامة
 product.s.units = Units & Tracking | الوحدات والتتبع
 product.s.sales = Sales & Purchase | المبيعات والمشتريات
@@ -72,27 +73,32 @@ product.o.oneReference = 1 (reference) | 1 (مرجعية)
 # ---- field labels: product.f.<model>.<odoo field>; *_col is the list column header ----
 product.f.active = Active | نشط
 product.f.products.name = Product Name | اسم المنتج
-product.f.products.name_col = Product | المنتج
-product.f.products.default_code = Internal Reference | المرجع الداخلي
-product.f.products.default_code_col = Reference | المرجع
+product.f.products.name_col = Name | الاسم
+product.f.products.default_code = Product Code | رمز المنتج
+product.f.products.default_code_col = Product Code | رمز المنتج
 product.f.products.barcode = Barcode | الباركود
 product.f.products.arabic_name = Arabic Name | الاسم العربي
-product.f.products.internal_short_code = Internal Short Code | الرمز الداخلي المختصر
+product.f.products.internal_short_code = Internal Ref | المرجع الداخلي
+product.f.products.product_genre = Product Genre | نوع الصنف
+product.f.products.is_teltonika = Is Teltonika Product | منتج تيلتونيكا
+product.f.products.is_vehicle_subscription = Is Vehicle Subscription Product | منتج اشتراك مركبات
+product.f.products.taxes_id = Customer Taxes | ضرائب العملاء
 product.f.products.type = Product Type | نوع المنتج
-product.f.products.type_col = Type | النوع
+product.f.products.type_col = Product Type | نوع المنتج
 product.f.products.categ_id = Product Category | فئة المنتج
-product.f.products.categ_id_col = Category | الفئة
+product.f.products.categ_id_col = Product Category | فئة المنتج
 product.f.products.internal_type = Internal Type | النوع الداخلي
 product.f.products.company_id = Company | الشركة
 product.f.products.responsible_id = Responsible | المسؤول
 product.f.products.uom_id = Unit of Measure | وحدة القياس
-product.f.products.uom_id_col = UoM | الوحدة
+product.f.products.uom_id_col = Unit of Measure | وحدة القياس
 product.f.products.uom_po_id = Purchase Unit of Measure | وحدة قياس الشراء
 product.f.products.tracking = Tracking | التتبع
 product.f.products.weight = Weight | الوزن
 product.f.products.volume = Volume | الحجم
 product.f.products.qty_available = Quantity On Hand | الكمية المتوفرة
-product.f.products.qty_available_col = On Hand | المتوفر
+product.f.products.qty_available_col = Quantity On Hand | الكمية المتوفرة
+product.f.products.virtual_available_col = Forecasted Quantity | الكمية المتوقعة
 product.f.products.virtual_available = Forecasted Quantity | الكمية المتوقعة
 product.f.products.sale_ok = Can be Sold | يمكن بيعه
 product.f.products.purchase_ok = Can be Purchased | يمكن شراؤه
@@ -101,7 +107,7 @@ product.f.products.list_price = Sales Price | سعر البيع
 product.f.products.list_price_col = Sales Price | سعر البيع
 product.f.products.standard_price = Cost | التكلفة
 product.f.products.standard_price_col = Cost | التكلفة
-product.f.products.margin_perc = Margin (%) | الهامش (%)
+product.f.products.margin_perc = Margin(%) | الهامش(%)
 product.f.products.description_sale = Sales Description | وصف المبيعات
 product.f.products.description_purchase = Purchase Description | وصف المشتريات
 product.f.categories.name = Category Name | اسم الفئة
@@ -136,9 +142,9 @@ product.f.uoms.used = Products | المنتجات
 # ---- form labels that carry a unit ----
 product.fu.products.weight = Weight (kg) | الوزن (كجم)
 product.fu.products.volume = Volume (m³) | الحجم (م³)
-product.fu.products.list_price = Sales Price (SAR) | سعر البيع (ر.س)
-product.fu.products.standard_price = Cost (SAR) | التكلفة (ر.س)
-product.fu.products.margin_perc = Margin (%) | الهامش (%)
+product.fu.products.list_price = Sales Price | سعر البيع
+product.fu.products.standard_price = Cost | التكلفة
+product.fu.products.margin_perc = Margin(%) | الهامش(%)
 
 # ---- list filter labels ----
 product.fl.products.type = Type | النوع
@@ -171,9 +177,9 @@ product.h.uoms.view_name = Short name shown on documents. | اسم مختصر ي
 product.h.uoms.active = Uncheck to disable this unit without deleting it. | ألغِ التحديد لتعطيل هذه الوحدة دون حذفها.
 
 # ---- placeholders ----
-product.ph.productName = e.g. Hydraulic Hose 1SN 1/2" | مثال: خرطوم هيدروليكي 1SN 1/2"
+product.ph.productName = Product Name | اسم المنتج
 product.ph.reference = e.g. HH1-050 | مثال: HH1-050
-product.ph.arabicName = Arabic name | الاسم بالعربية
+product.ph.arabicName = Arabic Name | الاسم العربي
 
 # ---- validation ----
 product.v.maxLength = Must be at most {{max}} characters. | يجب ألا يزيد عن {{max}} حرفًا.

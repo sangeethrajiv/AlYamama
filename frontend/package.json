@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "push": "bash ../push.sh",
+    "live": "bash ../push.sh",
+    "push:live": "bash ../push.sh",
     "i18n": "node tools/gen-i18n.mjs",
     "start": "nx serve web",
     "build": "nx build web",

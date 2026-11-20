@@ -42,6 +42,10 @@ export interface Product {
   internal_type: 'material' | 'labour' | 'overhead' | ''
   margin_perc: number
   no_discount: boolean
+  product_genre: string
+  is_teltonika: boolean
+  is_vehicle_subscription: boolean
+  taxes_id: ID | null
   qty_available: number
   virtual_available: number
 }
@@ -52,4 +56,5 @@ export interface ProductState {
   products: Product[]
   companies: { id: ID; name: string }[]
   users: { id: ID; name: string }[]
+  taxes: { id: ID; name: string; active: boolean }[]
 }

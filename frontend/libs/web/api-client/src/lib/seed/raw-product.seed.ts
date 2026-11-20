@@ -25,6 +25,11 @@ export function seedProducts(): ProductState {
     { id: 8, name: 'Omar Nasser' },
     { id: 9, name: 'Fatima Zahra' },
   ]
+  const taxes = [
+    { id: 1, name: 'VAT 15% (Sales)', active: true },
+    { id: 2, name: 'VAT 0% (Zero-rated)', active: true },
+    { id: 3, name: 'VAT Exempt', active: true },
+  ]
 
   // ---- UoM categories & UoMs ----
   const uom_categories: UomCategory[] = [
@@ -109,7 +114,7 @@ export function seedProducts(): ProductState {
       description_sale: p.sdesc ?? '', description_purchase: p.pdesc ?? '',
       arabic_name: p.ar, internal_short_code: p.short ?? p.code.replace(/[^A-Z0-9]/g, '').slice(0, 6),
       internal_type: p.internal ?? (type === 'service' ? 'labour' : 'material'), margin_perc: p.margin ?? 20,
-      no_discount: p.nodisc ?? false, qty_available: qty,
+      no_discount: p.nodisc ?? false, product_genre: '', is_teltonika: false, is_vehicle_subscription: false, taxes_id: 1, qty_available: qty,
       virtual_available: stored ? Math.max(0, qty + ((id % 5) - 2) * 3) : 0,
     })
   }
@@ -176,5 +181,5 @@ export function seedProducts(): ProductState {
   addProduct({ name: 'Hydraulic Hose 1SN 2" (discontinued)', ar: 'خرطوم هيدروليكي 1SN 2 بوصة (متوقف)', code: 'HH1-200', cat: 'Hydraulic Hoses', uom: 'm', price: 140, cost: 98, active: false, stock: 0 })
   addProduct({ name: 'Legacy Gear Pump 12cc', ar: 'مضخة ترسية قديمة 12 سم³', code: 'GRP-012', cat: 'Gear Pumps', uom: 'Unit(s)', price: 520, cost: 400, active: false, stock: 0 })
 
-  return { uom_categories, uoms, categories, products, companies, users }
+  return { uom_categories, uoms, categories, products, companies, users, taxes }
 }

@@ -13,6 +13,8 @@ export type ID = number;
 export interface ProductCompany { id: ID; name: string }
 /** res.users (id + name only) */
 export interface ProductUser { id: ID; name: string }
+/** account.tax (id + name only), used for Customer Taxes */
+export interface ProductTax { id: ID; name: string; active: boolean }
 
 // ---- uom ----
 export type MeasureType = 'unit' | 'weight' | 'time' | 'length' | 'volume';
@@ -80,6 +82,11 @@ export interface Product {
   internal_type: InternalType;
   margin_perc: Decimal;
   no_discount: boolean;
+  product_genre: string;
+  is_teltonika: boolean;
+  is_vehicle_subscription: boolean;
+  /** Customer tax (account.tax id), or null. */
+  taxes_id: ID | null;
   // computed by stock in Odoo (read-only in the UI; stored in the mock data only)
   qty_available: Decimal;
   virtual_available: Decimal;
@@ -93,6 +100,7 @@ export interface ProductState {
   products: Product[];
   companies: ProductCompany[];
   users: ProductUser[];
+  taxes: ProductTax[];
 }
 
 /** The four managed models. */

@@ -1,25 +1,12 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, inject, output, resource, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, output, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { SystemApi } from '@erp/web/api-client';
-import { DialogService, IconComponent } from '@erp/web/ui';
-import type { UserRole } from '@erp/shared/contracts';
+import { IconComponent } from '@erp/web/ui';
 import { AuthService } from '../auth/auth.service';
 import { CompanyContext } from '../company/company-context.service';
-import { LanguageService } from '../i18n/language.service';
 import { SearchService } from './search.service';
-import { CurrenciesDialogComponent } from './currencies-dialog.component';
 
-type Menu = 'company' | 'role' | 'user' | 'bell' | null;
-
-const ROLE_TONE: Record<UserRole, string> = {
-  'Finance Director': 'bg-slate-100 text-slate-800 border-slate-200',
-  'Accounts Manager': 'bg-slate-100 text-slate-800 border-slate-200',
-  'Senior Accountant': 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  Accountant: 'bg-amber-100 text-amber-800 border-amber-200',
-  Auditor: 'bg-slate-100 text-slate-700 border-slate-300',
-};
-const ROLES: UserRole[] = ['Finance Director', 'Accounts Manager', 'Senior Accountant', 'Accountant', 'Auditor'];
+type Menu = 'company' | 'user' | 'bell' | null;
 
 @Component({
   selector: 'erp-header',
@@ -70,36 +57,6 @@ const ROLES: UserRole[] = ['Finance Director', 'Accounts Manager', 'Senior Accou
             }
           </div>
 
-          <!-- Role switcher -->
-          <div class="relative">
-            <button type="button" (click)="toggle('role')" [title]="'shell.switchRole' | transloco" aria-haspopup="menu" [attr.aria-expanded]="menu() === 'role'"
-              class="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition" [class]="roleTone()">
-              <span>{{ auth.role() }}</span><erp-icon name="chevron-down" [size]="12" class="opacity-70" />
-            </button>
-            @if (menu() === 'role') {
-              <div class="fixed inset-0 z-40" (click)="menu.set(null)" aria-hidden="true"></div>
-              <div role="menu" class="absolute end-0 z-50 mt-1.5 w-60 rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
-                <div class="border-b border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase text-slate-500">{{ 'shell.activeRole' | transloco }}</div>
-                @for (r of roles; track r) {
-                  <button type="button" role="menuitem" (click)="selectRole(r)" class="flex w-full items-center justify-between px-3 py-2 text-start text-xs hover:bg-slate-50"
-                    [class]="r === auth.role() ? 'bg-emerald-50/50 font-bold text-emerald-700' : 'text-slate-700'">
-                    <span>{{ r }}</span>@if (r === auth.role()) { <erp-icon name="check-circle-2" [size]="14" class="text-emerald-600" /> }
-                  </button>
-                }
-              </div>
-            }
-          </div>
-
-          <button type="button" (click)="openCurrencies()" [title]="'shell.currenciesTitle' | transloco"
-            class="hidden items-center gap-1 rounded-md bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-700 transition hover:bg-slate-200 sm:flex">
-            <erp-icon name="banknote" [size]="13" /><span>{{ 'shell.ratePill' | transloco: { rate: usdRate() } }}</span>
-          </button>
-
-          <button type="button" (click)="lang.toggle(); auth.persist()" [title]="'shell.toggleLanguage' | transloco"
-            class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-slate-600 transition hover:bg-slate-100">
-            <erp-icon name="languages" [size]="15" /><span class="font-semibold">{{ 'shell.languageButton' | transloco }}</span>
-          </button>
-
           <!-- Notifications -->
           <div class="relative">
             <button type="button" (click)="toggle('bell')" [attr.aria-label]="'shell.notifications' | transloco" class="relative rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800">
@@ -142,23 +99,12 @@ const ROLES: UserRole[] = ['Finance Director', 'Accounts Manager', 'Senior Accou
 export class HeaderComponent {
   protected readonly auth = inject(AuthService);
   protected readonly company = inject(CompanyContext);
-  protected readonly lang = inject(LanguageService);
   protected readonly search = inject(SearchService);
-  private readonly dialogs = inject(DialogService);
-  private readonly system = inject(SystemApi);
   private readonly router = inject(Router);
 
   readonly toggleSidebar = output<void>();
   protected readonly menu = signal<Menu>(null);
-  protected readonly roles = ROLES;
   private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
-
-  protected readonly roleTone = computed(() => ROLE_TONE[this.auth.role()]);
-  private readonly currencies = resource({ loader: () => this.system.currencies() });
-  protected readonly usdRate = computed(() => {
-    const r = this.currencies.value()?.find(c => c.currency === 'USD')?.rateToBase ?? '3.75';
-    return Number(r).toFixed(2);
-  });
 
   @HostListener('window:keydown', ['$event'])
   protected onKey(e: KeyboardEvent): void {
@@ -175,13 +121,6 @@ export class HeaderComponent {
   protected selectCompany(id: Parameters<AuthService['selectCompany']>[0]): void {
     this.auth.selectCompany(id);
     this.menu.set(null);
-  }
-  protected async selectRole(r: UserRole): Promise<void> {
-    this.menu.set(null);
-    await this.auth.switchRole(r);
-  }
-  protected openCurrencies(): void {
-    this.dialogs.open(CurrenciesDialogComponent, { kind: 'modal' });
   }
   protected signOut(): void {
     this.menu.set(null);

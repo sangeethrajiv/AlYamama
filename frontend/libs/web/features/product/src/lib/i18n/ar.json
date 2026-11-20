@@ -37,6 +37,7 @@
       }
     },
     "s": {
+      "basic": "المنتج",
       "general": "معلومات عامة",
       "units": "الوحدات والتتبع",
       "sales": "المبيعات والمشتريات",
@@ -96,27 +97,32 @@
       "active": "نشط",
       "products": {
         "name": "اسم المنتج",
-        "name_col": "المنتج",
-        "default_code": "المرجع الداخلي",
-        "default_code_col": "المرجع",
+        "name_col": "الاسم",
+        "default_code": "رمز المنتج",
+        "default_code_col": "رمز المنتج",
         "barcode": "الباركود",
         "arabic_name": "الاسم العربي",
-        "internal_short_code": "الرمز الداخلي المختصر",
+        "internal_short_code": "المرجع الداخلي",
+        "product_genre": "نوع الصنف",
+        "is_teltonika": "منتج تيلتونيكا",
+        "is_vehicle_subscription": "منتج اشتراك مركبات",
+        "taxes_id": "ضرائب العملاء",
         "type": "نوع المنتج",
-        "type_col": "النوع",
+        "type_col": "نوع المنتج",
         "categ_id": "فئة المنتج",
-        "categ_id_col": "الفئة",
+        "categ_id_col": "فئة المنتج",
         "internal_type": "النوع الداخلي",
         "company_id": "الشركة",
         "responsible_id": "المسؤول",
         "uom_id": "وحدة القياس",
-        "uom_id_col": "الوحدة",
+        "uom_id_col": "وحدة القياس",
         "uom_po_id": "وحدة قياس الشراء",
         "tracking": "التتبع",
         "weight": "الوزن",
         "volume": "الحجم",
         "qty_available": "الكمية المتوفرة",
-        "qty_available_col": "المتوفر",
+        "qty_available_col": "الكمية المتوفرة",
+        "virtual_available_col": "الكمية المتوقعة",
         "virtual_available": "الكمية المتوقعة",
         "sale_ok": "يمكن بيعه",
         "purchase_ok": "يمكن شراؤه",
@@ -125,7 +131,7 @@
         "list_price_col": "سعر البيع",
         "standard_price": "التكلفة",
         "standard_price_col": "التكلفة",
-        "margin_perc": "الهامش (%)",
+        "margin_perc": "الهامش(%)",
         "description_sale": "وصف المبيعات",
         "description_purchase": "وصف المشتريات"
       },
@@ -174,9 +180,9 @@
       "products": {
         "weight": "الوزن (كجم)",
         "volume": "الحجم (م³)",
-        "list_price": "سعر البيع (ر.س)",
-        "standard_price": "التكلفة (ر.س)",
-        "margin_perc": "الهامش (%)"
+        "list_price": "سعر البيع",
+        "standard_price": "التكلفة",
+        "margin_perc": "الهامش(%)"
       }
     },
     "fl": {
@@ -226,9 +232,9 @@
       }
     },
     "ph": {
-      "productName": "مثال: خرطوم هيدروليكي 1SN 1/2\"",
+      "productName": "اسم المنتج",
       "reference": "مثال: HH1-050",
-      "arabicName": "الاسم بالعربية"
+      "arabicName": "الاسم العربي"
     },
     "v": {
       "maxLength": "يجب ألا يزيد عن {{max}} حرفًا.",

@@ -21,14 +21,15 @@ const activeField = (e: ProductEntityKey, helpKey: string): FieldSpec => ({ key:
 
 // ---------------------------------------------------------------- Products (product.template)
 const productColumns: ColumnSpec[] = [
-  { key: 'name', labelKey: f('products', 'name_col'), primary: true, sort: r => lc(r['name']), cell: r => ({ kind: 'name', text: r['name'], sub: r['arabic_name'] || undefined }) },
   { key: 'default_code', labelKey: f('products', 'default_code_col'), sort: r => lc(r['default_code']), cell: r => mono(r['default_code']) },
-  { key: 'categ_id', labelKey: f('products', 'categ_id_col'), hide: 'md', wrap: true, sort: (r, c) => lc(relLabel(c.s, 'categories', r['categ_id'])), cell: (r, c) => ({ kind: 'text', text: relLabel(c.s, 'categories', r['categ_id']).replace(/^All \/ /, '') }) },
-  { key: 'type', labelKey: f('products', 'type_col'), sort: r => r['type'], cell: (r, c) => ({ kind: 'pill', text: c.tr(`product.o.typeShort.${r['type']}`), tone: TYPE_TONE[r['type']] ?? 'slate' }) },
-  { key: 'uom_id', labelKey: f('products', 'uom_id_col'), hide: '2xl', sort: (r, c) => lc(relLabel(c.s, 'uoms', r['uom_id'])), cell: (r, c) => ({ kind: 'text', text: relLabel(c.s, 'uoms', r['uom_id']) }) },
+  { key: 'name', labelKey: f('products', 'name_col'), primary: true, sort: r => lc(r['name']), cell: r => ({ kind: 'name', text: r['name'], sub: r['arabic_name'] || undefined }) },
   { key: 'list_price', labelKey: f('products', 'list_price_col'), right: true, sort: r => num(r['list_price']), cell: r => ({ kind: 'text', text: fmtMoney(r['list_price']) }) },
-  { key: 'standard_price', labelKey: f('products', 'standard_price_col'), right: true, hide: '2xl', sort: r => num(r['standard_price']), cell: r => ({ kind: 'text', text: fmtMoney(r['standard_price']) }) },
+  { key: 'standard_price', labelKey: f('products', 'standard_price_col'), right: true, hide: 'lg', sort: r => num(r['standard_price']), cell: r => ({ kind: 'text', text: fmtMoney(r['standard_price']) }) },
+  { key: 'categ_id', labelKey: f('products', 'categ_id_col'), hide: 'md', wrap: true, sort: (r, c) => lc(relLabel(c.s, 'categories', r['categ_id'])), cell: (r, c) => ({ kind: 'text', text: relLabel(c.s, 'categories', r['categ_id']).replace(/^All \/ /, '') }) },
+  { key: 'type', labelKey: f('products', 'type_col'), sort: r => r['type'], cell: (r, c) => ({ kind: 'pill', text: c.tr(`product.o.type.${r['type']}`), tone: TYPE_TONE[r['type']] ?? 'slate' }) },
   { key: 'qty_available', labelKey: f('products', 'qty_available_col'), right: true, hide: 'sm', sort: r => num(r['qty_available']), cell: r => (r['type'] !== 'product' ? dash : { kind: 'text', text: fmtNum(r['qty_available']), danger: num(r['qty_available']) <= 0 }) },
+  { key: 'virtual_available', labelKey: f('products', 'virtual_available_col'), right: true, hide: 'xl', sort: r => num(r['virtual_available']), cell: r => (r['type'] !== 'product' ? dash : { kind: 'text', text: fmtNum(r['virtual_available']) }) },
+  { key: 'uom_id', labelKey: f('products', 'uom_id_col'), hide: '2xl', sort: (r, c) => lc(relLabel(c.s, 'uoms', r['uom_id'])), cell: (r, c) => ({ kind: 'text', text: relLabel(c.s, 'uoms', r['uom_id']) }) },
 ];
 
 const products: EntityConfig = {
@@ -48,32 +49,35 @@ const products: EntityConfig = {
     { key: 'responsible_id', labelKey: fl('products', 'responsible_id'), options: c => c.s.users.map(x => ({ value: String(x.id), label: x.name })), match: (r, v) => r['responsible_id'] === idOf(v) },
   ],
   badges: (r, c) => [{ text: optLabel(PRODUCT_TYPE_OPTIONS, r['type'], c.tr), tone: TYPE_TONE[r['type']] ?? 'slate' }, ...(r['default_code'] ? [{ text: r['default_code'], tone: 'slate' as const }] : [])],
-  stats: (r, c) => [
-    { labelKey: 'product.stat.salesPrice', value: fmtMoney(r['list_price']), hint: c.tr(r['sale_ok'] ? 'product.stat.canSell' : 'product.stat.notForSale') },
-    { labelKey: 'product.stat.cost', value: fmtMoney(r['standard_price']), hint: c.tr('product.stat.margin', { n: fmtNum(r['margin_perc']) }) },
-    { labelKey: 'product.stat.onHand', value: r['type'] === 'product' ? fmtNum(r['qty_available']) : '—', hint: c.tr(r['type'] === 'product' ? 'product.stat.fromMoves' : 'product.stat.notStock') },
-    { labelKey: 'product.stat.forecast', value: r['type'] === 'product' ? fmtNum(r['virtual_available']) : '—', hint: r['type'] === 'product' ? c.tr('product.stat.forecastHint') : undefined },
-  ],
   sections: [
     {
-      titleKey: 'product.s.general',
+      titleKey: 'product.s.basic',
       fields: [
         { key: 'name', labelKey: f('products', 'name'), kind: 'text', required: true, span: 2, placeholderKey: 'product.ph.productName', maxLength: 255 },
-        { key: 'default_code', labelKey: f('products', 'default_code'), kind: 'text', mono: true, placeholderKey: 'product.ph.reference', maxLength: 64 },
-        { key: 'barcode', labelKey: f('products', 'barcode'), kind: 'text', mono: true, maxLength: 64 },
-        { key: 'arabic_name', labelKey: f('products', 'arabic_name'), kind: 'text', rtl: true, placeholderKey: 'product.ph.arabicName', maxLength: 255 },
-        { key: 'internal_short_code', labelKey: f('products', 'internal_short_code'), kind: 'text', mono: true, maxLength: 32 },
-        { key: 'type', labelKey: f('products', 'type'), kind: 'select', required: true, options: PRODUCT_TYPE_OPTIONS, helpKey: h('products', 'type'), onChange: v => (v === 'product' ? {} : { tracking: 'none' }) },
-        { key: 'categ_id', labelKey: f('products', 'categ_id'), kind: 'relation', rel: 'categories', required: true },
-        { key: 'internal_type', labelKey: f('products', 'internal_type'), kind: 'select', options: INTERNAL_TYPE_OPTIONS },
-        { key: 'company_id', labelKey: f('products', 'company_id'), kind: 'relation', rel: 'companies' },
-        { key: 'responsible_id', labelKey: f('products', 'responsible_id'), kind: 'relation', rel: 'users' },
-        activeField('products', h('products', 'active')),
+        { key: 'arabic_name', labelKey: f('products', 'arabic_name'), kind: 'text', rtl: true, span: 2, placeholderKey: 'product.ph.arabicName', maxLength: 255 },
+        { key: 'sale_ok', labelKey: f('products', 'sale_ok'), kind: 'boolean' },
+        { key: 'purchase_ok', labelKey: f('products', 'purchase_ok'), kind: 'boolean' },
       ],
     },
     {
-      titleKey: 'product.s.units',
+      // Two-column grid, filled row by row: left column = Internal Type ... Product Genre, right column = Sales Price ... Purchase Unit of Measure.
+      titleKey: 'product.s.general',
       fields: [
+        { key: 'internal_type', labelKey: f('products', 'internal_type'), kind: 'select', options: INTERNAL_TYPE_OPTIONS },
+        { key: 'list_price', labelKey: f('products', 'list_price'), kind: 'number', min: 0, suffix: 'SAR', required: true, places: 2 },
+        { key: 'margin_perc', labelKey: f('products', 'margin_perc'), kind: 'number', min: 0, max: 100, suffix: '%', places: 2 },
+        { key: 'no_discount', labelKey: f('products', 'no_discount'), kind: 'boolean', helpKey: h('products', 'no_discount') },
+        { key: 'type', labelKey: f('products', 'type'), kind: 'select', required: true, options: PRODUCT_TYPE_OPTIONS, helpKey: h('products', 'type'), onChange: v => (v === 'product' ? {} : { tracking: 'none' }) },
+        { key: 'is_teltonika', labelKey: f('products', 'is_teltonika'), kind: 'boolean' },
+        { key: 'categ_id', labelKey: f('products', 'categ_id'), kind: 'relation', rel: 'categories', required: true },
+        { key: 'taxes_id', labelKey: f('products', 'taxes_id'), kind: 'relation', rel: 'taxes' },
+        { key: 'default_code', labelKey: f('products', 'default_code'), kind: 'text', mono: true, maxLength: 64 },
+        { key: 'standard_price', labelKey: f('products', 'standard_price'), kind: 'number', min: 0, suffix: 'SAR', places: 2 },
+        { key: 'internal_short_code', labelKey: f('products', 'internal_short_code'), kind: 'text', mono: true, maxLength: 32 },
+        { key: 'company_id', labelKey: f('products', 'company_id'), kind: 'relation', rel: 'companies' },
+        { key: 'barcode', labelKey: f('products', 'barcode'), kind: 'text', mono: true, maxLength: 64 },
+        { key: 'is_vehicle_subscription', labelKey: f('products', 'is_vehicle_subscription'), kind: 'boolean' },
+        { key: 'product_genre', labelKey: f('products', 'product_genre'), kind: 'text', maxLength: 64 },
         {
           key: 'uom_id', labelKey: f('products', 'uom_id'), kind: 'relation', rel: 'uoms', required: true, helpKey: h('products', 'uom_id'),
           onChange: (v, next, c) => {
@@ -85,29 +89,8 @@ const products: EntityConfig = {
           key: 'uom_po_id', labelKey: f('products', 'uom_po_id'), kind: 'relation', rel: 'uoms', required: true, helpKey: h('products', 'uom_po_id'),
           domain: (r, v, c) => { const base = byId(c.s.uoms, v['uom_id']); return !base || r['category_id'] === base.category_id; },
         },
-        { key: 'tracking', labelKey: f('products', 'tracking'), kind: 'select', required: true, options: TRACKING_OPTIONS, readonlyWhen: v => v['type'] !== 'product', helpKey: h('products', 'tracking') },
-        { key: 'weight', labelKey: f('products', 'weight'), kind: 'number', min: 0, suffix: 'kg', places: 4 },
-        { key: 'volume', labelKey: f('products', 'volume'), kind: 'number', min: 0, suffix: 'm³', places: 4 },
         { key: 'qty_available', labelKey: f('products', 'qty_available'), kind: 'readonly', detailOnly: true, get: r => (r['type'] === 'product' ? fmtNum(r['qty_available']) : '—') },
         { key: 'virtual_available', labelKey: f('products', 'virtual_available'), kind: 'readonly', detailOnly: true, get: r => (r['type'] === 'product' ? fmtNum(r['virtual_available']) : '—') },
-      ],
-    },
-    {
-      titleKey: 'product.s.sales',
-      fields: [
-        { key: 'sale_ok', labelKey: f('products', 'sale_ok'), kind: 'boolean' },
-        { key: 'purchase_ok', labelKey: f('products', 'purchase_ok'), kind: 'boolean' },
-        { key: 'no_discount', labelKey: f('products', 'no_discount'), kind: 'boolean', helpKey: h('products', 'no_discount') },
-        { key: 'list_price', labelKey: f('products', 'list_price'), kind: 'number', min: 0, suffix: 'SAR', required: true, places: 2 },
-        { key: 'standard_price', labelKey: f('products', 'standard_price'), kind: 'number', min: 0, suffix: 'SAR', places: 2 },
-        { key: 'margin_perc', labelKey: f('products', 'margin_perc'), kind: 'number', min: 0, max: 100, suffix: '%', places: 2 },
-      ],
-    },
-    {
-      titleKey: 'product.s.notes',
-      fields: [
-        { key: 'description_sale', labelKey: f('products', 'description_sale'), kind: 'textarea', span: 2, hideEmpty: true },
-        { key: 'description_purchase', labelKey: f('products', 'description_purchase'), kind: 'textarea', span: 2, hideEmpty: true },
       ],
     },
   ],
@@ -115,7 +98,7 @@ const products: EntityConfig = {
     name: '', default_code: '', barcode: '', type: 'product', categ_id: null, uom_id: byId(s.uoms, 1)?.id ?? null, uom_po_id: byId(s.uoms, 1)?.id ?? null,
     tracking: 'none', active: true, company_id: s.companies[1]?.id ?? null, sale_ok: true, purchase_ok: true, list_price: '0.00', standard_price: '0.00',
     weight: '0.0000', volume: '0.0000', responsible_id: null, description_sale: '', description_purchase: '', arabic_name: '', internal_short_code: '',
-    internal_type: 'material', margin_perc: '0.00', no_discount: false, qty_available: '0.0000', virtual_available: '0.0000',
+    internal_type: 'material', margin_perc: '0.00', no_discount: false, product_genre: '', is_teltonika: false, is_vehicle_subscription: false, taxes_id: null, qty_available: '0.0000', virtual_available: '0.0000',
   }),
   validate: (v, c, id) => {
     const e: Record<string, string> = {};
@@ -124,9 +107,11 @@ const products: EntityConfig = {
     if (v['barcode'] && other(s.products, id).some(p => lc(p.barcode) === lc(v['barcode']))) e['barcode'] = tr('product.v.dupBarcode');
     const u = byId(s.uoms, v['uom_id']), po = byId(s.uoms, v['uom_po_id']);
     if (u && po && u.category_id !== po.category_id) e['uom_po_id'] = tr('product.v.uomCategory');
-    if (v['tracking'] !== 'none' && v['type'] !== 'product') e['tracking'] = tr('product.v.trackStorable');
+    if (v['tracking'] && v['tracking'] !== 'none' && v['type'] !== 'product') e['tracking'] = tr('product.v.trackStorable');
     return e;
   },
+  // Tracking is not on the form (it is not one of the General Information fields); a non-storable product can never be tracked.
+  finalize: v => (v['type'] !== 'product' ? { ...v, tracking: 'none' } : v),
   related: [],
 };
 

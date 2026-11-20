@@ -21,7 +21,9 @@ describe('product entity configs', () => {
   it('covers every Odoo field of every model in a form or detail section', () => {
     const keys = (k: keyof typeof ENTITY_BY_KEY) => ENTITY_BY_KEY[k].sections.flatMap(sec => sec.fields.map(f => f.key));
     const product = Object.keys(s.products[0]).filter(k => k !== 'id');
-    expect(product.filter(k => !keys('products').includes(k))).toEqual([]);
+    // The product form shows only the Odoo General Information fields; these stay on the record but are not on the screen.
+    const notShown = ['tracking', 'active', 'weight', 'volume', 'responsible_id', 'description_sale', 'description_purchase'];
+    expect(product.filter(k => !keys('products').includes(k))).toEqual(notShown);
     const category = Object.keys(s.categories[0]).filter(k => k !== 'id');
     expect(category.filter(k => !keys('categories').includes(k))).toEqual([]);
     const uom = Object.keys(s.uoms[0]).filter(k => k !== 'id');
@@ -34,13 +36,11 @@ describe('product entity configs', () => {
     const fields = ENTITY_BY_KEY.products.sections.flatMap(sec => sec.fields);
     expect(fields.find(f => f.key === 'qty_available')).toMatchObject({ kind: 'readonly', detailOnly: true });
     expect(fields.find(f => f.key === 'virtual_available')).toMatchObject({ kind: 'readonly', detailOnly: true });
-    const tracking = fields.find(f => f.key === 'tracking')!;
-    expect(tracking.readonlyWhen?.({ type: 'service' }, 'edit', ctx)).toBe(true);
-    expect(tracking.readonlyWhen?.({ type: 'product' }, 'edit', ctx)).toBe(false);
-    expect(fields.find(f => f.key === 'responsible_id')).toMatchObject({ kind: 'relation', rel: 'users' });
+    expect(fields.find(f => f.key === 'taxes_id')).toMatchObject({ kind: 'relation', rel: 'taxes' });
+    expect(ENTITY_BY_KEY.products.finalize?.({ type: 'service', tracking: 'lot' })).toMatchObject({ tracking: 'none' });
+    expect(ENTITY_BY_KEY.products.finalize?.({ type: 'product', tracking: 'lot' })).toMatchObject({ tracking: 'lot' });
     expect(fields.find(f => f.key === 'company_id')).toMatchObject({ kind: 'relation', rel: 'companies' });
     expect(fields.find(f => f.key === 'internal_type')?.options?.map(o => o.value)).toEqual(['material', 'labour', 'overhead']);
-    expect(fields.find(f => f.key === 'tracking')?.options?.map(o => o.value)).toEqual(['none', 'lot', 'serial']);
   });
 
   it('applies the product on-change rules', () => {
@@ -131,9 +131,9 @@ describe('product form view', () => {
     const hose = s.products[0] as unknown as Rec;
     const form = toForm(p, hose, ctx);
     expect(typeof form['list_price']).toBe('number');
-    const back = fromForm(p, { ...form, list_price: 19.5, weight: null, name: '  Padded  ' });
+    const back = fromForm(p, { ...form, list_price: 19.5, standard_price: null, name: '  Padded  ' });
     expect(back['list_price']).toBe('19.50');
-    expect(back['weight']).toBe('0');
+    expect(back['standard_price']).toBe('0');
     expect(back['name']).toBe('Padded');
   });
 

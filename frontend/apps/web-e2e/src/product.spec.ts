@@ -75,13 +75,14 @@ test.describe('product master data', () => {
     await expect(page.locator('erp-product-list-page tbody')).toContainText(/Legacy Gear Pump|discontinued/);
   });
 
-  test('a product detail shows stats, every section and the related Odoo fields', async ({ page }) => {
+  test('a product detail shows every General Information field', async ({ page }) => {
     await page.goto('/product/products/1');
     const d = page.locator('erp-product-detail-page');
     await expect(d.getByRole('heading', { level: 1 })).toContainText('Hydraulic Hose 1SN');
     await expect(d).toContainText('product.template');
-    for (const label of ['Sales Price (SAR)', 'Cost (SAR)', 'On Hand', 'Forecasted', 'General Information', 'Units & Tracking', 'Sales & Purchase',
-      'Internal Reference', 'Barcode', 'Arabic Name', 'Internal Short Code', 'Internal Type', 'Company', 'Responsible', 'Tracking', 'Quantity On Hand', 'Forecasted Quantity', 'No Discount', 'Margin (%)']) {
+    for (const label of ['General Information', 'Internal Type', 'Sales Price', 'Margin(%)', 'No Discount', 'Product Type', 'Is Teltonika Product', 'Product Category', 'Customer Taxes',
+      'Product Code', 'Cost', 'Internal Ref', 'Company', 'Barcode', 'Is Vehicle Subscription Product', 'Product Genre', 'Unit of Measure', 'Purchase Unit of Measure',
+      'Arabic Name', 'Quantity On Hand', 'Forecasted Quantity']) {
       await expect(d.getByText(label, { exact: true }).first()).toBeVisible();
     }
     await d.getByRole('link', { name: 'Hose' }).first().waitFor();
@@ -96,15 +97,12 @@ test.describe('product master data', () => {
     await form.getByRole('button', { name: 'Create' }).first().click();
     await expect(form.getByText('Please fix the highlighted fields.').first()).toBeVisible();
     await expect(page).toHaveURL(/\/product\/products\/new$/);
-    // non-storable products cannot be tracked: the field is locked when the type changes
     await form.getByLabel('Product Name').fill('E2E Hydraulic Probe');
-    await form.getByLabel('Internal Reference').fill('E2E-PROBE-1');
+    await form.getByLabel('Product Code').fill('E2E-PROBE-1');
     await form.getByLabel('Product Category').selectOption({ label: 'All / Hoses & Pipes / Hydraulic Hoses' });
-    await form.getByLabel('Tracking').selectOption({ label: 'By Lots' });
     await form.getByLabel('Product Type').selectOption({ label: 'Service' });
-    await expect(form.getByLabel('Tracking')).toBeDisabled();
     await form.getByLabel('Product Type').selectOption({ label: 'Storable Product' });
-    await form.getByLabel('Sales Price (SAR)').fill('250');
+    await form.getByLabel('Sales Price').fill('250');
     await form.getByRole('button', { name: 'Create' }).first().click();
     await expect(page).toHaveURL(/\/product\/products\/\d+$/);
     const d = page.locator('erp-product-detail-page');
@@ -166,9 +164,9 @@ test.describe('product master data', () => {
     const form = page.locator('erp-product-form-page');
     await form.locator('erp-metadata-form').waitFor();
     await form.getByLabel('Product Name').fill('E2E Picker Probe');
-    await form.getByLabel('Internal Reference').fill(sku);
+    await form.getByLabel('Product Code').fill(sku);
     await form.getByLabel('Product Category').selectOption({ label: 'All / Hoses & Pipes / Hydraulic Hoses' });
-    await form.getByLabel('Sales Price (SAR)').fill('10');
+    await form.getByLabel('Sales Price').fill('10');
     await form.getByRole('button', { name: 'Create' }).first().click();
     await expect(page).toHaveURL(/\/product\/products\/\d+$/);
 
