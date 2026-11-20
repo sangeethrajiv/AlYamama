@@ -7,11 +7,11 @@
     "live": "bash ../push.sh",
     "push:live": "bash ../push.sh",
     "i18n": "node tools/gen-i18n.mjs",
-    "start": "nx serve web",
-    "build": "nx build web",
-    "test": "nx run-many -t test",
-    "lint": "nx run-many -t lint",
-    "e2e": "nx e2e web-e2e"
+    "start": "npx nx serve web",
+    "build": "npx nx build web",
+    "test": "npx nx run-many -t test",
+    "lint": "npx nx run-many -t lint",
+    "e2e": "npx nx e2e web-e2e"
   },
   "private": true,
   "devDependencies": {
