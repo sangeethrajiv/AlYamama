@@ -1,48 +1,96 @@
-# Al-Yamama Accounting React Module
+# Al-Yamama ERP – Frontend
 
-A Vite + React + TypeScript frontend prototype based on the supplied accounting UI source.
+Modern enterprise ERP frontend application built with **Angular 22**, **Nx Monorepo**, **Zoneless change detection**, and **Angular Signals**.
 
-## Repository layout and branches
-This repository holds two versions of the ERP frontend on separate branches:
+---
 
-| Branch | Content | Location |
-| --- | --- | --- |
-| `main` | React + Vite prototype (this document) | repository root |
-| `frontend` | Angular Nx workspace (rebuild of the React ERP) | [`frontend/`](frontend/) |
+## 🏗️ Architecture & Monorepo Layout
 
-The `frontend` branch is branched from `main`, so it also contains the React files at the root; the Angular workspace is self-contained in `frontend/` (its Nx workspace root is `frontend/`). Run all Angular commands from inside that folder — see [`frontend/README.md`](frontend/README.md).
+The codebase is organized as an Nx monorepo inside [`frontend/`](frontend/):
 
-## Included
-- Dashboard with KPI cards and financial snapshot
-- Invoices list with status filters and text search
-- Vendor bills list
-- Payments activity list
-- Create invoice, vendor bill, and receive-payment side panels
-- Progressive / milestone invoice toggle
-- Responsive layout for desktop and mobile
-- Arabic language toggle direction (RTL shell)
-- Local in-memory record creation for prototype testing
-
-## Requirements
-- Node.js 18.0 or later
-- npm
-
-## Run locally
-```bash
-npm install
-npm run dev
 ```
-Open the local URL printed by Vite.
+frontend/
+├── apps/
+│   ├── web                      # Composition root: shell, router, app providers
+│   └── web-e2e                  # Playwright end-to-end test suite
+├── libs/
+│   ├── shared/
+│   │   ├── contracts            # API contracts, permissions, models (framework-agnostic)
+│   │   └── utils                # Exact decimal maths, date utilities, ID helpers
+│   └── web/
+│       ├── core                 # Auth, RBAC, company context, i18n, shell layout
+│       ├── ui                   # Presentational components, pipes, dialogs, design system
+│       ├── metadata-forms       # Dynamic metadata-driven CRUD pages, forms, and dialogs
+│       ├── api-client           # Abstract API service classes + in-memory mock adapters
+│       └── features/
+│           ├── dashboard        # Financial snapshot, KPI cards, activity feed
+│           ├── accounting       # Invoices, vendor bills, payments, bank reconciliation
+│           ├── contacts         # Contact directory, users, role management
+│           ├── product          # Product catalog, categories, price lists
+│           ├── reports          # Financial statements, P&L, balance sheets
+│           └── administration   # System settings, lock dates, audit logs
+```
 
-## Production build
+> **Module Boundaries:** Enforced strictly via `@nx/enforce-module-boundaries` (see `frontend/eslint.config.mjs`). Features cannot directly import other features.
+
+---
+
+## 🚀 Quick Start
+
+You can run all commands directly from the **repository root**:
+
+### 1. Install Dependencies
+```bash
+npm --prefix frontend install
+```
+
+### 2. Start Development Server
+```bash
+npm start
+```
+Opens the application at [http://localhost:4200](http://localhost:4200).
+
+### 3. Build for Production
 ```bash
 npm run build
-npm run preview
+```
+Generates production bundles into `frontend/dist/apps/web/browser`.
+
+### 4. Run Lint & Tests
+```bash
+npm run lint    # Runs ESLint across all 14 libraries and apps
+npm test        # Runs Vitest unit test suites
 ```
 
-## Important notes
-- This is a frontend prototype. It uses sample data and React state only.
-- Records created in the UI are not persisted after refresh.
-- No API, authentication, database, accounting ledger, ZATCA integration, or real payment processing is connected.
-- Currency values are displayed as SAR (SR); sample values are illustrative.
-- To connect this to a backend, replace the sample data and save handlers in `src/App.tsx` with API service calls.
+---
+
+## ⚡ Instant Git Push to Live
+
+To stage all changes, generate a commit message, and push directly to GitHub/Vercel:
+
+```bash
+npm run push
+```
+*(or run `./push "optional commit message"`)*
+
+---
+
+## 🔐 Demo Sign-in Credentials
+
+The app includes an in-memory mock backend (`provideMockApiClient()`) with pre-seeded accounts:
+
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| **Finance Director** | `director@alyamama.example` | `Yamama@2026` |
+| **Accounts Manager** | `manager@alyamama.example` | `Yamama@2026` |
+| **Senior Accountant** | `senior.acc@alyamama.example` | `Yamama@2026` |
+| **Auditor** | `auditor@alyamama.example` | `Yamama@2026` |
+
+---
+
+## 🌐 Localization & Features
+
+- **Bilingual Support:** Full English and Arabic (`ar`) translations with automatic RTL shell layout switching.
+- **Zoneless Angular:** Powered by signal-based reactive state and computed properties.
+- **Enterprise Accounting:** Invoicing, progressive/milestone billings, multi-currency support (SAR / USD), journal entries, and bank reconciliation.
+- **Live Deployment:** Pre-configured for seamless Vercel production hosting via [`vercel.json`](vercel.json).
