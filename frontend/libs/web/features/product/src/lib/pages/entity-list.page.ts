@@ -28,9 +28,9 @@ const PAGE_SIZES = [10, 25, 50];
   template: `
     <div class="space-y-1">
       <erp-product-breadcrumb [crumbs]="crumbs()" />
-      <erp-page-header [title]="title()" [subtitle]="subtitle()">
+      <erp-page-header [title]="title()" [subtitle]="cfg().odooView ? '' : subtitle()">
         <ng-container actions>
-          @if (canWrite()) { <a class="erp-btn-primary" [routerLink]="['/product', cfg().route, 'new']"><erp-icon name="plus" [size]="14" />{{ 'product.l.new' | transloco: { what: singular() } }}</a> }
+          @if (canWrite() && !cfg().odooView) { <a class="erp-btn-primary" [routerLink]="['/product', cfg().route, 'new']"><erp-icon name="plus" [size]="14" />{{ 'product.l.new' | transloco: { what: singular() } }}</a> }
         </ng-container>
       </erp-page-header>
 
@@ -43,17 +43,23 @@ const PAGE_SIZES = [10, 25, 50];
                 <input type="search" class="erp-input !ps-9 !pe-8" [value]="st().q" (input)="patch({ q: $any($event.target).value })" [placeholder]="searchPlaceholder()" [attr.aria-label]="searchPlaceholder()" />
                 @if (st().q) { <button type="button" class="absolute end-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:text-slate-700" [attr.aria-label]="'product.l.clearSearch' | transloco" (click)="patch({ q: '' })"><erp-icon name="x" [size]="14" /></button> }
               </div>
-              @if (cfg().filters.length > 0) {
+              @if (cfg().filters.length > 0 || cfg().odooView) {
                 <button type="button" class="erp-btn-ghost" [attr.aria-expanded]="showFilters()" (click)="filtersOpen.set(!showFilters())">
                   <erp-icon name="sliders-horizontal" [size]="14" />{{ 'product.l.filters' | transloco }}
                   @if (activeFilters() > 0) { <span class="rounded-full bg-emerald-600 px-1.5 text-[10px] text-white">{{ activeFilters() }}</span> }
                 </button>
               }
             </div>
-            <erp-segmented [options]="segments()" [value]="st().status" (valueChange)="patch({ status: $any($event) })" />
+            @if (!cfg().odooView) { <erp-segmented [options]="segments()" [value]="st().status" (valueChange)="patch({ status: $any($event) })" /> }
           </div>
-          @if (cfg().filters.length > 0 && showFilters()) {
+          @if ((cfg().filters.length > 0 || cfg().odooView) && showFilters()) {
             <div class="grid grid-cols-1 gap-2 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              @if (cfg().odooView) {
+                <select class="erp-input" [class]="st().status !== 'active' ? '!border-emerald-500 !bg-emerald-50/60' : ''" [attr.aria-label]="'product.l.status' | transloco"
+                  [value]="st().status" (change)="patch({ status: $any($event.target).value })">
+                  @for (o of segments(); track o.id) { <option [value]="o.id" [selected]="o.id === st().status">{{ 'product.l.status' | transloco }}: {{ o.label }} ({{ o.count }})</option> }
+                </select>
+              }
               @for (f of cfg().filters; track f.key) {
                 <select class="erp-input" [class]="st().filters[f.key] ? '!border-emerald-500 !bg-emerald-50/60' : ''" [attr.aria-label]="f.labelKey | transloco"
                   [value]="st().filters[f.key] ?? ''" (change)="setFilter(f.key, $any($event.target).value)">
@@ -74,8 +80,41 @@ const PAGE_SIZES = [10, 25, 50];
         @if (visible().length === 0) {
           <erp-empty-state [title]="emptyTitle()" [text]="hasCriteria() ? ('product.l.emptyTry' | transloco) : ''" [icon]="cfg().icon">
             @if (hasCriteria()) { <button type="button" class="erp-btn-ghost mt-2" (click)="clear()">{{ 'product.l.clear' | transloco }}</button> }
-            @else if (st().status === 'active' && canWrite()) { <a class="erp-btn-primary mt-2" [routerLink]="['/product', cfg().route, 'new']"><erp-icon name="plus" [size]="14" />{{ 'product.l.new' | transloco: { what: singular() } }}</a> }
+            @else if (st().status === 'active' && canWrite() && !cfg().odooView) { <a class="erp-btn-primary mt-2" [routerLink]="['/product', cfg().route, 'new']"><erp-icon name="plus" [size]="14" />{{ 'product.l.new' | transloco: { what: singular() } }}</a> }
           </erp-empty-state>
+        } @else if (cfg().odooView) {
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[420px] text-[13px]">
+              <thead>
+                <tr class="border-b border-slate-300 text-slate-800">
+                  <th scope="col" class="w-9 px-3 py-2.5"><input type="checkbox" class="accent-emerald-600" [attr.aria-label]="'product.l.selectAll' | transloco" [checked]="allSelected()" (change)="toggleAll()" /></th>
+                  @for (c of cfg().columns; track c.key) {
+                    <th scope="col" class="px-3 py-2.5 text-start text-xs font-bold" [attr.aria-sort]="ariaSort(c.key)">
+                      @if (c.sort) {
+                        <button type="button" class="inline-flex items-center gap-1 text-start font-bold hover:text-emerald-700" (click)="toggleSort(c.key)">
+                          {{ c.labelKey | transloco }}
+                          @if (st().sort.key === c.key) { <erp-icon [name]="st().sort.dir === 'asc' ? 'arrow-up' : 'arrow-down'" [size]="11" class="text-slate-500" /> }
+                        </button>
+                      } @else { {{ c.labelKey | transloco }} }
+                    </th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of visible(); track r.id) {
+                  <tr class="cursor-pointer odd:bg-slate-100/80 hover:bg-emerald-50/60" [class]="r.active ? 'text-slate-700' : 'text-slate-400'" (click)="open(r)">
+                    <td class="w-9 px-3 py-2" (click)="$event.stopPropagation()"><input type="checkbox" class="accent-emerald-600" [attr.aria-label]="'product.l.selectRow' | transloco: { name: cfg().nameOf(r, ctx()) }" [checked]="isSelected(r.id)" (change)="toggleRow(r.id)" /></td>
+                    @for (c of cfg().columns; track c.key) {
+                      <td class="px-3 py-2">
+                        @if (c.primary) { <a [routerLink]="['/product', cfg().route, r.id]" (click)="$event.stopPropagation()" class="hover:text-emerald-700 hover:underline"><erp-product-cell [cell]="c.cell(r, ctx())" /></a> }
+                        @else { <erp-product-cell [cell]="c.cell(r, ctx())" /> }
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         } @else {
           <div class="overflow-x-auto">
             <table class="erp-table min-w-[640px]">
@@ -164,11 +203,14 @@ export class EntityListPage {
       { id: 'all', label: this.i18n.tr('product.l.allRecords'), count: all.length },
     ];
   });
-  protected readonly activeFilters = computed(() => this.cfg().filters.filter(f => this.st().filters[f.key]).length);
-  protected readonly showFilters = computed(() => this.filtersOpen() ?? (this.cfg().filters.length <= 4 || this.activeFilters() > 0));
+  /** Selected filters; in the reference view a non-default status (Archived / All) counts too. */
+  private readonly chosenFilters = computed(() => this.cfg().filters.filter(f => this.st().filters[f.key]).length);
+  protected readonly activeFilters = computed(() => this.chosenFilters() + (this.cfg().odooView && this.st().status !== 'active' ? 1 : 0));
+  /** The reference list starts with the filters closed; the other lists open them when there are few. */
+  protected readonly showFilters = computed(() => this.filtersOpen() ?? ((!this.cfg().odooView && this.cfg().filters.length <= 4) || this.activeFilters() > 0));
   /** The header search box and this list's own search box both narrow the list. */
   private readonly query = computed(() => (this.st().q || this.search.query()).trim().toLowerCase());
-  protected readonly hasCriteria = computed(() => !!this.query() || this.activeFilters() > 0);
+  protected readonly hasCriteria = computed(() => !!this.query() || this.chosenFilters() > 0);
 
   protected readonly rows = computed<Rec[]>(() => {
     const cfg = this.cfg(), st = this.st(), c = this.ctx();
@@ -194,6 +236,16 @@ export class EntityListPage {
     const what = this.title().toLowerCase();
     return this.i18n.tr(this.hasCriteria() ? 'product.l.emptyMatch' : this.st().status === 'archived' ? 'product.l.emptyArchived' : 'product.l.emptyNone', { what });
   });
+
+  /** Row selection of the reference list (checkbox column). */
+  private readonly selected = signal<ReadonlySet<number>>(new Set());
+  protected readonly allSelected = computed(() => this.visible().length > 0 && this.visible().every(r => this.selected().has(r.id)));
+  protected isSelected(id: number): boolean { return this.selected().has(id); }
+  protected toggleRow(id: number): void { this.selected.update(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; }); }
+  protected toggleAll(): void {
+    const ids = this.visible().map(r => r.id), all = this.allSelected();
+    this.selected.update(s => { const n = new Set(s); for (const id of ids) { if (all) n.delete(id); else n.add(id); } return n; });
+  }
 
   protected patch(p: Partial<ListState>, resetPage = true): void {
     const key = this.cfg().key;

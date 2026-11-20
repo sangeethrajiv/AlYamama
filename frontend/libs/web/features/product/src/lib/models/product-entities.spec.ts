@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- specs address records by Odoo field name */
 import type { ProductState } from '@erp/shared/contracts';
 import { seedProducts } from '@erp/web/api-client';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { ENTITIES, ENTITY_BY_KEY, ENTITY_BY_ROUTE } from './product-entities';
 import { archiveBlocker, deleteBlocker } from './product-rules';
 import type { Ctx, Rec, Tr } from './product-types';
@@ -8,7 +10,8 @@ import { buildView, fromForm, toForm } from './product-view';
 
 const tr: Tr = (key, params) => (params ? `${key}:${JSON.stringify(params)}` : key);
 const s = seedProducts() as unknown as ProductState;
-const ctx: Ctx = { s, tr };
+const ctx: Ctx = { s, tr, debug: false };
+const debugCtx: Ctx = { s, tr, debug: true };
 const rec = (list: unknown[], pred: (x: any) => boolean) => list.find(pred) as Rec;
 
 describe('product entity configs', () => {
@@ -24,12 +27,95 @@ describe('product entity configs', () => {
     // The product form shows only the Odoo General Information fields; these stay on the record but are not on the screen.
     const notShown = ['tracking', 'active', 'weight', 'volume', 'responsible_id', 'description_sale', 'description_purchase', 'arabic_name'];
     expect(product.filter(k => !keys('products').includes(k))).toEqual(notShown);
-    const category = Object.keys(s.categories[0]).filter(k => k !== 'id' && k !== 'arabic_name');
-    expect(category.filter(k => !keys('categories').includes(k))).toEqual([]);
+    // Active is the UI-only archive flag (header actions), `factor` is the stored ratio: both stay on the record, off the form.
+    const category = Object.keys(s.categories[0]).filter(k => k !== 'id');
+    expect(category.filter(k => !keys('categories').includes(k))).toEqual(['active']);
     const uom = Object.keys(s.uoms[0]).filter(k => k !== 'id');
-    expect(uom.filter(k => !keys('uoms').includes(k))).toEqual([]);
+    expect(uom.filter(k => !keys('uoms').includes(k))).toEqual(['factor']);
     const uomCategory = Object.keys(s.uom_categories[0]).filter(k => k !== 'id');
-    expect(uomCategory.filter(k => !keys('uomCategories').includes(k))).toEqual([]);
+    expect(uomCategory.filter(k => !keys('uomCategories').includes(k))).toEqual(['active']);
+  });
+
+  it('offers exactly the approved Odoo fields, with their Odoo technical names, in form order', () => {
+    // detail-only fields (e.g. the read-only Ratio) never reach the form
+    const keys = (k: keyof typeof ENTITY_BY_KEY) => ENTITY_BY_KEY[k].sections.map(sec => sec.fields.filter(f => !f.detailOnly).map(f => f.key));
+    expect(keys('categories')).toEqual([
+      ['name', 'arabic_name', 'parent_id', 'lot_sequence_id'],
+      ['removal_strategy_id'],
+      ['property_cost_method', 'property_valuation'],
+      ['property_account_creditor_price_difference_categ', 'property_account_income_categ_id', 'property_account_expense_categ_id'],
+      ['property_stock_account_input_categ_id', 'property_stock_account_output_categ_id', 'property_stock_valuation_account_id', 'property_stock_journal'],
+    ]);
+    expect(keys('uoms')).toEqual([['view_name', 'name', 'category_id', 'uom_type', 'active', 'rounding']]);
+    expect(keys('uomCategories')).toEqual([['name', 'measure_type', 'is_pos_groupable']]);
+    // fields deliberately left out of the forms
+    const all = ENTITIES.flatMap(e => e.sections.flatMap(sec => sec.fields.filter(f => !f.detailOnly).map(f => f.key)));
+    for (const gone of ['sequence_code', 'sequence_id', 'route_ids', 'total_route_ids', 'complete_name', 'child_id', 'product_count', 'factor', 'factor_inv', 'timesheet_widget']) expect(all).not.toContain(gone);
+    expect(ENTITY_BY_KEY.uoms.sections[0].fields.map(f => f.key)).not.toContain('measure_type');
+  });
+
+  it('presents the three Odoo models as plain lists and read-only sheets with the reference columns', () => {
+    expect(ENTITIES.filter(e => e.odooView).map(e => e.key)).toEqual(['categories', 'uoms', 'uomCategories']);
+    const cols = (k: keyof typeof ENTITY_BY_KEY) => ENTITY_BY_KEY[k].columns.map(c => c.labelKey);
+    expect(cols('uoms')).toEqual(['product.f.uoms.name_col', 'product.f.uoms.category_id', 'product.f.uoms.uom_type']);
+    expect(cols('uomCategories')).toEqual(['product.f.uomCategories.name_col']);
+    expect(cols('categories')).toEqual(['product.f.categories.name_col']);
+    const en = JSON.parse(readFileSync(resolve(__dirname, '../i18n/en.json'), 'utf8')).product.f;
+    expect([en.uoms.name_col, en.uoms.category_id, en.uoms.uom_type, en.uomCategories.name_col, en.categories.name_col])
+      .toEqual(['Unit of Measure', 'Category', 'Type', 'Unit of Measure Category', 'Product Category']);
+    // the list cells are plain text, with the complete category name and the full Type label
+    const unit = rec(s.uoms, x => x.name === 'Dozen(s)');
+    expect(ENTITY_BY_KEY.uoms.columns.map(c => c.cell(unit, ctx))).toEqual([
+      { kind: 'text', text: 'Dozen(s)' }, { kind: 'text', text: 'Unit' }, { kind: 'text', text: 'product.o.uomType.bigger' },
+    ]);
+    const hoses = rec(s.categories, x => x.name === 'Hydraulic Hoses');
+    expect(ENTITY_BY_KEY.categories.columns[0].cell(hoses, ctx)).toEqual({ kind: 'text', text: 'All / Hoses & Pipes / Hydraulic Hoses' });
+  });
+
+  it('shows a category on its detail page as title + Parent Category / Sequence for Lot, then the stacked and side-by-side groups', () => {
+    const cfg = ENTITY_BY_KEY.categories;
+    const pumps = rec(s.categories, x => x.name === 'Pumps & Motors');
+    expect(cfg.detailTitle!(pumps, ctx)).toEqual({ text: 'Pumps & Motors', secondary: 'مضخات ومحركات' });
+    // the name rows move into the title; every other row stays
+    expect(cfg.sections.flatMap(sec => sec.fields).filter(f => f.detailHidden).map(f => f.key)).toEqual(['name', 'arabic_name']);
+    expect(cfg.sections[0].detail).toEqual({ title: false, columns: 1 });
+    // detail: Logistics and Inventory Valuation stacked, the two account groups side by side (the form keeps Logistics | Valuation)
+    expect(cfg.sections.map(sec => sec.detail?.half ?? sec.half)).toEqual([undefined, false, false, true, true]);
+    expect(cfg.sections.map(sec => !!sec.half)).toEqual([false, true, true, true, true]);
+  });
+
+  it('shows the ratio on the unit detail only for bigger and smaller units, with the Odoo hint', () => {
+    const ratio = ENTITY_BY_KEY.uoms.sections[0].fields.find(f => f.key === 'ratio')!;
+    expect(ratio).toMatchObject({ kind: 'readonly', detailOnly: true, hideEmpty: true });
+    const dozen = rec(s.uoms, x => x.name === 'Dozen(s)'), gram = rec(s.uoms, x => x.name === 'g'), kg = rec(s.uoms, x => x.name === 'kg');
+    expect(ratio.get!(dozen, ctx)).toBe('12.00000');
+    expect(ratio.get!(gram, ctx)).toBe('1000.00000');
+    expect(ratio.get!(kg, ctx)).toBe('');
+    expect(ratio.detailHint!(dozen, ctx)).toBe('product.h.uoms.ratioBigger');
+    expect(ratio.detailHint!(gram, ctx)).toBe('product.h.uoms.ratioSmaller');
+    // not a form control: no input for it in create or edit mode
+    for (const mode of ['create', 'edit'] as const) expect(buildView(ENTITY_BY_KEY.uoms, mode, () => ctx).sections.flatMap(x => x.fields.map(f => f.key))).not.toContain('ratio');
+  });
+
+  it('labels the category and unit fields with the Odoo strings', () => {
+    const label = (e: keyof typeof ENTITY_BY_KEY, k: string) => ENTITY_BY_KEY[e].sections.flatMap(sec => sec.fields).find(f => f.key === k)!.labelKey;
+    expect(label('categories', 'name')).toBe('product.f.categories.name');
+    expect(label('uoms', 'view_name')).toBe('product.f.uoms.view_name');
+    const en = JSON.parse(readFileSync(resolve(__dirname, '../i18n/en.json'), 'utf8')).product.f;
+    expect(en.categories).toMatchObject({
+      name: 'Category name', arabic_name: 'Arabic Name', parent_id: 'Parent Category', lot_sequence_id: 'Sequence for Lot', removal_strategy_id: 'Force Removal Strategy',
+      property_cost_method: 'Costing Method', property_valuation: 'Inventory Valuation', property_account_creditor_price_difference_categ: 'Price Difference Account',
+      property_account_income_categ_id: 'Income Account', property_account_expense_categ_id: 'Expense Account', property_stock_account_input_categ_id: 'Stock Input Account',
+      property_stock_account_output_categ_id: 'Stock Output Account', property_stock_valuation_account_id: 'Stock Valuation Account', property_stock_journal: 'Stock Journal',
+    });
+    expect(en.uoms).toMatchObject({ view_name: 'Display Name', name: 'Unit of Measure', category_id: 'Category', uom_type: 'Type', rounding: 'Rounding Precision' });
+    expect(en.uomCategories).toMatchObject({ name: 'Unit of Measure Category', measure_type: 'Type of Measure', is_pos_groupable: 'Group Products in POS' });
+    expect(JSON.parse(readFileSync(resolve(__dirname, '../i18n/en.json'), 'utf8')).product.o).toMatchObject({
+      cost: { standard: 'Standard Price', fifo: 'First In First Out (FIFO)', average: 'Average Cost (AVCO)' },
+      valuation: { manual_periodic: 'Manual', real_time: 'Automated' },
+      uomType: { bigger: 'Bigger than the reference Unit of Measure', reference: 'Reference Unit of Measure for this category', smaller: 'Smaller than the reference Unit of Measure' },
+      measure: { unit: 'Units', weight: 'Weight', time: 'Time', length: 'Length', volume: 'Volume' },
+    });
   });
 
   it('keeps stock quantities read-only (detail only) and tracking locked for non-storable products', () => {
@@ -83,47 +169,95 @@ describe('product validation', () => {
     expect(c.validate!({ name: 'Hydraulic Hoses', parent_id: hoses.id }, ctx, leaf.id)).toEqual({});
   });
 
-  it('enforces one reference unit per UoM category and positive ratios', () => {
+  it('enforces one reference unit per UoM category, a positive rounding and unique unit names', () => {
     const u = ENTITY_BY_KEY.uoms;
     const weight = rec(s.uom_categories, x => x.name === 'Weight'), area = rec(s.uom_categories, x => x.name === 'Area');
     expect(u.validate!({ name: 'stone', category_id: weight.id, uom_type: 'reference', rounding: '0.01' }, ctx)['uom_type']).toBeTruthy();
-    expect(u.validate!({ name: 'ha', category_id: area.id, uom_type: 'smaller', factor: '0', rounding: '0.01' }, ctx)['factor']).toBeTruthy();
-    expect(u.validate!({ name: 'ha', category_id: area.id, uom_type: 'bigger', factor_inv: '', rounding: '0' }, ctx)).toMatchObject({ factor_inv: expect.any(String), rounding: expect.any(String) });
-    expect(u.validate!({ name: 'G', category_id: weight.id, uom_type: 'smaller', factor: '1000', rounding: '0.01' }, ctx)['name']).toBeTruthy();
+    expect(u.validate!({ name: 'ha', category_id: area.id, uom_type: 'bigger', rounding: '0' }, ctx)).toEqual({ rounding: expect.any(String) });
+    expect(u.validate!({ name: 'G', category_id: weight.id, uom_type: 'smaller', rounding: '0.01' }, ctx)['name']).toBeTruthy();
+    expect(u.validate!({ name: 'ha', category_id: area.id, uom_type: 'bigger', rounding: '0.01' }, ctx)).toEqual({});
   });
 
-  it('round-trips a bigger unit through the ratio the user types', () => {
+  it('keeps the stored ratio when a unit is saved from the form (the form has no ratio field)', () => {
     const u = ENTITY_BY_KEY.uoms;
     const dozen = rec(s.uoms, x => x.name === 'Dozen(s)');
-    const form = toForm(u, dozen, ctx);
-    expect(form['factor_inv']).toBe(12); // number input while editing
-    const saved = u.finalize!(fromForm(u, { ...form, factor_inv: 12 }));
-    expect(saved['factor']).toBe('0.08333333');
+    const saved = fromForm(u, toForm(u, dozen, ctx));
     expect(saved).not.toHaveProperty('factor_inv');
-    expect(u.finalize!({ uom_type: 'reference', factor: '5' })['factor']).toBe('1.00000000');
-    expect(u.finalize!({ uom_type: 'smaller', factor: '1000' })['factor']).toBe('1000.00000000');
+    expect(u.finalize).toBeUndefined();
+    expect(u.defaults(s)).toMatchObject({ uom_type: 'reference', rounding: '0.01', active: true, factor: '1' });
+  });
+
+  it('allows one UoM category per measure type, but several with no type', () => {
+    const c = ENTITY_BY_KEY.uomCategories;
+    const weight = rec(s.uom_categories, x => x.name === 'Weight');
+    expect(c.validate!({ name: 'Mass', measure_type: 'weight' }, ctx)['measure_type']).toBe('product.v.ucUniqueType');
+    expect(c.validate!({ name: 'Weight', measure_type: 'weight' }, ctx, weight.id)).toEqual({});
+    expect(c.validate!({ name: 'Density', measure_type: '' }, ctx)).toEqual({});
   });
 });
 
 describe('product form view', () => {
-  it('builds every input field for create and adds computed read-only fields in edit mode only', () => {
+  it('builds every category field as a form control; computed fields stay off the form', () => {
     const create = buildView(ENTITY_BY_KEY.categories, 'create', () => ctx);
     const edit = buildView(ENTITY_BY_KEY.categories, 'edit', () => ctx);
     const keys = (v: ReturnType<typeof buildView>) => v.sections.flatMap(x => x.fields.map(f => f.key));
-    expect(keys(create)).toEqual(expect.arrayContaining(['name', 'parent_id', 'sequence_code', 'active']));
-    const completeName = edit.sections.flatMap(x => x.fields).find(f => f.key === 'complete_name')!;
-    expect(completeName.visible?.({})).toBe(true);
-    expect(create.sections.flatMap(x => x.fields).find(f => f.key === 'complete_name')).toBeUndefined();
+    expect(keys(create)).toEqual(keys(edit));
+    expect(keys(create)).toHaveLength(14);
     const product = buildView(ENTITY_BY_KEY.products, 'edit', () => ctx);
     expect(product.sections.flatMap(x => x.fields.map(f => f.key))).not.toContain('qty_available');
   });
 
-  it('shows Ratio only for smaller units and Bigger Ratio only for bigger units', () => {
+  it('lays the category form out as Basic | Logistics + Valuation | Accounts, with the account groups side by side', () => {
+    const v = buildView(ENTITY_BY_KEY.categories, 'create', () => ctx);
+    expect(v.sections.map(x => x.title)).toEqual(['product.s.catBasic', 'product.s.catLogistics', 'product.s.catValuation', 'product.s.catAccount', 'product.s.catAccountStock']);
+    expect(v.sections.map(x => !!x.half)).toEqual([false, true, true, true, true]);
+    expect(v.sections.map(x => x.columns)).toEqual([2, 1, 1, 1, 1]);
+  });
+
+  it('requires the stock accounts and journal only for automated valuation, and the two selections always', () => {
+    const fields = buildView(ENTITY_BY_KEY.categories, 'create', () => ctx).sections.flatMap(x => x.fields);
+    const f = (k: string) => fields.find(x => x.key === k)!;
+    for (const k of ['property_stock_account_input_categ_id', 'property_stock_account_output_categ_id', 'property_stock_valuation_account_id', 'property_stock_journal']) {
+      expect(f(k).requiredWhen?.({ property_valuation: 'real_time' })).toBe(true);
+      expect(f(k).requiredWhen?.({ property_valuation: 'manual_periodic' })).toBe(false);
+    }
+    expect(f('property_cost_method')).toMatchObject({ required: true, type: 'select' });
+    expect(f('property_valuation')).toMatchObject({ required: true, type: 'select' });
+    expect((f('property_cost_method').options as { value: string }[]).map(o => o.value)).toEqual(['standard', 'fifo', 'average']);
+    expect((f('property_valuation').options as { value: string }[]).map(o => o.value)).toEqual(['manual_periodic', 'real_time']);
+    expect(ENTITY_BY_KEY.categories.defaults(s)).toMatchObject({ property_cost_method: 'standard', property_valuation: 'manual_periodic' });
+  });
+
+  it('offers real accounts for the income/expense fields, without receivable, payable or bank accounts', () => {
+    const accounts = ENTITY_BY_KEY.categories.sections[3].fields;
+    const income = accounts.find(x => x.key === 'property_account_income_categ_id')!;
+    const bank = { id: 1, type: 'Bank and Cash' } as unknown as Rec, sales = { id: 2, type: 'Income' } as unknown as Rec;
+    expect(income.domain!(bank, {}, ctx)).toBe(false);
+    expect(income.domain!(sales, {}, ctx)).toBe(true);
+    const options = buildView(ENTITY_BY_KEY.categories, 'create', () => ctx).sections.flatMap(x => x.fields).find(x => x.key === 'property_account_income_categ_id')!.options as (v: Record<string, unknown>, l: Record<string, never>) => { label: string }[];
+    expect(options({}, {}).every(o => !/Bank|Receivable|Payable/.test(o.label))).toBe(true);
+  });
+
+  it('arranges a unit of measure in two columns: Display Name, Unit of Measure, Category, Type | Active, Rounding Precision', () => {
     const fields = buildView(ENTITY_BY_KEY.uoms, 'create', () => ctx).sections.flatMap(x => x.fields);
-    expect(fields.find(f => f.key === 'factor')?.visible?.({ uom_type: 'smaller' })).toBe(true);
-    expect(fields.find(f => f.key === 'factor')?.visible?.({ uom_type: 'bigger' })).toBe(false);
-    expect(fields.find(f => f.key === 'factor_inv')?.visible?.({ uom_type: 'bigger' })).toBe(true);
-    expect(fields.find(f => f.key === 'factor_inv')?.visible?.({ uom_type: 'reference' })).toBe(false);
+    expect(fields.map(f => [f.key, f.column])).toEqual([['view_name', 1], ['name', 1], ['category_id', 1], ['uom_type', 1], ['active', 2], ['rounding', 2]]);
+    expect(fields.find(f => f.key === 'active')?.type).toBe('boolean');
+    expect(fields.find(f => f.key === 'rounding')).toMatchObject({ type: 'number', required: true });
+    expect(fields.find(f => f.key === 'uom_type')).toMatchObject({ type: 'select', required: true });
+  });
+
+  it('hides Group Products in POS unless debug mode is on', () => {
+    const field = (c: Ctx) => buildView(ENTITY_BY_KEY.uomCategories, 'create', () => c).sections.flatMap(x => x.fields).find(f => f.key === 'is_pos_groupable')!;
+    expect(field(ctx).visible?.({})).toBe(false);
+    expect(field(debugCtx).visible?.({})).toBe(true);
+    expect(field(ctx).type).toBe('boolean');
+    // the Time category is protected from deletion
+    const time = rec(s.uom_categories, x => x.measure_type === 'time');
+    expect(deleteBlocker('uomCategories', time, s, tr)).toBe('product.block.ucTime');
+  });
+
+  it('has no Products stat button on the category (the generic stat-button support stays unused)', () => {
+    expect(ENTITIES.filter(e => e.smartButton)).toEqual([]);
   });
 
   it('turns decimal strings into numbers for editing and back into decimal strings', () => {

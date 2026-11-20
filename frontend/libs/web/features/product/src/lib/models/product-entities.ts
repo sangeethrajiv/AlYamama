@@ -1,8 +1,7 @@
 import type { ProductEntityKey, ProductState } from '@erp/shared/contracts';
-import { dec, div } from '@erp/shared/utils';
-import { INTERNAL_TYPE_OPTIONS, MEASURE_TYPE_OPTIONS, PRODUCT_TYPE_OPTIONS, TRACKING_OPTIONS, UOM_TYPE_OPTIONS, YES_NO, optLabel } from './product-options';
-import { byId, categoryName, countProducts, descendantsOf, fmtMoney, fmtNum, relLabel, trimZeros, uomRatio } from './product-helpers';
-import type { Cell, Choice, ColumnSpec, Ctx, EntityConfig, FieldSpec, PillTone, Rec } from './product-types';
+import { COST_METHOD_OPTIONS, INTERNAL_TYPE_OPTIONS, MEASURE_TYPE_OPTIONS, PRODUCT_TYPE_OPTIONS, TRACKING_OPTIONS, UOM_TYPE_OPTIONS, VALUATION_OPTIONS, YES_NO, optLabel } from './product-options';
+import { byId, categoryName, countProducts, descendantsOf, fmtMoney, fmtNum, relLabel, uomRatio } from './product-helpers';
+import type { Cell, Choice, ColumnSpec, Ctx, EntityConfig, FieldSpec, PillTone, Rec, Values } from './product-types';
 
 // ---------------------------------------------------------------- helpers
 const lc = (v: unknown) => String(v ?? '').trim().toLowerCase();
@@ -115,17 +114,17 @@ const products: EntityConfig = {
 };
 
 // ---------------------------------------------------------------- Product categories (product.category)
+// Odoo 12 form, in this order: Basic Information | Logistics, Inventory Valuation | Account Properties, Account Stock Properties.
+// Field keys are the Odoo technical names; labels are the Odoo `string` values (docs: Odoo source investigation).
+const accountOptions = (r: Rec) => !['Receivable', 'Payable', 'Bank and Cash'].includes(r['type']); // domain internal_type = 'other'
+const autoValuation = (v: Values) => v['property_valuation'] === 'real_time';
 const categories: EntityConfig = {
-  key: 'categories', route: 'categories', model: 'product.category', icon: 'tags', uiOnlyActive: true,
+  key: 'categories', route: 'categories', model: 'product.category', icon: 'tags', uiOnlyActive: true, odooForm: true, odooView: true,
   nameOf: (r, c) => categoryName(c.s, r.id),
-  searchText: (r, c) => [categoryName(c.s, r.id), r['sequence_code']].join(' '),
+  searchText: (r, c) => [categoryName(c.s, r.id), r['arabic_name']].join(' '),
   defaultSort: { key: 'name', dir: 'asc' },
   columns: [
     { key: 'name', labelKey: f('categories', 'name_col'), primary: true, sort: (r, c) => lc(categoryName(c.s, r.id)), cell: (r, c) => ({ kind: 'text', text: categoryName(c.s, r.id) }) },
-    { key: 'sequence_code', labelKey: f('categories', 'sequence_code'), hide: 'md', sort: r => lc(r['sequence_code']), cell: r => mono(r['sequence_code']) },
-    { key: 'parent_id', labelKey: f('categories', 'parent_id_col'), hide: 'lg', sort: (r, c) => lc(relLabel(c.s, 'categories', r['parent_id'])), cell: (r, c) => (r['parent_id'] == null ? { kind: 'pill', text: c.tr('product.root'), tone: 'slate' } : { kind: 'text', text: relLabel(c.s, 'categories', r['parent_id']) }) },
-    { key: 'child_id', labelKey: f('categories', 'child_id'), right: true, hide: 'xl', sort: (r, c) => c.s.categories.filter(x => x.parent_id === r.id).length, cell: (r, c) => ({ kind: 'text', text: String(c.s.categories.filter(x => x.parent_id === r.id).length) }) },
-    { key: 'product_count', labelKey: f('categories', 'product_count_col'), right: true, sort: (r, c) => countProducts(c.s, r.id), cell: (r, c) => ({ kind: 'text', text: String(countProducts(c.s, r.id)) }) },
   ],
   filters: [
     { key: 'parent', labelKey: fl('categories', 'parent'), options: c => [{ value: 'root', label: c.tr('product.o.rootOnly') }, ...catChoices(c)], match: (r, v) => (v === 'root' ? r['parent_id'] == null : r['parent_id'] === idOf(v)) },
@@ -136,20 +135,54 @@ const categories: EntityConfig = {
     { labelKey: 'product.stat.productsAll', value: String(countProducts(c.s, r.id)) },
     { labelKey: 'product.stat.subCategories', value: String(c.s.categories.filter(x => x.parent_id === r.id).length) },
   ],
+  detailTitle: r => ({ text: r['name'], secondary: r['arabic_name'] }),
   sections: [
     {
-      titleKey: 'product.s.general',
+      titleKey: 'product.s.catBasic', detail: { title: false, columns: 1 },
       fields: [
-        { key: 'name', labelKey: f('categories', 'name'), kind: 'text', required: true, maxLength: 128 },
+        // on the detail page the name (and the Arabic name next to it) is the page title, like Odoo's read-only form
+        { key: 'name', labelKey: f('categories', 'name'), kind: 'text', required: true, maxLength: 128, detailHidden: true },
+        { key: 'arabic_name', labelKey: f('categories', 'arabic_name'), kind: 'text', rtl: true, maxLength: 128, detailHidden: true },
         { key: 'parent_id', labelKey: f('categories', 'parent_id'), kind: 'relation', rel: 'categories' },
-        { key: 'sequence_code', labelKey: f('categories', 'sequence_code'), kind: 'text', mono: true, maxLength: 16 },
-        { key: 'complete_name', labelKey: f('categories', 'complete_name'), kind: 'readonly', get: (r, c) => categoryName(c.s, r.id) },
-        { key: 'product_count', labelKey: f('categories', 'product_count'), kind: 'readonly', get: (r, c) => String(countProducts(c.s, r.id)) },
-        activeField('categories', h('categories', 'active')),
+        { key: 'lot_sequence_id', labelKey: f('categories', 'lot_sequence_id'), kind: 'relation', rel: 'sequences' },
+      ],
+    },
+    {
+      titleKey: 'product.s.catLogistics', columns: 1, half: true, detail: { half: false },
+      fields: [{ key: 'removal_strategy_id', labelKey: f('categories', 'removal_strategy_id'), kind: 'relation', rel: 'removalStrategies' }],
+    },
+    {
+      titleKey: 'product.s.catValuation', columns: 1, half: true, detail: { half: false },
+      fields: [
+        { key: 'property_cost_method', labelKey: f('categories', 'property_cost_method'), kind: 'select', required: true, options: COST_METHOD_OPTIONS },
+        { key: 'property_valuation', labelKey: f('categories', 'property_valuation'), kind: 'select', required: true, options: VALUATION_OPTIONS },
+      ],
+    },
+    {
+      titleKey: 'product.s.catAccount', columns: 1, half: true,
+      fields: [
+        { key: 'property_account_creditor_price_difference_categ', labelKey: f('categories', 'property_account_creditor_price_difference_categ'), kind: 'relation', rel: 'accounts' },
+        { key: 'property_account_income_categ_id', labelKey: f('categories', 'property_account_income_categ_id'), kind: 'relation', rel: 'accounts', domain: accountOptions },
+        { key: 'property_account_expense_categ_id', labelKey: f('categories', 'property_account_expense_categ_id'), kind: 'relation', rel: 'accounts', domain: accountOptions },
+      ],
+    },
+    {
+      titleKey: 'product.s.catAccountStock', columns: 1, half: true,
+      fields: [
+        { key: 'property_stock_account_input_categ_id', labelKey: f('categories', 'property_stock_account_input_categ_id'), kind: 'relation', rel: 'accounts', requiredWhen: autoValuation },
+        { key: 'property_stock_account_output_categ_id', labelKey: f('categories', 'property_stock_account_output_categ_id'), kind: 'relation', rel: 'accounts', requiredWhen: autoValuation },
+        { key: 'property_stock_valuation_account_id', labelKey: f('categories', 'property_stock_valuation_account_id'), kind: 'relation', rel: 'accounts', requiredWhen: autoValuation },
+        { key: 'property_stock_journal', labelKey: f('categories', 'property_stock_journal'), kind: 'relation', rel: 'journals', requiredWhen: autoValuation },
       ],
     },
   ],
-  defaults: () => ({ name: '', parent_id: null, arabic_name: '', sequence_code: '', active: true }),
+  defaults: () => ({
+    name: '', arabic_name: '', parent_id: null, lot_sequence_id: null, removal_strategy_id: null,
+    property_cost_method: 'standard', property_valuation: 'manual_periodic',
+    property_account_creditor_price_difference_categ: null, property_account_income_categ_id: null, property_account_expense_categ_id: null,
+    property_stock_account_input_categ_id: null, property_stock_account_output_categ_id: null, property_stock_valuation_account_id: null, property_stock_journal: null,
+    active: true,
+  }),
   validate: (v, c, id) => {
     const e: Record<string, string> = {};
     if (id != null && v['parent_id'] != null && (v['parent_id'] === id || descendantsOf(c.s.categories, id, 'parent_id').some(x => x.id === v['parent_id']))) e['parent_id'] = c.tr('product.v.catCycle');
@@ -164,15 +197,12 @@ const categories: EntityConfig = {
 
 // ---------------------------------------------------------------- UoM categories (uom.category)
 const uomCategories: EntityConfig = {
-  key: 'uomCategories', route: 'uom-categories', model: 'uom.category', icon: 'tags', uiOnlyActive: true,
+  key: 'uomCategories', route: 'uom-categories', model: 'uom.category', icon: 'tags', uiOnlyActive: true, odooForm: true, odooView: true,
   nameOf: r => r['name'],
   searchText: (r, c) => `${r['name']} ${optLabel(MEASURE_TYPE_OPTIONS, r['measure_type'], c.tr)}`,
   defaultSort: { key: 'name', dir: 'asc' },
   columns: [
     { key: 'name', labelKey: f('uomCategories', 'name_col'), primary: true, sort: r => lc(r['name']), cell: r => ({ kind: 'text', text: r['name'] }) },
-    { key: 'measure_type', labelKey: f('uomCategories', 'measure_type'), sort: r => r['measure_type'], cell: (r, c) => (r['measure_type'] ? { kind: 'pill', text: optLabel(MEASURE_TYPE_OPTIONS, r['measure_type'], c.tr), tone: 'blue' } : dash) },
-    { key: 'reference', labelKey: f('uomCategories', 'reference'), hide: 'sm', cell: (r, c) => { const u = c.s.uoms.find(x => x.category_id === r.id && x.uom_type === 'reference' && x.active); return u ? { kind: 'text', text: u.name } : dash; } },
-    { key: 'uoms', labelKey: f('uomCategories', 'uoms'), right: true, sort: (r, c) => c.s.uoms.filter(u => u.category_id === r.id).length, cell: (r, c) => ({ kind: 'text', text: String(c.s.uoms.filter(u => u.category_id === r.id).length) }) },
   ],
   filters: [{ key: 'measure_type', labelKey: fl('uomCategories', 'measure_type'), options: c => choices(MEASURE_TYPE_OPTIONS, c), match: (r, v) => r['measure_type'] === v }],
   stats: (r, c) => [
@@ -181,45 +211,38 @@ const uomCategories: EntityConfig = {
   ],
   sections: [
     {
-      titleKey: 'product.s.general',
+      titleKey: 'product.s.general', columns: 1,
       fields: [
         { key: 'name', labelKey: f('uomCategories', 'name'), kind: 'text', required: true, maxLength: 128 },
         { key: 'measure_type', labelKey: f('uomCategories', 'measure_type'), kind: 'select', options: MEASURE_TYPE_OPTIONS },
-        activeField('uomCategories', h('uomCategories', 'active')),
+        // point_of_sale, groups="base.group_no_one": only in debug mode
+        { key: 'is_pos_groupable', labelKey: f('uomCategories', 'is_pos_groupable'), kind: 'boolean', debugOnly: true },
       ],
     },
   ],
-  defaults: () => ({ name: '', measure_type: '', active: true }),
+  defaults: () => ({ name: '', measure_type: '', is_pos_groupable: false, active: true }),
   validate: (v, c, id) => {
     const e: Record<string, string> = {};
     if (other(c.s.uom_categories, id).some(x => lc(x.name) === lc(v['name']))) e['name'] = c.tr('product.v.ucDup');
+    // SQL constraint uom_category_unique_type: one category per measure type (an empty type may repeat)
+    if (v['measure_type'] && other(c.s.uom_categories, id).some(x => x.measure_type === v['measure_type'])) e['measure_type'] = c.tr('product.v.ucUniqueType');
     return e;
   },
   related: [{ titleKey: 'product.rel.uoms', entity: 'uoms', items: (r, c) => c.s.uoms.filter(u => u.category_id === r.id) as unknown as Rec[], meta: (u, c) => optLabel(UOM_TYPE_OPTIONS, u['uom_type'], c.tr) }],
 };
 
 // ---------------------------------------------------------------- Units of measure (uom.uom)
+// Left column: Display Name (purchase_custom), Unit of Measure, Category, Type. Right column: Active, Rounding Precision.
+// The conversion ratio (`factor`) stays on the record but is not on the form; a new non-reference unit starts at ratio 1.
 const uoms: EntityConfig = {
-  key: 'uoms', route: 'uom', model: 'uom.uom', icon: 'layers',
+  key: 'uoms', route: 'uom', model: 'uom.uom', icon: 'layers', odooForm: true, odooView: true,
   nameOf: r => r['name'],
   searchText: (r, c) => [r['name'], r['view_name'], relLabel(c.s, 'uomCategories', r['category_id'])].join(' '),
   defaultSort: { key: 'category_id', dir: 'asc' },
   columns: [
     { key: 'name', labelKey: f('uoms', 'name_col'), primary: true, sort: r => lc(r['name']), cell: r => ({ kind: 'text', text: r['name'] }) },
     { key: 'category_id', labelKey: f('uoms', 'category_id'), sort: (r, c) => lc(relLabel(c.s, 'uomCategories', r['category_id'])), cell: (r, c) => ({ kind: 'text', text: relLabel(c.s, 'uomCategories', r['category_id']) }) },
-    { key: 'uom_type', labelKey: f('uoms', 'uom_type'), hide: 'sm', sort: r => r['uom_type'], cell: (r, c) => ({ kind: 'pill', text: c.tr(`product.o.uomTypeShort.${r['uom_type']}`), tone: r['uom_type'] === 'reference' ? 'green' : r['uom_type'] === 'bigger' ? 'blue' : 'amber' }) },
-    {
-      key: 'ratio', labelKey: f('uoms', 'ratio_col'), right: true, hide: 'lg', sort: r => num(uomRatio(r as never)),
-      cell: (r, c) => {
-        if (r['uom_type'] === 'reference') return dash;
-        const ref = c.s.uoms.find(u => u.category_id === r['category_id'] && u.uom_type === 'reference')?.name ?? '';
-        const ratio = fmtNum(uomRatio(r as never), 6);
-        return { kind: 'text', text: r['uom_type'] === 'bigger' ? `1 ${r['name']} = ${ratio} ${ref}` : `1 ${ref} = ${ratio} ${r['name']}` };
-      },
-    },
-    { key: 'rounding', labelKey: f('uoms', 'rounding_col'), right: true, hide: '2xl', sort: r => num(r['rounding']), cell: r => ({ kind: 'text', text: fmtNum(r['rounding'], 6) }) },
-    { key: 'view_name', labelKey: f('uoms', 'view_name'), hide: '2xl', sort: r => lc(r['view_name']), cell: r => (r['view_name'] ? { kind: 'text', text: r['view_name'] } : dash) },
-    { key: 'used', labelKey: f('uoms', 'used'), right: true, hide: '2xl', sort: (r, c) => c.s.products.filter(p => p.uom_id === r.id).length, cell: (r, c) => ({ kind: 'text', text: String(c.s.products.filter(p => p.uom_id === r.id).length) }) },
+    { key: 'uom_type', labelKey: f('uoms', 'uom_type'), sort: r => r['uom_type'], cell: (r, c) => ({ kind: 'text', text: optLabel(UOM_TYPE_OPTIONS, r['uom_type'], c.tr) }) },
   ],
   filters: [
     { key: 'category_id', labelKey: fl('uoms', 'category_id'), options: c => c.s.uom_categories.map(x => ({ value: String(x.id), label: x.name })), match: (r, v) => r['category_id'] === idOf(v) },
@@ -234,31 +257,25 @@ const uoms: EntityConfig = {
     {
       titleKey: 'product.s.general',
       fields: [
-        { key: 'name', labelKey: f('uoms', 'name'), kind: 'text', required: true, maxLength: 64 },
-        { key: 'category_id', labelKey: f('uoms', 'category_id'), kind: 'relation', rel: 'uomCategories', required: true },
-        { key: 'uom_type', labelKey: f('uoms', 'uom_type'), kind: 'select', required: true, options: UOM_TYPE_OPTIONS, span: 2 },
-        { key: 'factor', labelKey: f('uoms', 'factor'), kind: 'number', min: 0, places: 8, showWhen: v => v['uom_type'] === 'smaller', helpKey: h('uoms', 'factor') },
-        { key: 'factor_inv', labelKey: f('uoms', 'factor_inv'), kind: 'number', min: 0, places: 6, showWhen: v => v['uom_type'] === 'bigger', helpKey: h('uoms', 'factor_inv') },
-        { key: 'ratio_ref', labelKey: f('uoms', 'ratio_ref'), kind: 'readonly', detailOnly: true, get: (r, c) => (r['uom_type'] === 'reference' ? c.tr('product.o.oneReference') : fmtNum(uomRatio(r as never), 6)) },
-        { key: 'rounding', labelKey: f('uoms', 'rounding'), kind: 'number', min: 0, required: true, places: 6, helpKey: h('uoms', 'rounding') },
-        { key: 'view_name', labelKey: f('uoms', 'view_name'), kind: 'text', helpKey: h('uoms', 'view_name'), maxLength: 32 },
-        { key: 'measure_type', labelKey: f('uoms', 'measure_type'), kind: 'readonly', get: (r, c) => optLabel(MEASURE_TYPE_OPTIONS, byId(c.s.uom_categories, r['category_id'])?.measure_type, c.tr) || '—' },
-        activeField('uoms', h('uoms', 'active')),
+        { key: 'view_name', labelKey: f('uoms', 'view_name'), kind: 'text', column: 1, helpKey: h('uoms', 'view_name'), maxLength: 32 },
+        { key: 'name', labelKey: f('uoms', 'name'), kind: 'text', column: 1, required: true, maxLength: 64 },
+        { key: 'category_id', labelKey: f('uoms', 'category_id'), kind: 'relation', rel: 'uomCategories', column: 1, required: true },
+        { key: 'uom_type', labelKey: f('uoms', 'uom_type'), kind: 'select', column: 1, required: true, options: UOM_TYPE_OPTIONS },
+        // Detail view only (the form has no ratio field): bigger/smaller units show their ratio like Odoo's read-only form.
+        {
+          key: 'ratio', labelKey: f('uoms', 'ratio'), kind: 'readonly', detailOnly: true, hideEmpty: true, column: 1,
+          get: r => (r['uom_type'] === 'reference' ? '' : Number(uomRatio(r as never)).toFixed(5)),
+          detailHint: (r, c) => c.tr(r['uom_type'] === 'bigger' ? 'product.h.uoms.ratioBigger' : 'product.h.uoms.ratioSmaller'),
+        },
+        { ...activeField('uoms', h('uoms', 'active')), column: 2 },
+        { key: 'rounding', labelKey: f('uoms', 'rounding'), kind: 'number', column: 2, min: 0, required: true, places: 5, helpKey: h('uoms', 'rounding') },
       ],
     },
   ],
   defaults: s => ({ name: '', category_id: s.uom_categories[0]?.id ?? null, uom_type: 'reference', factor: '1', rounding: '0.01', view_name: '', active: true }),
-  prepare: rec => ({ factor_inv: rec['factor'] ? trimZeros(div('1', rec['factor'], 6)) : '1' }),
-  finalize: v => {
-    const { factor_inv, ...rest } = v;
-    const factor = v['uom_type'] === 'reference' ? dec(1, 8) : v['uom_type'] === 'bigger' ? div('1', dec(factor_inv || '1', 8), 8) : dec(v['factor'], 8);
-    return { ...rest, factor };
-  },
   validate: (v, c, id) => {
     const e: Record<string, string> = {};
     const { s, tr } = c;
-    if (v['uom_type'] === 'smaller' && !(num(v['factor']) > 0)) e['factor'] = tr('product.v.ratioPositive');
-    if (v['uom_type'] === 'bigger' && !(num(v['factor_inv']) > 0)) e['factor_inv'] = tr('product.v.biggerPositive');
     if (!(num(v['rounding']) > 0)) e['rounding'] = tr('product.v.roundingPositive');
     const siblings = other(s.uoms, id).filter(u => u.category_id === v['category_id']);
     const ref = siblings.find(u => u.uom_type === 'reference' && u.active);

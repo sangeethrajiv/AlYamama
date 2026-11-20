@@ -5,6 +5,7 @@ export * from './lib/permissions/permission.service';
 export * from './lib/permissions/permission.guard';
 export * from './lib/permissions/has-permission.directive';
 export * from './lib/company/company-context.service';
+export * from './lib/debug/debug-mode.service';
 export * from './lib/guards/unsaved-changes.guard';
 export * from './lib/i18n/language.service';
 export * from './lib/i18n/provide-i18n';

@@ -21,7 +21,7 @@
         "title": "Product Categories",
         "singular": "Category",
         "subtitle": "Hierarchy used to group products.",
-        "search": "Search name, short code…"
+        "search": "Search name, Arabic name…"
       },
       "uoms": {
         "title": "Units of Measure",
@@ -39,6 +39,11 @@
     "s": {
       "basic": "Product",
       "general": "General Information",
+      "catBasic": "Basic Information",
+      "catLogistics": "Logistics",
+      "catValuation": "Inventory Valuation",
+      "catAccount": "Account Properties",
+      "catAccountStock": "Account Stock Properties",
       "units": "Units & Tracking",
       "sales": "Sales & Purchase",
       "notes": "Notes"
@@ -70,6 +75,15 @@
         "time": "Time",
         "length": "Length",
         "volume": "Volume"
+      },
+      "cost": {
+        "standard": "Standard Price",
+        "fifo": "First In First Out (FIFO)",
+        "average": "Average Cost (AVCO)"
+      },
+      "valuation": {
+        "manual_periodic": "Manual",
+        "real_time": "Automated"
       },
       "uomType": {
         "reference": "Reference Unit of Measure for this category",
@@ -135,39 +149,40 @@
         "description_purchase": "Purchase Description"
       },
       "categories": {
-        "name": "Category Name",
-        "name_col": "Category",
+        "name": "Category name",
+        "name_col": "Product Category",
         "parent_id": "Parent Category",
-        "parent_id_col": "Parent",
-        "sequence_code": "Short Code",
-        "child_id": "Sub-categories",
-        "product_count": "Product Count",
-        "product_count_col": "Products",
-        "complete_name": "Complete Name"
+        "arabic_name": "Arabic Name",
+        "lot_sequence_id": "Sequence for Lot",
+        "removal_strategy_id": "Force Removal Strategy",
+        "property_cost_method": "Costing Method",
+        "property_valuation": "Inventory Valuation",
+        "property_account_creditor_price_difference_categ": "Price Difference Account",
+        "property_account_income_categ_id": "Income Account",
+        "property_account_expense_categ_id": "Expense Account",
+        "property_stock_account_input_categ_id": "Stock Input Account",
+        "property_stock_account_output_categ_id": "Stock Output Account",
+        "property_stock_valuation_account_id": "Stock Valuation Account",
+        "property_stock_journal": "Stock Journal"
       },
       "uomCategories": {
-        "name": "Category Name",
-        "name_col": "Category",
+        "name": "Unit of Measure Category",
+        "name_col": "Unit of Measure Category",
         "measure_type": "Type of Measure",
-        "reference": "Reference Unit",
-        "uoms": "Units"
+        "is_pos_groupable": "Group Products in POS"
       },
       "uoms": {
         "name": "Unit of Measure",
-        "name_col": "Unit",
+        "name_col": "Unit of Measure",
         "category_id": "Category",
         "uom_type": "Type",
-        "ratio_col": "Ratio",
-        "factor": "Ratio",
-        "factor_inv": "Bigger Ratio",
-        "ratio_ref": "Ratio",
         "rounding": "Rounding Precision",
-        "rounding_col": "Rounding",
         "view_name": "Display Name",
-        "measure_type": "Type of Measure",
-        "used": "Products"
+        "ratio": "Ratio"
       },
       "backToRecord": "Back to record",
+      "save": "Save",
+      "discard": "Discard",
       "cancel": "Cancel",
       "create": "Create",
       "saveChanges": "Save changes",
@@ -215,15 +230,9 @@
         "tracking": "Only storable products can be tracked by lot or serial number.",
         "no_discount": "Customer discounts are not applied to this product."
       },
-      "categories": {
-        "active": "Odoo 12 has no active flag on categories; archive is UI-only here."
-      },
-      "uomCategories": {
-        "active": "Odoo 12 has no active flag on UoM categories; archive is UI-only here."
-      },
       "uoms": {
-        "factor": "How many of this unit make up 1 reference unit (e.g. 1 kg = 1000 g).",
-        "factor_inv": "How many reference units make up 1 of this unit (e.g. 1 t = 1000 kg).",
+        "ratioBigger": "e.g: 1 * (this unit) = ratio * (reference unit)",
+        "ratioSmaller": "e.g: 1 * (reference unit) = ratio * (this unit)",
         "rounding": "Quantities are rounded to a multiple of this value.",
         "view_name": "Short name shown on documents.",
         "active": "Uncheck to disable this unit without deleting it."
@@ -242,8 +251,7 @@
       "catCycle": "A category cannot be its own parent or a descendant of itself.",
       "catDup": "A category with this name already exists under the same parent.",
       "ucDup": "A UoM category with this name already exists.",
-      "ratioPositive": "Ratio must be greater than 0.",
-      "biggerPositive": "Bigger ratio must be greater than 0.",
+      "ucUniqueType": "You can have only one category per measurement type.",
       "roundingPositive": "Rounding precision must be greater than 0.",
       "oneReference": "Category already has the reference unit \"{{name}}\". Only one reference unit is allowed.",
       "noReference": "This category has no reference unit yet. Create the reference unit first.",
@@ -279,11 +287,13 @@
     "l": {
       "new": "New {{what}}",
       "filters": "Filters",
+      "status": "Status",
+      "selectAll": "Select all",
+      "selectRow": "Select {{name}}",
       "all": "All",
       "allRecords": "All",
       "active": "Active",
       "archived": "Archived",
-      "status": "Status",
       "actions": "Actions",
       "results": "{{n}} result(s)",
       "clear": "Clear search & filters",
@@ -321,6 +331,7 @@
     "block": {
       "catProducts": "{{n}} active product(s) use this category. Move or archive them first.",
       "catKids": "{{n}} active sub-category(ies) exist under this category.",
+      "ucTime": "You cannot delete this UoM Category as it is used by the system.",
       "ucUnits": "{{n}} active unit(s) of measure belong to this category. Archive them first.",
       "uomProducts": "{{n}} active product(s) use this unit of measure.",
       "uomReference": "This is the reference unit of its category and other active units depend on it.",
@@ -337,6 +348,9 @@
       "archivedBanner": "This {{what}} is archived and hidden from selection lists. Restore it to use it again.",
       "nothing": "Nothing here yet.",
       "showingFirst": "Showing first {{n}} of {{total}}."
+    },
+    "sb": {
+      "products": "Products"
     },
     "ov": {
       "title": "Product Overview",

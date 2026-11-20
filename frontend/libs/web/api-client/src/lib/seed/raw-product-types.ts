@@ -4,7 +4,7 @@
  */
 export type ID = number
 
-export interface UomCategory { id: ID; name: string; measure_type: 'unit' | 'weight' | 'time' | 'length' | 'volume' | ''; active: boolean }
+export interface UomCategory { id: ID; name: string; measure_type: 'unit' | 'weight' | 'time' | 'length' | 'volume' | ''; is_pos_groupable: boolean; active: boolean }
 export interface Uom {
   id: ID
   name: string
@@ -15,7 +15,24 @@ export interface Uom {
   view_name: string
   active: boolean
 }
-export interface ProductCategory { id: ID; name: string; parent_id: ID | null; arabic_name: string; sequence_code: string; active: boolean }
+export interface ProductCategory {
+  id: ID
+  name: string
+  parent_id: ID | null
+  arabic_name: string
+  lot_sequence_id: ID | null
+  removal_strategy_id: ID | null
+  property_cost_method: 'standard' | 'fifo' | 'average'
+  property_valuation: 'manual_periodic' | 'real_time'
+  property_stock_account_input_categ_id: ID | null
+  property_stock_account_output_categ_id: ID | null
+  property_stock_valuation_account_id: ID | null
+  property_stock_journal: ID | null
+  property_account_creditor_price_difference_categ: ID | null
+  property_account_income_categ_id: ID | null
+  property_account_expense_categ_id: ID | null
+  active: boolean
+}
 export interface Product {
   id: ID
   name: string
@@ -57,4 +74,9 @@ export interface ProductState {
   companies: { id: ID; name: string }[]
   users: { id: ID; name: string }[]
   taxes: { id: ID; name: string; active: boolean }[]
+  sequences: { id: ID; name: string }[]
+  removal_strategies: { id: ID; name: string }[]
+  /** Filled from the accounting chart of accounts by the mock adapter. */
+  accounts: { id: ID; code: string; name: string; type: string }[]
+  journals: { id: ID; name: string }[]
 }

@@ -7,10 +7,13 @@ export type Values = Record<string, any>;
 export type Mode = 'create' | 'edit';
 /** Translation function (`I18n.tr`). Configs never import Angular services. */
 export type Tr = (key: string, params?: Record<string, unknown>) => string;
-/** What every config callback may need: the current data and translation. */
-export interface Ctx { s: ProductState; tr: Tr }
+/**
+ * What every config callback may need: the current data and translation. `debug` is true when debug mode is on and the user
+ * may write product data; it reveals technical fields (Odoo `groups="base.group_no_one"`).
+ */
+export interface Ctx { s: ProductState; tr: Tr; debug: boolean }
 
-export type RelKey = ProductEntityKey | 'companies' | 'users' | 'taxes';
+export type RelKey = ProductEntityKey | 'companies' | 'users' | 'taxes' | 'sequences' | 'removalStrategies' | 'accounts' | 'journals';
 export type PillTone = 'slate' | 'green' | 'amber' | 'red' | 'blue';
 /** Option whose label is a translation key. */
 export interface Opt { value: string; labelKey: string }
@@ -71,6 +74,12 @@ export interface FieldSpec {
   /** Unit shown with the value (kg, SAR, %). */
   suffix?: string;
   span?: 1 | 2;
+  /** Pin to the left (1) or right (2) column of the section. */
+  column?: 1 | 2;
+  /** Required only while this is true (Odoo `attrs required`). */
+  requiredWhen?: (v: Values) => boolean;
+  /** Technical field: shown (form and detail) only in debug mode. */
+  debugOnly?: boolean;
   rtl?: boolean;
   mono?: boolean;
   showWhen?: (v: Values, mode: Mode) => boolean;
@@ -83,9 +92,31 @@ export interface FieldSpec {
   hideEmpty?: boolean;
   /** Only shown on the detail view (computed by stock etc.). */
   detailOnly?: boolean;
+  /** Shown in the detail page's title instead of as a row of the sheet (the form still has it). */
+  detailHidden?: boolean;
+  /** Small grey hint under the value on the detail view (e.g. the ratio formula). */
+  detailHint?: (r: Rec, c: Ctx) => string;
 }
 
-export interface SectionSpec { titleKey: string; fields: FieldSpec[] }
+export interface SectionSpec {
+  titleKey: string;
+  fields: FieldSpec[];
+  /** Inner grid columns (default 2). */
+  columns?: 1 | 2;
+  /** Share a row with the next half-width section on wide screens. */
+  half?: boolean;
+  /** How the read-only detail sheet differs from the form (reference view only). */
+  detail?: { title?: boolean; columns?: 1 | 2; half?: boolean };
+}
+/** Odoo stat button ("Products"): a count that opens the related list filtered to this record. */
+export interface SmartButton {
+  labelKey: string;
+  icon: string;
+  count: (r: Rec, c: Ctx) => number;
+  /** List to open and the filter key (on that list) that narrows it to this record. */
+  entity: ProductEntityKey;
+  filterKey: string;
+}
 export interface Stat { labelKey: string; value: string; hint?: string }
 export interface Badge { text: string; tone: PillTone }
 export interface RelatedSpec {
@@ -119,6 +150,17 @@ export interface EntityConfig {
   /** Cross-field and uniqueness checks. Returns messages by field key. */
   validate?: (v: Values, c: Ctx, id?: number) => Record<string, string>;
   related?: RelatedSpec[];
+  /** Reference-view page title (the Odoo `name` field) and an optional second line, e.g. the Arabic name. */
+  detailTitle?: (r: Rec, c: Ctx) => { text: string; secondary?: string };
+  /** Stat button at the top-right of the form. */
+  smartButton?: SmartButton;
+  /** Odoo form conventions: Save / Discard buttons instead of Create / Save changes / Cancel. */
+  odooForm?: boolean;
+  /**
+   * Reference (Odoo) presentation of the list and detail pages: a plain list with a checkbox column and a read-only
+   * label/value sheet. The list has no buttons; the detail shows only Edit (no create, archive or delete) for now.
+   */
+  odooView?: boolean;
   /** The Odoo 12 model has no `active` column: archive is a UI-only state in this prototype. */
   uiOnlyActive?: boolean;
 }

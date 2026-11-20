@@ -29,10 +29,10 @@ export function descendantsOf<T extends { id: ID }>(list: T[], rootId: ID, paren
   return out;
 }
 
-/** Products in a category or any of its sub-categories. */
-export function countProducts(s: ProductState, categoryId: ID): number {
+/** Products in a category or any of its sub-categories. `activeOnly` skips archived products (Odoo's `product_count` does). */
+export function countProducts(s: ProductState, categoryId: ID, activeOnly = false): number {
   const ids = new Set([categoryId, ...descendantsOf(s.categories, categoryId, 'parent_id').map(c => c.id)]);
-  return s.products.filter(p => p.categ_id != null && ids.has(p.categ_id)).length;
+  return s.products.filter(p => p.categ_id != null && ids.has(p.categ_id) && (!activeOnly || p.active)).length;
 }
 
 /** Display name of any related record. */
@@ -46,12 +46,17 @@ export function relLabel(s: ProductState, rel: RelKey, id: ID | null | undefined
     case 'companies': return s.companies.find(x => x.id === id)?.name ?? '';
     case 'users': return s.users.find(x => x.id === id)?.name ?? '';
     case 'taxes': return s.taxes.find(x => x.id === id)?.name ?? '';
+    case 'sequences': return s.sequences.find(x => x.id === id)?.name ?? '';
+    case 'removalStrategies': return s.removal_strategies.find(x => x.id === id)?.name ?? '';
+    // Odoo's account display name is "code name".
+    case 'accounts': { const a = s.accounts.find(x => x.id === id); return a ? `${a.code} ${a.name}` : ''; }
+    case 'journals': return s.journals.find(x => x.id === id)?.name ?? '';
   }
 }
 
 /** The records of a relation, for selection lists. */
 export function relRecords(s: ProductState, rel: RelKey): Rec[] {
-  const list = rel === 'uomCategories' ? s.uom_categories : s[rel];
+  const list = rel === 'uomCategories' ? s.uom_categories : rel === 'removalStrategies' ? s.removal_strategies : s[rel];
   return list as unknown as Rec[];
 }
 

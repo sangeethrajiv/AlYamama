@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import type { Product, ProductCategory, ProductEntityKey, ProductState, Uom, UomCategory, ID } from '@erp/shared/contracts';
+import type { Product, ProductAccount, ProductCategory, ProductEntityKey, ProductState, Uom, UomCategory, ID } from '@erp/shared/contracts';
 import { dec, gt, lt } from '@erp/shared/utils';
 import { ApiError } from '../api/api-error';
 import { ProductApi } from '../api/product.api';
@@ -11,6 +11,19 @@ type ListKey = 'products' | 'categories' | 'uoms' | 'uom_categories';
 const LIST: Record<ProductEntityKey, ListKey> = { products: 'products', categories: 'categories', uoms: 'uoms', uomCategories: 'uom_categories' };
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
+type AccountField = 'property_account_creditor_price_difference_categ' | 'property_account_income_categ_id' | 'property_account_expense_categ_id'
+  | 'property_stock_account_input_categ_id' | 'property_stock_account_output_categ_id' | 'property_stock_valuation_account_id';
+const STOCK_ACCOUNT_FIELDS: [AccountField | 'property_stock_journal', string][] = [
+  ['property_stock_valuation_account_id', 'Stock Valuation Account'], ['property_stock_journal', 'Stock Journal'],
+  ['property_stock_account_input_categ_id', 'Stock Input Account'], ['property_stock_account_output_categ_id', 'Stock Output Account'],
+];
+const ACCOUNT_FIELDS: [AccountField, string][] = [
+  ['property_account_creditor_price_difference_categ', 'Price Difference Account'], ['property_account_income_categ_id', 'Income Account'], ['property_account_expense_categ_id', 'Expense Account'],
+  ['property_stock_account_input_categ_id', 'Stock Input Account'], ['property_stock_account_output_categ_id', 'Stock Output Account'], ['property_stock_valuation_account_id', 'Stock Valuation Account'],
+];
+const COST_METHODS = ['standard', 'fifo', 'average'];
+const VALUATIONS = ['manual_periodic', 'real_time'];
+
 /**
  * MOCK adapter: an in-memory stand-in for the future server. It enforces the same rules the server will (required
  * fields, uniqueness, unit-of-measure consistency, restrict-on-archive/delete), so the screens do not have to trust
@@ -21,7 +34,15 @@ export class MockProductApi extends ProductApi {
   private readonly db = inject(MockDb);
   private get s(): ProductState { return this.db.product; }
 
-  override async snapshot(): Promise<ProductState> { return copy(this.s); }
+  /** The chart of accounts the category form points at: the accounting mock's active accounts (id = numeric part of `acc_101`). */
+  private accounts(): ProductAccount[] {
+    return this.db.accounting.accounts
+      .filter(a => a.active)
+      .map(a => ({ id: Number(a.id.replace(/\D/g, '')), code: a.code, name: a.name, type: a.type }))
+      .filter(a => Number.isInteger(a.id) && a.id > 0);
+  }
+
+  override async snapshot(): Promise<ProductState> { return { ...copy(this.s), accounts: this.accounts() }; }
 
   /** Insert (no id, or an unknown id) or replace by id. Ids are per list (max + 1), like database sequences. Returns the stored record. */
   private put<T extends { id: ID }>(key: ListKey, rec: Draft<T>): T {
@@ -72,6 +93,19 @@ export class MockProductApi extends ProductApi {
     if (!name) e.push({ field: 'name', message: 'Name is required.' });
     if (c.id != null && c.parent_id != null && (c.parent_id === c.id || this.descendants(c.id).has(c.parent_id))) e.push({ field: 'parent_id', message: 'A category cannot be its own parent or a descendant of itself.' });
     if (name && this.s.categories.some(x => x.id !== c.id && (x.parent_id ?? null) === (c.parent_id ?? null) && same(x.name, name))) e.push({ field: 'name', message: 'A category with this name already exists under the same parent.' });
+    const known = (list: { id: ID }[], v: ID | null, field: string, label: string) => { if (v != null && !list.some(x => x.id === v)) e.push({ field, message: `${label} does not exist.` }); };
+    known(this.s.categories, c.parent_id, 'parent_id', 'Parent Category');
+    known(this.s.sequences, c.lot_sequence_id, 'lot_sequence_id', 'Sequence for Lot');
+    known(this.s.removal_strategies, c.removal_strategy_id, 'removal_strategy_id', 'Force Removal Strategy');
+    known(this.s.journals, c.property_stock_journal, 'property_stock_journal', 'Stock Journal');
+    const accounts = this.accounts();
+    for (const [field, label] of ACCOUNT_FIELDS) known(accounts, c[field], field, label);
+    if (!COST_METHODS.includes(c.property_cost_method)) e.push({ field: 'property_cost_method', message: 'Costing Method is required.' });
+    if (!VALUATIONS.includes(c.property_valuation)) e.push({ field: 'property_valuation', message: 'Inventory Valuation is required.' });
+    // stock_account: automated valuation needs the stock accounts (Odoo `_check_valuation_accounts` / required-on-real_time).
+    if (c.property_valuation === 'real_time') {
+      for (const [field, label] of STOCK_ACCOUNT_FIELDS) if (c[field] == null) e.push({ field, message: `${label} is required for automated valuation.` });
+    }
     this.check(e);
     return this.done(this.put<ProductCategory>('categories', { ...c, name, parent_id: c.parent_id ?? null }));
   }
@@ -81,6 +115,8 @@ export class MockProductApi extends ProductApi {
     const name = c.name.trim();
     if (!name) e.push({ field: 'name', message: 'Unit of Measure Category is required.' });
     if (name && this.s.uom_categories.some(x => x.id !== c.id && same(x.name, name))) e.push({ field: 'name', message: 'A UoM category with this name already exists.' });
+    // uom.category `uom_category_unique_type`: UNIQUE(measure_type); several categories may leave the type empty.
+    if (c.measure_type && this.s.uom_categories.some(x => x.id !== c.id && x.measure_type === c.measure_type)) e.push({ field: 'measure_type', message: 'You can have only one category per measurement type.' });
     this.check(e);
     return this.done(this.put<UomCategory>('uom_categories', { ...c, name }));
   }
@@ -153,7 +189,11 @@ export class MockProductApi extends ProductApi {
         const n = s.products.filter(p => p.categ_id === id).length, kids = s.categories.filter(c => c.parent_id === id).length;
         return n ? `${n} product(s) use this category.` : kids ? `This category has ${kids} sub-category(ies).` : null;
       }
-      case 'uomCategories': { const n = s.uoms.filter(u => u.category_id === id).length; return n ? `This category contains ${n} unit(s) of measure.` : null; }
+      case 'uomCategories': {
+        // uom.category.unlink: the Time category is used by the system.
+        if (s.uom_categories.find(x => x.id === id)?.measure_type === 'time') return 'You cannot delete this UoM Category as it is used by the system.';
+        const n = s.uoms.filter(u => u.category_id === id).length; return n ? `This category contains ${n} unit(s) of measure.` : null;
+      }
       case 'uoms': { const n = s.products.filter(p => p.uom_id === id || p.uom_po_id === id).length; return n ? `${n} product(s) use this unit of measure.` : null; }
     }
   }

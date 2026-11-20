@@ -21,7 +21,10 @@ describe('MockProductApi', () => {
     const p = s.products[0];
     for (const k of ['arabic_name', 'internal_short_code', 'internal_type', 'tracking', 'company_id', 'responsible_id', 'margin_perc', 'no_discount', 'description_sale', 'description_purchase', 'qty_available', 'virtual_available']) expect(p).toHaveProperty(k);
     expect(typeof p.responsible_id).toBe('number');
-    expect(s.categories[1]).toHaveProperty('sequence_code');
+    for (const k of ['arabic_name', 'lot_sequence_id', 'removal_strategy_id', 'property_cost_method', 'property_valuation', 'property_account_creditor_price_difference_categ', 'property_account_income_categ_id',
+      'property_account_expense_categ_id', 'property_stock_account_input_categ_id', 'property_stock_account_output_categ_id', 'property_stock_valuation_account_id', 'property_stock_journal']) expect(s.categories[1]).toHaveProperty(k);
+    expect(s.categories[1]).not.toHaveProperty('sequence_code');
+    expect(s.uom_categories[0]).toHaveProperty('is_pos_groupable');
     expect(s.uoms[0]).toHaveProperty('view_name');
     expect(s.companies.length).toBeGreaterThan(0);
     expect(s.users.length).toBeGreaterThan(0);
@@ -82,8 +85,44 @@ describe('MockProductApi', () => {
     const hoses = s.categories.find(c => c.name === 'Hoses & Pipes')!;
     const cycle = await api.saveCategory({ ...hoses, parent_id: s.categories.find(c => c.name === 'Hydraulic Hoses')!.id }).catch(e => e);
     expect(field(cycle)).toContain('parent_id');
-    const dup = await api.saveCategory({ name: 'hoses & pipes', parent_id: hoses.parent_id, arabic_name: '', sequence_code: '', active: true }).catch(e => e);
+    const { id: _id, ...rest } = hoses; void _id;
+    const dup = await api.saveCategory({ ...rest, name: 'hoses & pipes' }).catch(e => e);
     expect(field(dup)).toContain('name');
+  });
+
+  it('feeds the category form with the accounting chart of accounts, journals, sequences and removal strategies', async () => {
+    const s = await api.snapshot();
+    expect(s.accounts.length).toBeGreaterThan(10);
+    expect(s.accounts.find(a => a.code === '180041')).toMatchObject({ id: 180041, name: 'Stock Valuation Account' });
+    expect(s.journals.map(j => j.name)).toContain('Inventory Valuation');
+    expect(s.removal_strategies.map(r => r.name)).toEqual(['First In First Out (FIFO)', 'Last In First Out (LIFO)']);
+    expect(s.sequences.length).toBeGreaterThan(0);
+  });
+
+  it('requires the stock accounts for automated valuation and rejects unknown relations', async () => {
+    const s = await api.snapshot();
+    const { id, ...base } = s.categories.find(c => c.name === 'Valves')!; void id;
+    const auto = await api.saveCategory({ ...base, name: 'Automated', property_valuation: 'real_time' }).catch(e => e);
+    expect(field(auto)).toEqual(expect.arrayContaining(['property_stock_valuation_account_id', 'property_stock_journal', 'property_stock_account_input_categ_id', 'property_stock_account_output_categ_id']));
+    const ok = await api.saveCategory({ ...base, name: 'Automated', property_cost_method: 'fifo', property_valuation: 'real_time', property_stock_valuation_account_id: 180041, property_stock_account_input_categ_id: 180031, property_stock_account_output_categ_id: 180031, property_stock_journal: 6 });
+    expect(ok.property_cost_method).toBe('fifo');
+    const bad = await api.saveCategory({ ...base, name: 'Dangling', property_account_income_categ_id: 999999, lot_sequence_id: 999, removal_strategy_id: 999, property_stock_journal: 999, parent_id: 999 }).catch(e => e);
+    expect(field(bad)).toEqual(expect.arrayContaining(['property_account_income_categ_id', 'lot_sequence_id', 'removal_strategy_id', 'property_stock_journal', 'parent_id']));
+    const noSelect = await api.saveCategory({ ...base, name: 'NoSel', property_cost_method: '' as never, property_valuation: '' as never }).catch(e => e);
+    expect(field(noSelect)).toEqual(expect.arrayContaining(['property_cost_method', 'property_valuation']));
+  });
+
+  it('allows one UoM category per measure type and never deletes the Time category', async () => {
+    const s = await api.snapshot();
+    const weight = s.uom_categories.find(c => c.measure_type === 'weight')!;
+    const dup = await api.saveUomCategory({ name: 'Mass', measure_type: 'weight', is_pos_groupable: false, active: true }).catch(e => e);
+    expect(field(dup)).toContain('measure_type');
+    expect((await api.saveUomCategory({ ...weight, name: 'Weight (renamed)' })).measure_type).toBe('weight');
+    expect((await api.saveUomCategory({ name: 'Density', measure_type: '', is_pos_groupable: false, active: true })).id).toBeGreaterThan(0);
+    const time = s.uom_categories.find(c => c.measure_type === 'time')!;
+    const gone = await api.remove('uomCategories', time.id).catch(e => e);
+    expect(gone.problem.code).toBe('PRODUCT_DELETE_BLOCKED');
+    expect(gone.problem.detail).toContain('used by the system');
   });
 
   it('validates units of measure: ratio, rounding and exactly one reference unit', async () => {

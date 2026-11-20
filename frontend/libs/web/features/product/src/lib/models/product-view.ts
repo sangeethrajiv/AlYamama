@@ -10,10 +10,11 @@ const unitKey = (cfg: EntityConfig, f: FieldSpec) => `product.fu.${cfg.key}.${f.
 function toField(cfg: EntityConfig, f: FieldSpec, mode: Mode, ctx: () => Ctx): FieldDef {
   const base: FieldDef = {
     key: f.key, type: 'text', label: f.suffix ? unitKey(cfg, f) : f.labelKey, required: f.required, span: f.span === 2 ? 2 : 1,
-    hint: f.helpKey, placeholder: f.placeholderKey, mono: f.mono, rtl: f.rtl,
+    hint: f.helpKey, placeholder: f.placeholderKey, mono: f.mono, rtl: f.rtl, column: f.column, requiredWhen: f.requiredWhen,
   };
-  const showWhen = f.showWhen;
-  if (showWhen) base.visible = v => showWhen(v, mode);
+  const showWhen = f.showWhen, debugOnly = f.debugOnly;
+  // Debug-only fields read the live context, so they appear and disappear with debug mode.
+  if (showWhen || debugOnly) base.visible = v => (!debugOnly || ctx().debug) && (!showWhen || showWhen(v, mode));
   const own = f.readonlyWhen;
   if (own) base.disabled = v => own(v, mode, ctx());
   switch (f.kind) {
@@ -45,7 +46,7 @@ function toField(cfg: EntityConfig, f: FieldSpec, mode: Mode, ctx: () => Ctx): F
 export function buildView(cfg: EntityConfig, mode: Mode, ctx: () => Ctx): ViewDef {
   const sections: SectionDef[] = cfg.sections
     .map((sec, i) => ({
-      id: `${cfg.key}-${i}`, title: sec.titleKey, columns: 2 as const,
+      id: `${cfg.key}-${i}`, title: sec.titleKey, columns: sec.columns ?? (2 as const), half: sec.half,
       fields: sec.fields.filter(f => isInput(f) || (f.kind === 'readonly' && !f.detailOnly && mode === 'edit')).map(f => toField(cfg, f, mode, ctx)),
     }))
     .filter(sec => sec.fields.length > 0);

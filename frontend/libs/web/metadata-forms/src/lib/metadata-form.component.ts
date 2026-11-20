@@ -10,6 +10,8 @@ import { DECIMAL_RE, type FieldDef, type Lookups, type Option, type Rec, type Se
 
 const GRID: Record<number, string> = { 1: 'sm:grid-cols-1', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-2 lg:grid-cols-3', 4: 'sm:grid-cols-2 lg:grid-cols-4' };
 const SPAN: Record<string, string> = { 1: '', 2: 'sm:col-span-2', 3: 'lg:col-span-3', 4: 'lg:col-span-4', full: 'col-span-full' };
+/** Full class names so Tailwind can see them. */
+const COLUMN: Record<number, string> = { 1: 'sm:col-start-1', 2: 'sm:col-start-2' };
 
 /**
  * Renders a metadata view (appendix A.10) as a typed reactive form. Use it for simple master data and settings;
@@ -29,7 +31,7 @@ const SPAN: Record<string, string> = { 1: '', 2: 'sm:col-span-2', 3: 'lg:col-spa
         <div class="min-w-0 space-y-3">@for (s of rightSections(); track s.id) { <ng-container [ngTemplateOutlet]="sec" [ngTemplateOutletContext]="{ $implicit: s }" /> }<ng-content /></div>
       </div>
     } @else {
-      <div class="space-y-3">@for (s of visibleSections(); track s.id) { <ng-container [ngTemplateOutlet]="sec" [ngTemplateOutletContext]="{ $implicit: s }" /> }</div>
+      <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">@for (s of visibleSections(); track s.id) { <div class="min-w-0" [class]="s.half ? '' : 'lg:col-span-2'"><ng-container [ngTemplateOutlet]="sec" [ngTemplateOutletContext]="{ $implicit: s }" /></div> }</div>
     }
     <ng-template #sec let-s>
         <section class="rounded-xl border border-slate-200 bg-white p-4">
@@ -44,7 +46,7 @@ const SPAN: Record<string, string> = { 1: '', 2: 'sm:col-span-2', 3: 'lg:col-spa
                     </label>
                   } @else {
                     <label class="block">
-                      <span class="mb-1 flex items-center gap-1 text-[11px] font-bold text-slate-600">{{ f.label | transloco }}@if (f.required) { <span class="text-rose-500">*</span> }</span>
+                      <span class="mb-1 flex items-center gap-1 text-[11px] font-bold text-slate-600">{{ f.label | transloco }}@if (isRequired(f)) { <span class="text-rose-500">*</span> }</span>
                       @switch (f.type) {
                         @case ('textarea') { <textarea rows="3" class="erp-input" [class.font-mono]="f.mono" [attr.dir]="f.rtl ? 'rtl' : null" [formControl]="ctrl(f.key)" [placeholder]="ph(f)"></textarea> }
                         @case ('select') {
@@ -224,10 +226,17 @@ export class MetadataFormComponent {
     return c;
   }
   protected grid(s: SectionDef): string {
-    return GRID[s.columns ?? 2];
+    return GRID[s.columns ?? 2] + (this.packed(s) ? ' sm:grid-flow-dense' : '');
   }
   protected span(f: FieldDef): string {
-    return SPAN[String(f.span ?? 1)];
+    return `${SPAN[String(f.span ?? 1)]} ${f.column ? COLUMN[f.column] : ''}`.trim();
+  }
+  /** A section whose fields are pinned to columns packs them densely (left column first, then right). */
+  protected packed(s: SectionDef): boolean {
+    return s.fields.some(f => f.column);
+  }
+  protected isRequired(f: FieldDef): boolean {
+    return !!f.required || !!f.requiredWhen?.(this.snapshot());
   }
   protected ph(f: FieldDef): string {
     return f.placeholder ? this.i18n.tr(f.placeholder) : '';
@@ -314,7 +323,7 @@ export class MetadataFormComponent {
     Object.keys(this.form.controls).forEach(k => this.form.removeControl(k as never));
     for (const f of view.sections.flatMap(s => s.fields)) {
       const validators: ValidatorFn[] = [];
-      if (f.required && f.type !== 'boolean') validators.push(this.requiredWhenVisible(f));
+      if ((f.required || f.requiredWhen) && f.type !== 'boolean') validators.push(this.requiredWhenVisible(f));
       if (f.pattern) validators.push(Validators.pattern(f.pattern));
       if (f.min !== undefined) validators.push(Validators.min(f.min));
       if (f.max !== undefined) validators.push(Validators.max(f.max));
@@ -331,6 +340,7 @@ export class MetadataFormComponent {
   private requiredWhenVisible(f: FieldDef): ValidatorFn {
     return c => {
       if (f.visible && !f.visible(this.snapshot())) return null;
+      if (!f.required && !f.requiredWhen?.(this.snapshot())) return null;
       const v = c.value;
       const empty = v === null || v === undefined || (typeof v === 'string' && v.trim() === '') || (Array.isArray(v) && v.length === 0);
       return empty ? { required: true } : null;

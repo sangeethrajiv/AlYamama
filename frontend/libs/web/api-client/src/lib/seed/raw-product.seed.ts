@@ -33,12 +33,12 @@ export function seedProducts(): ProductState {
 
   // ---- UoM categories & UoMs ----
   const uom_categories: UomCategory[] = [
-    { id: 1, name: 'Unit', measure_type: 'unit', active: true },
-    { id: 2, name: 'Weight', measure_type: 'weight', active: true },
-    { id: 3, name: 'Working Time', measure_type: 'time', active: true },
-    { id: 4, name: 'Length / Distance', measure_type: 'length', active: true },
-    { id: 5, name: 'Volume', measure_type: 'volume', active: true },
-    { id: 6, name: 'Area', measure_type: '', active: true },
+    { id: 1, name: 'Unit', measure_type: 'unit', is_pos_groupable: false, active: true },
+    { id: 2, name: 'Weight', measure_type: 'weight', is_pos_groupable: false, active: true },
+    { id: 3, name: 'Working Time', measure_type: 'time', is_pos_groupable: false, active: true },
+    { id: 4, name: 'Length / Distance', measure_type: 'length', is_pos_groupable: false, active: true },
+    { id: 5, name: 'Volume', measure_type: 'volume', is_pos_groupable: false, active: true },
+    { id: 6, name: 'Area', measure_type: '', is_pos_groupable: false, active: true },
   ]
   let uid = 0
   // `ratio` is what the user types: "smaller" => factor = ratio; "bigger" => factor = 1 / ratio
@@ -65,29 +65,39 @@ export function seedProducts(): ProductState {
 
   // ---- product categories ----
   let cid = 0
-  const C = (name: string, parent_id: number | null, arabic_name = '', sequence_code = ''): ProductCategory => ({
-    id: ++cid, name, parent_id, arabic_name, sequence_code, active: true,
+  // Odoo property defaults (stock_account data): Costing Method "Standard Price", Inventory Valuation "Manual".
+  const C = (name: string, parent_id: number | null, arabic_name = '', over: Partial<ProductCategory> = {}): ProductCategory => ({
+    id: ++cid, name, parent_id, arabic_name, lot_sequence_id: null, removal_strategy_id: null,
+    property_cost_method: 'standard', property_valuation: 'manual_periodic',
+    property_stock_account_input_categ_id: null, property_stock_account_output_categ_id: null, property_stock_valuation_account_id: null, property_stock_journal: null,
+    property_account_creditor_price_difference_categ: null, property_account_income_categ_id: null, property_account_expense_categ_id: null,
+    active: true, ...over,
   })
+  // Automated valuation needs the three stock accounts and the stock journal (account ids = numeric part of the chart-of-accounts id).
+  const AUTO: Partial<ProductCategory> = {
+    property_cost_method: 'average', property_valuation: 'real_time', property_stock_journal: 6,
+    property_stock_account_input_categ_id: 180031, property_stock_account_output_categ_id: 180031, property_stock_valuation_account_id: 180041,
+  }
   const categories: ProductCategory[] = [
     C('All', null, 'الكل'),
-    C('Hoses & Pipes', 1, 'خراطيم وأنابيب', 'HSP'),
-    C('Hydraulic Hoses', 2, 'خراطيم هيدروليكية', 'HHS'),
-    C('Hose Fittings', 2, 'وصلات الخراطيم', 'FIT'),
-    C('Pipes & Tubes', 2, 'مواسير وأنابيب', 'PIP'),
-    C('Seals & Gaskets', 1, 'موانع التسرب', 'SEL'),
-    C('O-Rings', 6, 'حلقات دائرية', 'ORG'),
-    C('Cylinder Seal Kits', 6, 'أطقم موانع تسرب الأسطوانات', 'CSK'),
-    C('Pumps & Motors', 1, 'مضخات ومحركات', 'PMP'),
-    C('Gear Pumps', 9, 'مضخات ترسية', 'GRP'),
-    C('Piston Pumps', 9, 'مضخات مكبسية', 'PSP'),
-    C('Valves', 1, 'صمامات', 'VLV'),
-    C('Filters', 1, 'فلاتر', 'FLT'),
-    C('Lubricants & Oils', 1, 'زيوت وشحومات', 'OIL'),
-    C('Cylinders', 1, 'أسطوانات هيدروليكية', 'CYL'),
-    C('Workshop Consumables', 1, 'مستهلكات الورشة', 'CON'),
-    C('Services', 1, 'خدمات', 'SRV'),
-    C('Labour', 17, 'عمالة', 'LAB'),
-    C('Repair & Overhaul', 17, 'إصلاح وصيانة شاملة', 'ROH'),
+    C('Hoses & Pipes', 1, 'خراطيم وأنابيب'),
+    C('Hydraulic Hoses', 2, 'خراطيم هيدروليكية', { lot_sequence_id: 2, removal_strategy_id: 1, property_account_income_categ_id: 403, property_account_expense_categ_id: 501 }),
+    C('Hose Fittings', 2, 'وصلات الخراطيم'),
+    C('Pipes & Tubes', 2, 'مواسير وأنابيب'),
+    C('Seals & Gaskets', 1, 'موانع التسرب'),
+    C('O-Rings', 6, 'حلقات دائرية'),
+    C('Cylinder Seal Kits', 6, 'أطقم موانع تسرب الأسطوانات'),
+    C('Pumps & Motors', 1, 'مضخات ومحركات', { ...AUTO, lot_sequence_id: 3, removal_strategy_id: 2, property_account_income_categ_id: 402 }),
+    C('Gear Pumps', 9, 'مضخات ترسية'),
+    C('Piston Pumps', 9, 'مضخات مكبسية'),
+    C('Valves', 1, 'صمامات'),
+    C('Filters', 1, 'فلاتر'),
+    C('Lubricants & Oils', 1, 'زيوت وشحومات'),
+    C('Cylinders', 1, 'أسطوانات هيدروليكية'),
+    C('Workshop Consumables', 1, 'مستهلكات الورشة'),
+    C('Services', 1, 'خدمات'),
+    C('Labour', 17, 'عمالة'),
+    C('Repair & Overhaul', 17, 'إصلاح وصيانة شاملة'),
   ]
   const catId = (name: string) => need(categories.find((c) => c.name === name), `category ${name}`).id
 
@@ -181,5 +191,26 @@ export function seedProducts(): ProductState {
   addProduct({ name: 'Hydraulic Hose 1SN 2" (discontinued)', ar: 'خرطوم هيدروليكي 1SN 2 بوصة (متوقف)', code: 'HH1-200', cat: 'Hydraulic Hoses', uom: 'm', price: 140, cost: 98, active: false, stock: 0 })
   addProduct({ name: 'Legacy Gear Pump 12cc', ar: 'مضخة ترسية قديمة 12 سم³', code: 'GRP-012', cat: 'Gear Pumps', uom: 'Unit(s)', price: 520, cost: 400, active: false, stock: 0 })
 
-  return { uom_categories, uoms, categories, products, companies, users, taxes }
+  // Lookups the category form points at. MOCK sample data: there is no Odoo behind this prototype. Removal strategies are the
+  // two standard Odoo 12 records; accounts are filled from the accounting chart of accounts by MockProductApi.
+  const sequences = [
+    { id: 1, name: 'Lot Sequence - General' },
+    { id: 2, name: 'Lot Sequence - Hoses' },
+    { id: 3, name: 'Lot Sequence - Pumps & Motors' },
+    { id: 4, name: 'Lot Sequence - Seals' },
+  ]
+  const removal_strategies = [
+    { id: 1, name: 'First In First Out (FIFO)' },
+    { id: 2, name: 'Last In First Out (LIFO)' },
+  ]
+  const journals = [
+    { id: 1, name: 'Customer Invoices' },
+    { id: 2, name: 'Vendor Bills' },
+    { id: 3, name: 'Miscellaneous Operations' },
+    { id: 4, name: 'Bank' },
+    { id: 5, name: 'Cash' },
+    { id: 6, name: 'Inventory Valuation' },
+  ]
+
+  return { uom_categories, uoms, categories, products, companies, users, taxes, sequences, removal_strategies, accounts: [], journals }
 }

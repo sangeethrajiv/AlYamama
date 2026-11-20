@@ -6,8 +6,10 @@ import type { HasUnsavedChanges } from '@erp/web/core';
 import { MetadataFormComponent, type Rec as FormRec } from '@erp/web/metadata-forms';
 import { EmptyStateComponent, ErrorBannerComponent, I18n, IconComponent, PageHeaderComponent, ToastService } from '@erp/web/ui';
 import type { Product, ProductCategory, ProductEntityKey, Uom, UomCategory } from '@erp/shared/contracts';
+import { ProductActions } from '../data/product-actions.service';
 import { ProductStore } from '../data/product.store';
 import { ProductBreadcrumbComponent, type Crumb } from '../components/product-breadcrumb.component';
+import { ProductSmartButtonComponent } from '../components/product-smart-button.component';
 import { ENTITY_BY_KEY } from '../models/product-entities';
 import { relRecords } from '../models/product-helpers';
 import { buildView, fromForm, noLookups, toForm } from '../models/product-view';
@@ -24,7 +26,7 @@ const CODE_FIELD: Record<string, string> = { PRODUCT_DUPLICATE_REFERENCE: 'defau
  */
 @Component({
   selector: 'erp-product-form-page',
-  imports: [RouterLink, TranslocoPipe, MetadataFormComponent, ErrorBannerComponent, IconComponent, EmptyStateComponent, PageHeaderComponent, ProductBreadcrumbComponent],
+  imports: [RouterLink, TranslocoPipe, MetadataFormComponent, ErrorBannerComponent, IconComponent, EmptyStateComponent, PageHeaderComponent, ProductBreadcrumbComponent, ProductSmartButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (!store.loaded()) { <p class="py-10 text-center text-sm text-slate-400">{{ 'common.loading' | transloco }}</p> }
@@ -40,15 +42,20 @@ const CODE_FIELD: Record<string, string> = { PRODUCT_DUPLICATE_REFERENCE: 'defau
         <a [routerLink]="backLink()" class="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900"><erp-icon name="chevron-left" [size]="13" [flip]="true" />{{ (mode() === 'create' ? title() : ('product.f.backToRecord' | transloco)) }}</a>
         <erp-page-header [title]="heading()">
           <ng-container actions>
-            <button type="button" class="erp-btn-ghost" (click)="cancel()">{{ 'product.f.cancel' | transloco }}</button>
-            <button type="button" class="erp-btn-primary" [disabled]="busy()" (click)="save()"><erp-icon name="save" [size]="14" />{{ (mode() === 'create' ? 'product.f.create' : 'product.f.saveChanges') | transloco }}</button>
+            <button type="button" class="erp-btn-ghost" (click)="cancel()">{{ discardKey() | transloco }}</button>
+            <button type="button" class="erp-btn-primary" [disabled]="busy()" (click)="save()"><erp-icon name="save" [size]="14" />{{ saveKey() | transloco }}</button>
           </ng-container>
         </erp-page-header>
+        @if (smart(); as sb) {
+          <div class="flex justify-end">
+            <erp-product-smart-button [icon]="sb.icon" [count]="sb.count" [label]="sb.label" [disabled]="mode() === 'create'" (pressed)="openSmartButton()" />
+          </div>
+        }
         <erp-error-banner [text]="err()" />
         <erp-metadata-form [view]="view()" [value]="seed()" [lookups]="lookups" [serverErrors]="errors()" (valueChange)="changed($event)" />
         <div class="flex justify-end gap-2 pb-2">
-          <button type="button" class="erp-btn-ghost" (click)="cancel()">{{ 'product.f.cancel' | transloco }}</button>
-          <button type="button" class="erp-btn-primary" [disabled]="busy()" (click)="save()"><erp-icon name="save" [size]="14" />{{ (mode() === 'create' ? 'product.f.create' : 'product.f.saveChanges') | transloco }}</button>
+          <button type="button" class="erp-btn-ghost" (click)="cancel()">{{ discardKey() | transloco }}</button>
+          <button type="button" class="erp-btn-primary" [disabled]="busy()" (click)="save()"><erp-icon name="save" [size]="14" />{{ saveKey() | transloco }}</button>
         </div>
       </div>
     }`,
@@ -58,6 +65,7 @@ export class EntityFormPage implements HasUnsavedChanges {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18n);
+  private readonly actions = inject(ProductActions);
   private readonly form = viewChild(MetadataFormComponent);
 
   /** Route data: which model this form edits. */
@@ -79,6 +87,15 @@ export class EntityFormPage implements HasUnsavedChanges {
   private live: Values = {};
   private submitted = false;
   private leaving = false;
+
+  /** Odoo-style forms say Save / Discard; the Products form keeps Create / Save changes / Cancel. */
+  protected readonly saveKey = computed(() => (this.cfg().odooForm ? 'product.f.save' : this.mode() === 'create' ? 'product.f.create' : 'product.f.saveChanges'));
+  protected readonly discardKey = computed(() => (this.cfg().odooForm ? 'product.f.discard' : 'product.f.cancel'));
+  /** The stat button (Odoo `oe_stat_button`) for models that have one; counts the saved record. */
+  protected readonly smart = computed(() => {
+    const sb = this.cfg().smartButton, ex = this.existing();
+    return sb ? { icon: sb.icon, label: sb.labelKey, count: ex ? sb.count(ex, this.store.ctx()) : 0 } : null;
+  });
 
   protected readonly currentKey = computed(() => `${this.entity()}/${this.id() ?? 'new'}`);
   protected readonly ready = computed(() => this.store.loaded() && this.loadedKey() === this.currentKey());
@@ -140,6 +157,12 @@ export class EntityFormPage implements HasUnsavedChanges {
   }
 
   protected cancel(): void { void this.router.navigate(this.backLink()); }
+
+  /** Open the related list already narrowed to this record (like Odoo's `search_default_categ_id`). */
+  protected openSmartButton(): void {
+    const ex = this.existing();
+    if (ex) this.actions.openSmartButton(this.cfg(), ex);
+  }
 
   protected async save(): Promise<void> {
     const f = this.form();
