@@ -42,6 +42,7 @@ router.put('/partner-categories/:id', isAuthenticated, handle(lookups.updateLook
 
 router.get('/banks', isAuthenticated, handle(lookups.banks))
 router.get('/countries', isAuthenticated, handle(lookups.countries))
+router.get('/states', isAuthenticated, handle(lookups.allStates))
 router.get('/countries/:id/states', isAuthenticated, handle(lookups.states))
 router.get('/currencies', isAuthenticated, handle(lookups.currencies))
 router.get('/companies', isAuthenticated, handle(lookups.companies))

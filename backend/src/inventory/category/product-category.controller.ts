@@ -10,7 +10,7 @@ import { createCategory, deleteCategory, updateCategory } from './product-catego
 const m2o = (id: number | null | undefined, name: string | null | undefined) => (id == null ? null : { id, name: name ?? null })
 
 /** arabic_name is stored but not exposed for now. */
-const ATTRS = ['id', 'name', 'complete_name', 'parent_id', 'parent_path', 'sequence_code', 'create_date', 'write_date']
+const ATTRS = ['id', 'name', 'complete_name', 'parent_id', 'parent_path', 'sequence_code', 'active', 'create_date', 'write_date']
 
 /** Product counts per category, including sub-categories (Odoo's `product_count`). */
 async function productCounts(): Promise<Map<number, number>> {

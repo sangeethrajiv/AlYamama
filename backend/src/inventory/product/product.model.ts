@@ -128,6 +128,21 @@ export class ProductTemplate extends Model<ProductTemplate> {
   @Column(DataType.INTEGER)
   product_type_id: number | null
 
+  /** Odoo keeps this company-dependent (ir_property); one value per product here. */
+  @Column({ type: DataType.DECIMAL(16, 4), defaultValue: '0' })
+  standard_price: string | null
+
+  @Column({ type: DataType.DECIMAL(16, 4), defaultValue: '0' })
+  margin_perc: string | null
+
+  /** material | labour | overhead. */
+  @Column(DataType.STRING)
+  internal_type: string | null
+
+  /** Angular-only field, no Odoo column. */
+  @Column(DataType.STRING)
+  product_genre: string | null
+
   @Column(DataType.INTEGER)
   create_uid: number | null
 

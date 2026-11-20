@@ -25,6 +25,10 @@ export class UomCategory extends Model<UomCategory> {
   @Column(DataType.STRING)
   measure_type: string | null
 
+  /** Not an Odoo column: the UI's archive flag. */
+  @Column({ type: DataType.BOOLEAN, defaultValue: true })
+  active: boolean
+
   @Column(DataType.INTEGER)
   create_uid: number | null
 

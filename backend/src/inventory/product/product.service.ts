@@ -50,6 +50,10 @@ export type ProductValues = Partial<{
   description_pickingout: string | null
   description_pickingin: string | null
   arabic_name: string | null
+  standard_price: string | number | null
+  margin_perc: string | number | null
+  internal_type: string | null
+  product_genre: string | null
   internal_short_code: string | null
   no_discount: boolean
   is_teltonika_product: boolean
@@ -85,7 +89,7 @@ async function checkUom(uomId: number, uomPoId: number, trx: Transaction) {
 function templateColumns(v: ProductValues): Record<string, unknown> {
   const { barcode: _barcode, ...rest } = v
   const out: Record<string, unknown> = { ...rest }
-  for (const k of ['list_price', 'weight', 'volume', 'sale_delay'] as const) if (k in rest) out[k] = num(rest[k])
+  for (const k of ['list_price', 'standard_price', 'margin_perc', 'weight', 'volume', 'sale_delay'] as const) if (k in rest) out[k] = num(rest[k])
   if (typeof out.name === 'string') out.name = out.name.trim()
   return out
 }

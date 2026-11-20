@@ -5,10 +5,10 @@ Living note of how this machine and project are set up. Update it when something
 ## Repo layout (`/home/amaldev/ARJUN/odoo/accounting_26/AlYamama`)
 | Path | What |
 |---|---|
-| `frontend/` | React 18 + Vite + TS + Tailwind prototype (mock data). Final UI will be Angular, built by another developer. `npm run dev` -> http://localhost:5173 |
+| `frontend/` | Angular 22 Nx workspace (merged from branch `frontend`). `npm start` in `frontend/` -> http://localhost:4200. Follows `ERP_Architecture_Reference_v2.2.pdf` (libs/web/core, ui, api-client, features/*). |
 | `backend/` | Node 20 + Express 5 + TypeScript + sequelize-typescript + PostgreSQL. Contacts module first. |
 | `docs/` | Shared docs (copies): `CLAUDE_main.md`, `field-map-phase1.md`, `api-service-architecture-handover.md`, `migration_analysis/`, `baseline/` |
-| git branch | `feature/contacts` (from `master_19` + cherry-pick `be61933` Contact Master). Remote: `origin` (main, master_19) |
+| git branch | `feature/merge/angular_ui` (backend from `feature/contacts` + Angular UI from `frontend`). Remote: `origin` |
 
 ## Stack decisions
 Express, PostgreSQL, fields as model classes (sequelize-typescript), Odoo 12 table/column names kept (incl. `arabic_*`), images as `bytea`, no server-side VAT format check, UI-only fields not stored, Angular final frontend.
@@ -65,3 +65,12 @@ Odoo 12 CE; 6 companies; ~6,364 partners (6,291 active); `type` also has `manage
 - `child_company_ids` is the inverse of `parent_id` (checked); live data has 0 `child_company` rows, 170 `manager`, 5,883 `contact`.
 - Vercel root directory must be `frontend/` if the repo is deployed there.
 - `yamama.conf` holds plaintext secrets, `list_db=True`: harden the legacy instance.
+
+## Status (Angular merge, 2026-11-20)
+- `frontend` branch merged; the React app is deleted. `backend/.env` from that branch was not taken (it held passwords); rotate the `yamamafay` password, it is in that branch's git history.
+- Angular talks to the backend through `HttpContactsApi` and `HttpProductApi` (`frontend/libs/web/api-client/src/lib/http/`). Switch with `USE_BACKEND` in `frontend/apps/web/src/app/app.config.ts`. URL and stub-auth headers: `BACKEND_CONFIG`.
+- Still mock: sign-in, system, accounting, catalog, and the Users directory, access rights and per-contact activity.
+- Migration `004-product-extras.sql`: `standard_price`, `margin_perc`, `internal_type`, `product_genre` on products; `active` on both category tables. `taxes_id` is not stored (no account module); `qty_available` and `virtual_available` are 0 until stock moves exist.
+- `GET /contacts?full=1` returns every column except images; `GET /states` lists all states. CORS allows http://localhost:4200.
+- Warehouses, locations and operation types: API only, no Angular screens.
+- Checked in Chrome: 6,054 contacts and the 50 products, categories and UoMs load from the database; creating a product and a contact persisted (test rows deleted).

@@ -43,6 +43,12 @@ export const banks = listOf(Bank as unknown as Ctor, ['name', 'bic', 'city'])
 export const countries = listOf(Country as unknown as Ctor, ['name', 'code', 'local_name'])
 export const currencies = listOf(Currency as unknown as Ctor, ['name'])
 
+/** GET /states - every state, for dropdowns that load all of them at once. */
+export async function allStates(_req: Request, res: Response) {
+  const rows = await CountryState.findAll({ order: [['name', 'ASC']] })
+  return ok(res, { records: rows, total: rows.length })
+}
+
 /** GET /countries/:id/states */
 export async function states(req: Request, res: Response) {
   const rows = await CountryState.findAll({

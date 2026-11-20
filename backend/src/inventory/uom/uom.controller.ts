@@ -31,13 +31,13 @@ const catList = async (req: Request, res: Response) => {
   const units = await Uom.findAll({ attributes: ['category_id'], where: { active: true } })
   const per = new Map<number, number>()
   units.forEach(u => per.set(u.category_id, (per.get(u.category_id) ?? 0) + 1))
-  return ok(res, { records: rows.map(r => ({ id: r.id, name: r.name, measure_type: r.measure_type, uom_count: per.get(r.id) ?? 0 })), total: count, page, limit })
+  return ok(res, { records: rows.map(r => ({ id: r.id, name: r.name, measure_type: r.measure_type, active: r.active, uom_count: per.get(r.id) ?? 0 })), total: count, page, limit })
 }
 const catDetail = async (req: Request, res: Response) => {
   const row = await UomCategory.findByPk(Number(req.params.id))
   if (!row) throw notFound('UoM category')
   const uoms = await Uom.findAll({ where: { category_id: row.id }, order: [['uom_type', 'DESC'], ['factor', 'ASC']] })
-  return ok(res, { id: row.id, name: row.name, measure_type: row.measure_type, uoms: uoms.map(u => uomRow(u, row.name)) })
+  return ok(res, { id: row.id, name: row.name, measure_type: row.measure_type, active: row.active, uoms: uoms.map(u => uomRow(u, row.name)) })
 }
 const catCreate = async (req: Request, res: Response) => {
   const row = await createUomCategory(uomCategorySchema.parse(req.body), req.env)

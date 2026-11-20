@@ -82,7 +82,7 @@ export async function list(req: Request, res: Response) {
 
   const { rows, count } = await Partner.findAndCountAll({
     where,
-    attributes: LIST_ATTRS,
+    attributes: q.full === '1' ? { exclude: ['image', 'image_sign', 'image_seal'] } : LIST_ATTRS,
     include: INCLUDES,
     order: buildOrder(q.order),
     limit,

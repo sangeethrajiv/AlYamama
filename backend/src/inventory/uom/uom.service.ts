@@ -163,13 +163,14 @@ export async function createUomCategory(values: { name?: string; measure_type?: 
   return UomCategory.create({ name: values.name.trim(), measure_type: values.measure_type ?? null, create_uid: env.uid, write_uid: env.uid } as never)
 }
 
-export async function updateUomCategory(id: number, values: { name?: string; measure_type?: string | null }, env: RequestEnv) {
+export async function updateUomCategory(id: number, values: { name?: string; measure_type?: string | null; active?: boolean }, env: RequestEnv) {
   return sequelize.transaction(async trx => {
     const row = await UomCategory.findByPk(id, { transaction: trx })
     if (!row) throw notFound('UoM category')
     const patch: Record<string, unknown> = { write_uid: env.uid }
     if (values.name !== undefined) patch.name = values.name.trim()
     if (values.measure_type !== undefined) patch.measure_type = values.measure_type
+    if (values.active !== undefined) patch.active = values.active
     await row.update(patch as never, { transaction: trx })
     // measure_type is copied onto the units, as Odoo's stored related field does.
     if (values.measure_type !== undefined) {

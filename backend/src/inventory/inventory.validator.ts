@@ -34,6 +34,10 @@ export const productSchema = z.object({
   default_code: nullableStr,
   barcode: nullableStr,
   list_price: decimal,
+  standard_price: decimal,
+  margin_perc: decimal,
+  internal_type: z.enum(['material', 'labour', 'overhead']).nullish().or(z.literal('').transform(() => null)),
+  product_genre: nullableStr,
   weight: decimal,
   volume: decimal,
   sale_ok: bool.optional(),
@@ -79,11 +83,13 @@ export const categorySchema = z.object({
   name: str.min(1, 'Name is required').optional(),
   parent_id: nullableId,
   sequence_code: nullableStr,
+  active: bool.optional(),
 })
 
 export const uomCategorySchema = z.object({
   name: str.min(1, 'Name is required').optional(),
-  measure_type: z.enum(MEASURE_TYPES).nullish(),
+  measure_type: z.enum(MEASURE_TYPES).nullish().or(z.literal('').transform(() => null)),
+  active: bool.optional(),
 })
 
 export const uomSchema = z.object({

@@ -122,6 +122,8 @@ export const listQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(500).optional(),
   counts: z.enum(['0', '1']).optional(),
+  /** 1 = every column except the images (the Angular master list loads full records). */
+  full: z.enum(['0', '1']).optional(),
   group_by: str.optional(),
 })
 

@@ -15,7 +15,7 @@ export interface PgConfig {
 
 export const config = {
   port: num(process.env.PORT, 3000),
-  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map(s => s.trim()).filter(Boolean),
+  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:4200,http://localhost:5173').split(',').map(s => s.trim()).filter(Boolean),
   poolMax: num(process.env.PG_POOL_MAX, 20),
   db: {
     host: process.env.PGHOST || 'localhost',

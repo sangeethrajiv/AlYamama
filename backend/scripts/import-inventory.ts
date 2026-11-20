@@ -151,7 +151,7 @@ const TEMPLATE_COLUMNS = ['id', 'name', 'sequence', 'description', 'description_
   'description_pickingout', 'description_pickingin', 'type', 'tracking', 'rental', 'categ_id', 'list_price', 'volume', 'weight',
   'sale_ok', 'purchase_ok', 'uom_id', 'uom_po_id', 'company_id', 'active', 'color', 'default_code', 'responsible_id', 'sale_delay',
   'arabic_name', 'internal_short_code', 'no_discount', 'is_teltonika_product', 'is_vehicle_subscription', 'purchase_request',
-  'product_type_id', 'create_date', 'write_date']
+  'product_type_id', 'margin_perc', 'internal_type', 'standard_price', 'create_date', 'write_date']
 const VARIANT_COLUMNS = ['id', 'product_tmpl_id', 'default_code', 'barcode', 'active', 'volume', 'weight', 'no_discount', 'create_date', 'write_date']
 
 async function targetIds(target: Client, table: string): Promise<Set<number>> {
@@ -250,7 +250,14 @@ async function run() {
                round(list_price::numeric, 4) AS list_price, round(volume::numeric, 4) AS volume, round(weight::numeric, 4) AS weight,
                sale_ok, purchase_ok, uom_id, uom_po_id, company_id, active, color, default_code, responsible_id,
                round(sale_delay::numeric, 2) AS sale_delay, arabic_name, internal_short_code, no_discount,
-               is_teltonika_product, is_vehicle_subscription, purchase_request, product_type_id, create_date, write_date
+               is_teltonika_product, is_vehicle_subscription, purchase_request, product_type_id,
+               coalesce(round(margin_perc::numeric, 4), 0) AS margin_perc, nullif(internal_type, '') AS internal_type,
+               coalesce((SELECT round(ip.value_float::numeric, 4) FROM ir_property ip
+                          JOIN product_product pp ON ip.res_id = 'product.product,' || pp.id
+                         WHERE ip.name = 'standard_price' AND pp.product_tmpl_id = product_template.id
+                         ORDER BY (ip.company_id IS NOT DISTINCT FROM product_template.company_id) DESC, ip.company_id NULLS LAST
+                         LIMIT 1), 0) AS standard_price,
+               create_date, write_date
           FROM product_template WHERE id = ANY($1) ORDER BY id`, [ids])
       for (const t of tmpls) {
         t.company_id = keep(t.company_id as number | null, companies)

@@ -32,6 +32,10 @@ export class ProductCategory extends Model<ProductCategory> {
   @Column(DataType.STRING)
   arabic_name: string | null
 
+  /** Not an Odoo column: the UI's archive flag. */
+  @Column({ type: DataType.BOOLEAN, defaultValue: true })
+  active: boolean
+
   /** sale_custom: prefix used when numbering products of this category. */
   @Column(DataType.STRING)
   sequence_code: string | null
