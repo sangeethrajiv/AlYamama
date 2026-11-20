@@ -1,0 +1,78 @@
+{
+  "reports": {
+    "aged": {
+      "current": "Current",
+      "customer": "Customer & Invoice",
+      "due": "due",
+      "empty": "No open receivables",
+      "subtitle": "Open customer invoices grouped by how long they are overdue.",
+      "title": "Aged Receivables Summary",
+      "total": "Total Outstanding",
+      "totals": "Totals"
+    },
+    "allCostCentres": "All Workshop Cost Centres",
+    "bs": {
+      "assets": "Assets",
+      "balanced": "Total Assets = Liabilities + Equity",
+      "currentProfit": "Current year profit",
+      "equity": "Equity & Retained Earnings",
+      "liabilities": "Current Liabilities",
+      "title": "Balance Sheet",
+      "totalAssets": "Total Assets:",
+      "totalLiabEquity": "Total Liabilities & Equity:",
+      "variance": "Variance Detected"
+    },
+    "costCentre": "Cost Centre",
+    "export": "Export CSV",
+    "gl": {
+      "account": "Ledger account",
+      "balance": "Current Ledger Balance",
+      "credit": "Credit",
+      "debit": "Debit",
+      "empty": "No posted lines for this account",
+      "entry": "Entry Number",
+      "group": "Group",
+      "label": "Label / Description",
+      "partner": "Partner",
+      "running": "Running balance",
+      "subtitle": "Detailed transaction lines and running balance for specific accounts.",
+      "title": "General Ledger Drilldown",
+      "type": "Type"
+    },
+    "pnl": {
+      "expenses": "Expenses",
+      "income": "Income",
+      "netLoss": "Net Loss",
+      "netProfit": "Net Profit",
+      "subtitle": "Income and expense accounts of the active company.",
+      "title": "Statement of Profit & Loss",
+      "totalExpenses": "Total Expenses:",
+      "totalIncome": "Total Income:"
+    },
+    "print": "Print Report",
+    "subtitle": "Profit & Loss, Balance Sheet, Trial Balance with variance validation, Aged Receivables and General Ledger.",
+    "tb": {
+      "account": "Account Code & Name",
+      "balanced": "Total Debits = Total Credits",
+      "check": "Total Balance Check:",
+      "closeCredit": "Closing Credit",
+      "closeDebit": "Closing Debit",
+      "note": "The opening/period split is indicative in this prototype; closing balances are the account balances.",
+      "openCredit": "Opening Credit",
+      "openDebit": "Opening Debit",
+      "periodCredit": "Period Credit",
+      "periodDebit": "Period Debit",
+      "subtitle": "Validates Total Debits = Total Credits across all GL accounts.",
+      "title": "Trial Balance Verification",
+      "variance": "Variance: {{amount}}"
+    },
+    "title": "Financial Reports",
+    "tab": {
+      "pnl": "Profit & Loss",
+      "balance_sheet": "Balance Sheet",
+      "trial_balance": "Trial Balance",
+      "aged_ar": "Aged Receivables",
+      "gl": "General Ledger"
+    }
+  }
+}

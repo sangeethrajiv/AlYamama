@@ -1,0 +1,10 @@
+{
+  "name": "web-feature-dashboard",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/features/dashboard/src",
+  "prefix": "erp",
+  "projectType": "library",
+  "tags": ["scope:web", "type:feature"],
+  "// targets": "to see all targets run: nx show project web-feature-dashboard --web",
+  "targets": {}
+}

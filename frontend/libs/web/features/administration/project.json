@@ -1,0 +1,10 @@
+{
+  "name": "web-feature-administration",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/features/administration/src",
+  "prefix": "erp",
+  "projectType": "library",
+  "tags": ["scope:web", "type:feature"],
+  "// targets": "to see all targets run: nx show project web-feature-administration --web",
+  "targets": {}
+}

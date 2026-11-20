@@ -2,6 +2,16 @@
 
 A Vite + React + TypeScript frontend prototype based on the supplied accounting UI source.
 
+## Repository layout and branches
+This repository holds two versions of the ERP frontend on separate branches:
+
+| Branch | Content | Location |
+| --- | --- | --- |
+| `main` | React + Vite prototype (this document) | repository root |
+| `frontend` | Angular Nx workspace (rebuild of the React ERP) | [`frontend/`](frontend/) |
+
+The `frontend` branch is branched from `main`, so it also contains the React files at the root; the Angular workspace is self-contained in `frontend/` (its Nx workspace root is `frontend/`). Run all Angular commands from inside that folder — see [`frontend/README.md`](frontend/README.md).
+
 ## Included
 - Dashboard with KPI cards and financial snapshot
 - Invoices list with status filters and text search
