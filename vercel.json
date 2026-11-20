@@ -1,4 +1,8 @@
 {
+  "framework": null,
+  "installCommand": "cd frontend && npm ci",
+  "buildCommand": "cd frontend && npx nx build web",
+  "outputDirectory": "frontend/dist/apps/web/browser",
   "rewrites": [
     {
       "source": "/(.*)",
@@ -6,4 +10,3 @@
     }
   ]
 }
-
