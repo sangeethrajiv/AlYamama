@@ -211,10 +211,15 @@
       "k-analyticgroups": "Analytic Account Groups",
       "k-acquirers": "Payment Acquirers",
       "k-reports": "Account Reports",
-      "a-overview": "Overview"
+      "a-overview": "Overview",
+      "g-customers": "Customers",
+      "g-vendors": "Vendors",
+      "g-accounting": "Accounting",
+      "g-reporting": "Reporting",
+      "g-configuration": "Configuration"
     },
     "s": {
-      "accounting-entries": "Accounting Entries",
+      "accounting-entries": "Entries",
       "management": "Management",
       "actions": "Actions",
       "generate-entries": "Generate Entries",
@@ -226,7 +231,12 @@
       "analytic-accounting": "Analytic Accounting",
       "payments": "Payments",
       "financial-reports": "Financial Reports",
-      "administration": "Administration"
+      "administration": "Administration",
+      "customers": "Customers",
+      "vendors": "Vendors",
+      "acct-overview": "Accounting",
+      "cfg-settings": "Configuration · Settings",
+      "cfg-management": "Management"
     }
   },
   "status": {
