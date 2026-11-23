@@ -36,16 +36,16 @@ export default function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const [invoicesSubmenuOpen, setInvoicesSubmenuOpen] = useState(true)
-  const moduleOf = (t: TabId): 'accounting' | 'inventory' | 'contacts' | 'dashboard' =>
+  const moduleOf = (t: TabId): 'accounting' | 'product' | 'contacts' | 'dashboard' =>
     // Dashboard and Contact are single top-level entries, not expandable modules
-    t === 'dashboard' || t === 'cm_contacts' ? 'dashboard' : t === 'contacts' || t.startsWith('usr_') ? 'contacts' : t === 'inventory' || t.startsWith('inv_') ? 'inventory' : 'accounting'
-  const [openModule, setOpenModule] = useState<'accounting' | 'inventory' | 'contacts' | null>(() => { const m = moduleOf(activeTab); return m === 'dashboard' ? null : m })
+    t === 'dashboard' || t === 'cm_contacts' ? 'dashboard' : t === 'contacts' || t.startsWith('usr_') ? 'contacts' : t.startsWith('prd_') ? 'product' : 'accounting'
+  const [openModule, setOpenModule] = useState<'accounting' | 'product' | 'contacts' | null>(() => { const m = moduleOf(activeTab); return m === 'dashboard' ? null : m })
   useEffect(() => {
     const m = moduleOf(activeTab)
     if (m !== 'dashboard') setOpenModule(m)
   }, [activeTab])
   const activeModule = moduleOf(activeTab)
-  const modBtn = (id: 'accounting' | 'inventory' | 'contacts', label: string, icon: JSX.Element) => (
+  const modBtn = (id: 'accounting' | 'product' | 'contacts', label: string, icon: JSX.Element) => (
     <button
       onClick={() => setOpenModule(openModule === id ? null : id)}
       aria-expanded={openModule === id}
@@ -57,7 +57,8 @@ export default function Sidebar({
   )
   const invItem = (tab: TabId, label: string, icon: JSX.Element) => (
     <button
-      onClick={() => selectTab(tab)}
+      // Also resets the hash so a click on the active entry returns from a detail/edit page to its list
+      onClick={() => { selectTab(tab); window.location.hash = `#/${tab}` }}
       className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-semibold transition ${activeTab === tab ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}
     >{icon}<span>{label}</span></button>
   )
@@ -343,28 +344,14 @@ export default function Sidebar({
           <span>Contact</span>
         </button>
 
-        {modBtn('inventory', 'Inventory', <Boxes size={17} />)}
-        {openModule === 'inventory' && (<div className="ml-3 pl-2 border-l border-slate-800 space-y-0.5">
-          {invItem('inv_overview', 'Overview', <Gauge size={15} />)}
-          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Operations</div>
-          {invItem('inv_transfers', 'Transfers', <ArrowLeftRight size={15} />)}
-          {invItem('inv_receipts', 'Receipts', <ArrowDownToLine size={15} />)}
-          {invItem('inv_deliveries', 'Delivery Orders', <ArrowUpFromLine size={15} />)}
-          {invItem('inv_internal', 'Internal Transfers', <ArrowLeftRight size={15} />)}
-          {invItem('inventory', 'Inventory Adjustments', <SlidersHorizontal size={15} />)}
+        {modBtn('product', 'Product', <Boxes size={17} />)}
+        {openModule === 'product' && (<div className="ml-3 pl-2 border-l border-slate-800 space-y-0.5">
+          {invItem('prd_overview', 'Overview', <Gauge size={15} />)}
           <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Master Data</div>
-          {invItem('inv_products', 'Products', <Package size={15} />)}
-          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Reporting</div>
-          {invItem('inv_stock', 'Inventory Report', <Layers size={15} />)}
-          {invItem('inv_moves', 'Stock Moves', <Activity size={15} />)}
-          {invItem('inv_move_lines', 'Moves History', <Activity size={15} />)}
-          <div className="pt-2 pb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Configuration</div>
-          {invItem('inv_warehouses', 'Warehouses', <Warehouse size={15} />)}
-          {invItem('inv_locations', 'Locations', <Boxes size={15} />)}
-          {invItem('inv_picking_types', 'Operation Types', <SlidersHorizontal size={15} />)}
-          {invItem('inv_categories', 'Product Categories', <Tags size={15} />)}
-          {invItem('inv_uom_categories', 'UoM Categories', <Tags size={15} />)}
-          {invItem('inv_uom', 'Units of Measure', <Layers size={15} />)}
+          {invItem('prd_products', 'Products', <Package size={15} />)}
+          {invItem('prd_categories', 'Product Categories', <Tags size={15} />)}
+          {invItem('prd_uoms', 'Units of Measure', <Layers size={15} />)}
+          {invItem('prd_uom_categories', 'UoM Categories', <Tags size={15} />)}
         </div>)}
       </nav>
 

@@ -29,3 +29,9 @@ button:disabled{cursor:not-allowed;opacity:.55}
 ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px;border:2px solid transparent;background-clip:padding-box}::-webkit-scrollbar-thumb:hover{background:#94a3b8;background-clip:padding-box;border:2px solid transparent}
 table{font-variant-numeric:tabular-nums}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Product module: undo the ERP's bare element rules for tables so the module's Tailwind utilities render as designed.
+   :where() keeps specificity at element level, so any utility class on a th/td/table still wins. */
+:where(.prd-module) table{white-space:normal}
+:where(.prd-module) th,:where(.prd-module) td{font-size:inherit;font-weight:inherit;color:inherit;padding:0;letter-spacing:inherit;text-transform:inherit;background:transparent;border-bottom:0}
+:where(.prd-module) tbody tr:hover{background:transparent}

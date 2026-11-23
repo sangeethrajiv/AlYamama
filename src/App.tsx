@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import type {
   TabId,
   DrawerType,
@@ -52,11 +52,12 @@ import ContactsModule from './modules/contacts/ContactsModule'
 import AllUsersPage from './modules/contacts/AllUsersPage'
 import ContactMasterModule from './modules/contactMaster/ContactMasterModule'
 import { useContacts } from './modules/contacts/useContacts'
-import InventoryModule from './modules/inventory/InventoryModule'
-import { useInventory } from './modules/inventory/useInventory'
+import ProductModule from './product/ProductModule'
+import { useProduct } from './product/store'
+import type { DirProduct } from './modules/shared/directory'
 import { DirectoryProvider } from './modules/shared/directory'
 
-const VALID_TABS: TabId[] = ['dashboard', 'invoices', 'bills', 'payments', 'reconcile', 'journals', 'coa', 'banking', 'reports', 'audit', 'settings', 'inventory', 'contacts', 'cm_contacts', 'usr_customers', 'usr_vendors', 'usr_employees', 'usr_logins', 'usr_other', 'usr_archived', 'inv_overview', 'inv_products', 'inv_categories', 'inv_warehouses', 'inv_stock', 'inv_moves', 'inv_receipts', 'inv_deliveries', 'inv_internal', 'inv_transfers', 'inv_move_lines', 'inv_locations', 'inv_picking_types', 'inv_uom_categories', 'inv_uom']
+const VALID_TABS: TabId[] = ['dashboard', 'invoices', 'bills', 'payments', 'reconcile', 'journals', 'coa', 'banking', 'reports', 'audit', 'settings', 'contacts', 'cm_contacts', 'usr_customers', 'usr_vendors', 'usr_employees', 'usr_logins', 'usr_other', 'usr_archived', 'prd_overview', 'prd_products', 'prd_categories', 'prd_uoms', 'prd_uom_categories']
 function tabFromHash(): TabId {
   const h = window.location.hash.replace(/^#\/?/, '').split('/')[0] as TabId
   return VALID_TABS.includes(h) ? h : 'dashboard'
@@ -111,9 +112,17 @@ export default function App() {
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(mockAuditLogs)
   const [fiscalConfig, setFiscalConfig] = useState<Record<string, FiscalPeriodConfig>>(mockFiscalConfig)
 
-  // Independent modules: Contacts and Inventory own their data; Accounting reads them through the directory
+  // Independent modules: Contacts and Product own their data; Accounting reads them through the directory
   const contactsApi = useContacts(mockInvoices, mockBills)
-  const inventory = useInventory(contactsApi.contacts)
+  const productData = useProduct()
+  const dirProducts = useMemo<DirProduct[]>(() => productData.products.filter(p => p.active).map(p => ({
+    id: String(p.id), sku: p.default_code || p.name, name: p.name, salePrice: p.list_price, taxRate: 0.15, canSell: p.sale_ok,
+    uom: productData.uoms.find(u => u.id === p.uom_id)?.name ?? '', active: p.active,
+  })), [productData.products, productData.uoms])
+  const onHand = useCallback((sku: string) => {
+    const p = productData.products.find(x => (x.default_code || x.name) === sku)
+    return p && p.type === 'product' ? p.qty_available : 0
+  }, [productData.products])
   const [invoiceDefaultPartner, setInvoiceDefaultPartner] = useState<string | undefined>(undefined)
 
   // Modals & Drawers
@@ -1103,7 +1112,7 @@ export default function App() {
   if (!user) return <LoginPage notice={signedOutNotice} onLogin={handleLogin} />
 
   return (
-    <DirectoryProvider contacts={contactsApi.contacts} products={inventory.dirProducts} stockOf={inventory.onHand}>
+    <DirectoryProvider contacts={contactsApi.contacts} products={dirProducts} stockOf={onHand}>
     <div className={`flex min-h-screen bg-slate-100 text-slate-800 ${arabic ? 'rtl' : 'ltr'}`} dir={arabic ? 'rtl' : 'ltr'}>
       {/* Navigation Sidebar */}
       <Sidebar
@@ -1283,16 +1292,7 @@ export default function App() {
             <AuditLogView logs={auditLogs} searchQuery={searchQuery} />
           )}
 
-          {(activeTab === 'inventory' || activeTab.startsWith('inv_')) && (
-            <InventoryModule
-              tab={activeTab}
-              inv={inventory}
-              contacts={contactsApi.contacts}
-              currentRole={currentRole}
-              searchQuery={searchQuery}
-              onSelectTab={setActiveTab}
-            />
-          )}
+          {activeTab.startsWith('prd_') && <ProductModule />}
 
           {activeTab === 'contacts' && <AllUsersPage searchQuery={searchQuery} />}
 

@@ -63,7 +63,7 @@ export default function LoginPage({ notice, onLogin }: Props) {
             <p className="text-sm text-slate-400 mt-3">Invoices, payments, users and stock, connected, so every number you see is the same number your team sees.</p>
           </div>
           <ul className="space-y-4 text-sm">
-            {[[BookOpen, 'Accounting', 'Invoices, ZATCA, payments and reconciliation'], [Users, 'Users', 'Customers and vendors with full tax details'], [Boxes, 'Inventory', 'Products, warehouses, receipts and deliveries']].map(([Icon, t, d]) => {
+            {[[BookOpen, 'Accounting', 'Invoices, ZATCA, payments and reconciliation'], [Users, 'Users', 'Customers and vendors with full tax details'], [Boxes, 'Product', 'Products, categories and units of measure']].map(([Icon, t, d]) => {
               const I = Icon as typeof BookOpen
               return <li key={t as string} className="flex gap-3"><span className="w-9 h-9 rounded-lg bg-slate-800 text-emerald-400 flex items-center justify-center flex-shrink-0"><I size={17} /></span><span><span className="block font-bold text-white">{t as string}</span><span className="text-xs text-slate-400">{d as string}</span></span></li>
             })}

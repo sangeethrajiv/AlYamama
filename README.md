@@ -36,3 +36,7 @@ npm run preview
 - No API, authentication, database, accounting ledger, ZATCA integration, or real payment processing is connected.
 - Currency values are displayed as SAR (SR); sample values are illustrative.
 - To connect this to a backend, replace the sample data and save handlers in `src/App.tsx` with API service calls.
+
+## Product module
+`src/product/` holds the Product screens (Products, Product Categories, Units of Measure, UoM Categories). They render inside the ERP shell
+(sidebar, header, sign-in) as the `prd_*` tabs, and the Accounting product picker reads its products from the same store.
