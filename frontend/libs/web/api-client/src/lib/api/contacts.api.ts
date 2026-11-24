@@ -6,6 +6,15 @@ export interface PartnerActivity {
   bills: Bill[];
 }
 
+/** Fields asked for when a user is created; everything else starts from defaults. */
+export interface NewUser {
+  name: string;
+  login: string;
+  email?: string;
+  company_id: number;
+  password: string;
+}
+
 /**
  * Contacts, users and access rights, and the contact master (section 6.2: identity + master data).
  * The prototype has no foreign keys between documents and contacts; relationships are by name.
@@ -23,6 +32,9 @@ export abstract class ContactsApi {
   // Users and access rights
   abstract users(): Promise<ResUser[]>;
   abstract saveUser(user: ResUser): Promise<ResUser>;
+  abstract createUser(draft: NewUser): Promise<ResUser>;
+  /** Sets a new password for a user (admin reset). */
+  abstract changeUserPassword(userId: number, password: string): Promise<void>;
 
   // Contact master (res.partner)
   abstract partners(): Promise<ResPartner[]>;

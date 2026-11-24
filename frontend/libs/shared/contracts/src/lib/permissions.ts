@@ -18,7 +18,7 @@ export const PERM = {
   payment: { read: 'accounting.payment.read', write: 'accounting.payment.write' },
   reconciliation: { read: 'accounting.reconciliation.read', run: 'accounting.reconciliation.run' },
   journalEntry: { read: 'accounting.journal_entry.read', post: 'accounting.journal_entry.post', reverse: 'accounting.journal_entry.reverse' },
-  account: { read: 'accounting.account.read' },
+  account: { read: 'accounting.account.read', write: 'accounting.account.write' },
   bank: { read: 'accounting.bank.read', write: 'accounting.bank.write' },
   report: { read: 'reports.financial.read' },
   audit: { read: 'administration.audit.read', note: 'administration.audit.note' },

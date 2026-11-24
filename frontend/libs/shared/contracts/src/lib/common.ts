@@ -3,7 +3,8 @@ export type Decimal = string;
 /** ISO 8601 date, `YYYY-MM-DD`. */
 export type IsoDate = string;
 
-export type CompanyId = 'co_1' | 'co_2' | 'co_3' | 'co_4' | 'co_5';
+/** `co_<id>`: the id of a company. With the backend on, `<id>` is the res.company id (1, 5, 6, 7, 9, 12). */
+export type CompanyId = `co_${number}`;
 
 export interface Company {
   id: CompanyId;

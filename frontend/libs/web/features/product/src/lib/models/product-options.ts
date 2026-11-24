@@ -23,21 +23,10 @@ export const MEASURE_TYPE_OPTIONS: Opt[] = [
   { value: 'length', labelKey: 'product.o.measure.length' },
   { value: 'volume', labelKey: 'product.o.measure.volume' },
 ];
-/** Odoo's selection order for uom.uom.uom_type: bigger, reference, smaller. */
 export const UOM_TYPE_OPTIONS: Opt[] = [
-  { value: 'bigger', labelKey: 'product.o.uomType.bigger' },
   { value: 'reference', labelKey: 'product.o.uomType.reference' },
+  { value: 'bigger', labelKey: 'product.o.uomType.bigger' },
   { value: 'smaller', labelKey: 'product.o.uomType.smaller' },
-];
-/** Odoo 12 stock_account selection strings, exactly as defined on product.category. */
-export const COST_METHOD_OPTIONS: Opt[] = [
-  { value: 'standard', labelKey: 'product.o.cost.standard' },
-  { value: 'fifo', labelKey: 'product.o.cost.fifo' },
-  { value: 'average', labelKey: 'product.o.cost.average' },
-];
-export const VALUATION_OPTIONS: Opt[] = [
-  { value: 'manual_periodic', labelKey: 'product.o.valuation.manual_periodic' },
-  { value: 'real_time', labelKey: 'product.o.valuation.real_time' },
 ];
 export const YES_NO: Opt[] = [
   { value: 'yes', labelKey: 'product.o.yes' },

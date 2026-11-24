@@ -25,3 +25,5 @@ export * from './lib/layout/document-action-bar.component';
 export * from './lib/layout/money-bar.component';
 export * from './lib/i18n/i18n.service';
 export * from './lib/layout/status-bar.component';
+export * from './lib/form/select.component';
+export * from './lib/form/multi-select.component';

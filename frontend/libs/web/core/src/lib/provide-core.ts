@@ -1,7 +1,6 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { makeEnvironmentProviders, provideAppInitializer, inject, type EnvironmentProviders } from '@angular/core';
 import { AuthService } from './auth/auth.service';
-import { DebugModeService } from './debug/debug-mode.service';
 import { provideAppI18n } from './i18n/provide-i18n';
 import { ManifestService } from './manifest/manifest.service';
 import { problemDetailsInterceptor, requestContextInterceptor } from './http/http-interceptors';
@@ -11,8 +10,6 @@ export function provideCore(): EnvironmentProviders {
   return makeEnvironmentProviders([
     provideHttpClient(withInterceptors([requestContextInterceptor, problemDetailsInterceptor])),
     provideAppI18n(),
-    // Read `?debug=` from the first URL before the router redirects (login, default route) can drop it.
-    provideAppInitializer(() => { inject(DebugModeService); }),
     provideAppInitializer(async () => {
       // inject() must run before the first await
       const auth = inject(AuthService);

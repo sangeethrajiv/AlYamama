@@ -6,7 +6,7 @@ import type { Decimal } from '@erp/shared/utils';
  */
 export type FieldType =
   | 'text' | 'textarea' | 'email' | 'tel' | 'url' | 'number' | 'money' | 'date' | 'boolean'
-  | 'select' | 'many2one' | 'many2many' | 'image' | 'one2many' | 'readonly';
+  | 'select' | 'many2one' | 'many2many' | 'image' | 'one2many' | 'readonly' | 'password';
 
 export type Primitive = string | number | boolean | null;
 export type Rec = Record<string, unknown>;
@@ -41,22 +41,20 @@ export interface FieldDef {
   required?: boolean;
   /** 1-4 grid columns; `full` spans the whole row. */
   span?: 1 | 2 | 3 | 4 | 'full';
-  /**
-   * Pin the field to the left (1) or right (2) column of a two-column section. Fields are packed densely, so a section
-   * can list its whole left column first and its right column after, like an Odoo `<group>` pair. Stacked on phones.
-   */
-  column?: 1 | 2;
   hint?: string;
   placeholder?: string;
   mono?: boolean;
   /** Right-to-left text input (Arabic names/addresses). */
   rtl?: boolean;
   readonly?: boolean;
-  /** Required only while this returns true (Odoo `attrs="{'required': [...]}"`). Combine with a static `required` for always-required. */
-  requiredWhen?: (value: Rec) => boolean;
   options?: Option[] | ((value: Rec, lookups: Lookups) => Option[]);
   /** Free-text field with suggestions taken from this `lookups` resource (an HTML datalist). */
   suggestions?: string;
+  /**
+   * Async option source for many2one / many2many on big tables (partners, accounts, products).
+   * Called with the typed text, or with `ids` to get the labels of values already chosen.
+   */
+  search?: (query: string, ids?: Primitive[]) => Promise<Option[]>;
   /** Key into the `lookups` input for select / many2one / many2many. */
   resource?: string;
   /** Option labels are translation keys. */
@@ -88,8 +86,6 @@ export interface SectionDef {
   columns?: 1 | 2 | 3 | 4;
   /** Column in a `split` layout (default 1). */
   column?: 1 | 2;
-  /** In the `single` layout, share a row with the next `half` section on wide screens (default: full width). */
-  half?: boolean;
   /** Tab this section belongs to (see ViewDef.tabs). */
   tab?: string;
   visible?: (value: Rec) => boolean;

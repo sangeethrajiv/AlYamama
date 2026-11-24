@@ -3,15 +3,13 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, ou
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { IconComponent, TabsComponent, I18n } from '@erp/web/ui';
+import { IconComponent, MultiSelectComponent, SelectComponent, TabsComponent, I18n } from '@erp/web/ui';
 import { dec } from '@erp/shared/utils';
 import { startWith } from 'rxjs';
 import { DECIMAL_RE, type FieldDef, type Lookups, type Option, type Rec, type SectionDef, type ViewDef } from './view.model';
 
 const GRID: Record<number, string> = { 1: 'sm:grid-cols-1', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-2 lg:grid-cols-3', 4: 'sm:grid-cols-2 lg:grid-cols-4' };
 const SPAN: Record<string, string> = { 1: '', 2: 'sm:col-span-2', 3: 'lg:col-span-3', 4: 'lg:col-span-4', full: 'col-span-full' };
-/** Full class names so Tailwind can see them. */
-const COLUMN: Record<number, string> = { 1: 'sm:col-start-1', 2: 'sm:col-start-2' };
 
 /**
  * Renders a metadata view (appendix A.10) as a typed reactive form. Use it for simple master data and settings;
@@ -19,7 +17,7 @@ const COLUMN: Record<number, string> = { 1: 'sm:col-start-1', 2: 'sm:col-start-2
  */
 @Component({
   selector: 'erp-metadata-form',
-  imports: [NgTemplateOutlet, ReactiveFormsModule, TranslocoPipe, IconComponent, TabsComponent],
+  imports: [NgTemplateOutlet, ReactiveFormsModule, TranslocoPipe, IconComponent, TabsComponent, SelectComponent, MultiSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (view().tabs; as tabs) {
@@ -31,7 +29,7 @@ const COLUMN: Record<number, string> = { 1: 'sm:col-start-1', 2: 'sm:col-start-2
         <div class="min-w-0 space-y-3">@for (s of rightSections(); track s.id) { <ng-container [ngTemplateOutlet]="sec" [ngTemplateOutletContext]="{ $implicit: s }" /> }<ng-content /></div>
       </div>
     } @else {
-      <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">@for (s of visibleSections(); track s.id) { <div class="min-w-0" [class]="s.half ? '' : 'lg:col-span-2'"><ng-container [ngTemplateOutlet]="sec" [ngTemplateOutletContext]="{ $implicit: s }" /></div> }</div>
+      <div class="space-y-3">@for (s of visibleSections(); track s.id) { <ng-container [ngTemplateOutlet]="sec" [ngTemplateOutletContext]="{ $implicit: s }" /> }</div>
     }
     <ng-template #sec let-s>
         <section class="rounded-xl border border-slate-200 bg-white p-4">
@@ -41,12 +39,12 @@ const COLUMN: Record<number, string> = { 1: 'sm:col-start-1', 2: 'sm:col-start-2
               @if (isVisible(f)) {
                 <div [class]="span(f)">
                   @if (f.type === 'boolean') {
-                    <label class="flex cursor-pointer items-center gap-2 pt-5 text-xs font-bold text-slate-700">
+                    <label class="mt-5 flex h-[34px] cursor-pointer items-center gap-2 text-xs font-bold text-slate-700">
                       <input type="checkbox" class="accent-emerald-600" [formControl]="ctrl(f.key)" />{{ f.label | transloco }}
                     </label>
                   } @else {
                     <label class="block">
-                      <span class="mb-1 flex items-center gap-1 text-[11px] font-bold text-slate-600">{{ f.label | transloco }}@if (isRequired(f)) { <span class="text-rose-500">*</span> }</span>
+                      <span class="mb-1 flex items-center gap-1 text-[11px] font-bold text-slate-600">{{ f.label | transloco }}@if (f.required) { <span class="text-rose-500">*</span> }</span>
                       @switch (f.type) {
                         @case ('textarea') { <textarea rows="3" class="erp-input" [class.font-mono]="f.mono" [attr.dir]="f.rtl ? 'rtl' : null" [formControl]="ctrl(f.key)" [placeholder]="ph(f)"></textarea> }
                         @case ('select') {
@@ -56,23 +54,15 @@ const COLUMN: Record<number, string> = { 1: 'sm:col-start-1', 2: 'sm:col-start-2
                           </select>
                         }
                         @case ('many2one') {
-                          <select class="erp-input" [formControl]="ctrl(f.key)">
-                            @if (f.emptyOption !== false) { <option [ngValue]="null"></option> }
-                            @for (o of optionsOf(f); track o.value) { <option [ngValue]="o.value">{{ o.label }}</option> }
-                          </select>
+                          <erp-select [formControl]="ctrl(f.key)" [options]="optionsOf(f)" [search]="f.search" [labelHint]="labelHint(f)" [clearable]="f.emptyOption !== false" [placeholder]="ph(f)" />
                         }
                         @case ('many2many') {
-                          <div class="flex flex-wrap gap-1.5 rounded-lg border border-slate-300 bg-white p-2" [class.opacity-60]="ctrl(f.key).disabled">
-                            @for (o of optionsOf(f); track o.value) {
-                              <button type="button" [disabled]="ctrl(f.key).disabled" (click)="toggleMany(f, o)"
-                                class="rounded-full border px-2 py-0.5 text-[11px] font-semibold transition"
-                                [class]="hasMany(f, o) ? 'border-emerald-300 bg-emerald-100 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'">{{ o.label }}</button>
-                            }
-                          </div>
+                          <erp-multi-select [formControl]="ctrl(f.key)" [options]="optionsOf(f)" [search]="f.search" [placeholder]="ph(f)" />
                         }
                         @case ('money') { <input type="text" inputmode="decimal" class="erp-input text-end font-mono" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" (blur)="normalizeMoney(f)" /> }
                         @case ('number') { <input type="number" class="erp-input" [class.font-mono]="f.mono" [formControl]="ctrl(f.key)" [attr.min]="f.min" [attr.max]="f.max" [placeholder]="ph(f)" /> }
                         @case ('date') { <input type="date" class="erp-input" [formControl]="ctrl(f.key)" /> }
+                        @case ('password') { <input type="password" autocomplete="new-password" class="erp-input" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" /> }
                         @case ('email') { <input type="email" class="erp-input" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" /> }
                         @case ('tel') { <input type="tel" class="erp-input font-mono" dir="ltr" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" /> }
                         @case ('url') { <input type="url" class="erp-input" dir="ltr" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" /> }
@@ -226,17 +216,10 @@ export class MetadataFormComponent {
     return c;
   }
   protected grid(s: SectionDef): string {
-    return GRID[s.columns ?? 2] + (this.packed(s) ? ' sm:grid-flow-dense' : '');
+    return GRID[s.columns ?? 2];
   }
   protected span(f: FieldDef): string {
-    return `${SPAN[String(f.span ?? 1)]} ${f.column ? COLUMN[f.column] : ''}`.trim();
-  }
-  /** A section whose fields are pinned to columns packs them densely (left column first, then right). */
-  protected packed(s: SectionDef): boolean {
-    return s.fields.some(f => f.column);
-  }
-  protected isRequired(f: FieldDef): boolean {
-    return !!f.required || !!f.requiredWhen?.(this.snapshot());
+    return SPAN[String(f.span ?? 1)];
   }
   protected ph(f: FieldDef): string {
     return f.placeholder ? this.i18n.tr(f.placeholder) : '';
@@ -247,6 +230,10 @@ export class MetadataFormComponent {
   protected optionsOf(f: FieldDef): Option[] {
     const o = f.options ?? (f.resource ? this.lookups()[f.resource] : undefined) ?? [];
     return typeof o === 'function' ? o(this.snapshot(), this.lookups()) : o;
+  }
+  /** The name that came with a many2one record (`<key>_label`), shown until the async source returns the label. */
+  protected labelHint(f: FieldDef): string {
+    return String(this.snapshot()[`${f.key}_label`] ?? '');
   }
   protected suggestionsOf(f: FieldDef): Option[] {
     return (f.suggestions ? this.lookups()[f.suggestions] : undefined) ?? [];
@@ -323,7 +310,7 @@ export class MetadataFormComponent {
     Object.keys(this.form.controls).forEach(k => this.form.removeControl(k as never));
     for (const f of view.sections.flatMap(s => s.fields)) {
       const validators: ValidatorFn[] = [];
-      if ((f.required || f.requiredWhen) && f.type !== 'boolean') validators.push(this.requiredWhenVisible(f));
+      if (f.required && f.type !== 'boolean') validators.push(this.requiredWhenVisible(f));
       if (f.pattern) validators.push(Validators.pattern(f.pattern));
       if (f.min !== undefined) validators.push(Validators.min(f.min));
       if (f.max !== undefined) validators.push(Validators.max(f.max));
@@ -340,7 +327,6 @@ export class MetadataFormComponent {
   private requiredWhenVisible(f: FieldDef): ValidatorFn {
     return c => {
       if (f.visible && !f.visible(this.snapshot())) return null;
-      if (!f.required && !f.requiredWhen?.(this.snapshot())) return null;
       const v = c.value;
       const empty = v === null || v === undefined || (typeof v === 'string' && v.trim() === '') || (Array.isArray(v) && v.length === 0);
       return empty ? { required: true } : null;

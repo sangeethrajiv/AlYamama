@@ -15,23 +15,14 @@ export interface ProductCompany { id: ID; name: string }
 export interface ProductUser { id: ID; name: string }
 /** account.tax (id + name only), used for Customer Taxes */
 export interface ProductTax { id: ID; name: string; active: boolean }
-/** ir.sequence (id + name only), used for a category's lot sequence */
-export interface ProductSequence { id: ID; name: string }
-/** product.removal (id + name only), a category's Force Removal Strategy */
-export interface ProductRemovalStrategy { id: ID; name: string }
-/** account.account (id + code + name + type only), used by the category's account properties */
-export interface ProductAccount { id: ID; code: string; name: string; type: string }
-/** account.journal (id + name only), a category's Stock Journal */
-export interface ProductJournal { id: ID; name: string }
 
 // ---- uom ----
 export type MeasureType = 'unit' | 'weight' | 'time' | 'length' | 'volume';
 /**
  * uom.category. Odoo 12 has no `active` column here; it is a UI-only archive flag in this prototype.
- * `measure_type` may be empty (e.g. the "Area" category), as in the reference data. At most one category per measure type.
- * `is_pos_groupable` (point_of_sale) is only editable in debug mode.
+ * `measure_type` may be empty (e.g. the "Area" category), as in the reference data.
  */
-export interface UomCategory { id: ID; name: string; measure_type: MeasureType | ''; is_pos_groupable: boolean; active: boolean }
+export interface UomCategory { id: ID; name: string; measure_type: MeasureType | ''; active: boolean }
 
 export type UomType = 'bigger' | 'reference' | 'smaller';
 /** uom.uom. `factor` is stored; `factor_inv` (Bigger Ratio) is derived as 1 / factor. */
@@ -48,35 +39,13 @@ export interface Uom {
 }
 
 // ---- product ----
-/** Costing Method (stock_account): Standard Price, First In First Out (FIFO), Average Cost (AVCO). */
-export type CostMethod = 'standard' | 'fifo' | 'average';
-/** Inventory Valuation (stock_account): Manual, Automated. */
-export type ValuationMethod = 'manual_periodic' | 'real_time';
-
-/**
- * product.category. Odoo 12 has no `active` column; archive is a UI-only flag in this prototype.
- * `arabic_name` is added by sale_custom and `lot_sequence_id` by att_product_tracking. The property_* fields are
- * company-dependent in Odoo; the prototype keeps one value per category.
- */
+/** product.category. Odoo 12 has no `active` column; archive is a UI-only flag in this prototype. */
 export interface ProductCategory {
   id: ID;
   name: string;
   parent_id: ID | null;
   arabic_name: string;
-  lot_sequence_id: ID | null;
-  // stock
-  removal_strategy_id: ID | null;
-  // stock_account
-  property_cost_method: CostMethod;
-  property_valuation: ValuationMethod;
-  property_stock_account_input_categ_id: ID | null;
-  property_stock_account_output_categ_id: ID | null;
-  property_stock_valuation_account_id: ID | null;
-  property_stock_journal: ID | null;
-  // account / purchase
-  property_account_creditor_price_difference_categ: ID | null;
-  property_account_income_categ_id: ID | null;
-  property_account_expense_categ_id: ID | null;
+  sequence_code: string;
   active: boolean;
 }
 
@@ -132,10 +101,6 @@ export interface ProductState {
   companies: ProductCompany[];
   users: ProductUser[];
   taxes: ProductTax[];
-  sequences: ProductSequence[];
-  removal_strategies: ProductRemovalStrategy[];
-  accounts: ProductAccount[];
-  journals: ProductJournal[];
 }
 
 /** The four managed models. */

@@ -64,7 +64,7 @@ const LOCK_SECONDS = 30;
               <label class="block">
                 <span class="mb-1 block text-xs font-bold text-slate-600">{{ 'login.email' | transloco }}</span>
                 <span class="relative block"><erp-icon name="mail" [size]="15" class="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="email" formControlName="email" autocomplete="username" [placeholder]="'login.emailPlaceholder' | transloco" class="field" /></span>
+                  <input type="text" formControlName="email" autocomplete="username" [placeholder]="'login.emailPlaceholder' | transloco" class="field" /></span>
               </label>
               <label class="block">
                 <span class="mb-1 block text-xs font-bold text-slate-600">{{ 'login.password' | transloco }}</span>
@@ -139,7 +139,6 @@ export class LoginPage implements OnDestroy {
     if (this.busy() || this.lockLeft() > 0) return;
     const { email, password, remember } = this.form.getRawValue();
     if (!email.trim() || !password) return this.error.set(this.t.translate('login.needBoth'));
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return this.error.set(this.t.translate('login.invalidEmail'));
     this.error.set('');
     this.busy.set(true);
     try {

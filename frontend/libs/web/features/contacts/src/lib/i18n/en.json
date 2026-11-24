@@ -501,7 +501,7 @@
         "ref": "Internal reference",
         "saleTeam": "Sales team",
         "sidebarType": "Sidebar type",
-        "signature": "Email signature",
+        "signature": "Signature",
         "signupType": "Signup token type",
         "state": "State",
         "street": "Street",
@@ -513,7 +513,8 @@
         "tz": "Timezone",
         "vat": "Tax ID",
         "website": "Website",
-        "zip": "ZIP"
+        "zip": "ZIP",
+        "emailLogin": "Email (used to sign in)"
       },
       "hint": {
         "active": "Untick to archive the user",
@@ -595,7 +596,11 @@
       "empty": "No users match",
       "emptyHint": "Change the filter or search.",
       "err": {
-        "nameLogin": "Name and login are required."
+        "nameLogin": "Name and login are required.",
+        "passwordShort": "Password must be at least {{n}} characters.",
+        "passwordMismatch": "The two passwords do not match.",
+        "nameEmail": "Name and a valid email are required.",
+        "company": "Choose the current company."
       },
       "g": {
         "access": "Access",
@@ -637,7 +642,25 @@
         "preferences": "Preferences"
       },
       "title": "All Users",
-      "unnamed": "Unnamed user"
+      "unnamed": "Unnamed user",
+      "changePassword": "Change password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "passwordHint": "At least {{n}} characters. The user is not asked for the old password.",
+      "passwordChanged": "Password changed.",
+      "passwordSection": "Login password",
+      "noDepartment": "No department",
+      "multiCompanies": "Multi Companies",
+      "allowedCompaniesLabel": "Allowed Companies",
+      "currentCompany": "Current Company",
+      "userType": "User Type",
+      "type": {
+        "internal": "Internal User",
+        "portal": "Portal",
+        "public": "Public"
+      },
+      "selectCompany": "Select company",
+      "selectCompanies": "Select companies"
     }
   }
 }

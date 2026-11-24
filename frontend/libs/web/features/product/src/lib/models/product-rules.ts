@@ -41,8 +41,6 @@ export function deleteBlocker(entity: ProductEntityKey, rec: Rec, s: ProductStat
       return kids ? tr('product.block.catDelKids', { n: kids }) : null;
     }
     case 'uomCategories': {
-      // uom.category.unlink: the Time category is used by the system
-      if (rec['measure_type'] === 'time') return tr('product.block.ucTime');
       const n = s.uoms.filter(u => u.category_id === rec.id).length;
       return n ? tr('product.block.ucDelUnits', { n }) : null;
     }

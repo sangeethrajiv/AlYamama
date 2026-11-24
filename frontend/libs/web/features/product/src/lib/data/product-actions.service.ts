@@ -1,12 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { ApiError } from '@erp/web/api-client';
 import { DialogService, I18n, ToastService } from '@erp/web/ui';
 import { BlockedDialogComponent, type BlockedData } from '../components/blocked-dialog.component';
 import { archiveBlocker, deleteBlocker } from '../models/product-rules';
 import { singularKey, type EntityConfig, type Rec } from '../models/product-types';
-import { ENTITY_BY_KEY } from '../models/product-entities';
-import { ProductListMemory } from './list-memory';
 import { ProductStore } from './product.store';
 
 /** Archive / Restore / Delete with confirmation and "blocked" explanations, shared by the list and detail screens. */
@@ -16,8 +13,6 @@ export class ProductActions {
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18n);
-  private readonly router = inject(Router);
-  private readonly memory = inject(ProductListMemory);
 
   private what(cfg: EntityConfig): string { return this.i18n.tr(singularKey(cfg.key)); }
   private name(cfg: EntityConfig, rec: Rec): string { return cfg.nameOf(rec, this.store.ctx()); }
@@ -29,15 +24,6 @@ export class ProductActions {
   private fail(cfg: EntityConfig, verb: 'archive' | 'delete', e: unknown): void {
     if (e instanceof ApiError && e.problem.status === 422) this.blocked(cfg, verb, e.problem.detail ?? e.problem.title);
     else this.toast.error(this.i18n.tr('common.errorGeneric'));
-  }
-
-  /** The record's stat button (Odoo `oe_stat_button`): open the related list already narrowed to this record. */
-  openSmartButton(cfg: EntityConfig, rec: Rec): void {
-    const sb = cfg.smartButton;
-    if (!sb) return;
-    const target = ENTITY_BY_KEY[sb.entity];
-    this.memory.set(sb.entity, { q: '', status: 'active', filters: { [sb.filterKey]: String(rec.id) }, sort: target.defaultSort, page: 1, pageSize: 10 });
-    void this.router.navigate(['/product', target.route]);
   }
 
   async requestArchive(cfg: EntityConfig, rec: Rec): Promise<boolean> {

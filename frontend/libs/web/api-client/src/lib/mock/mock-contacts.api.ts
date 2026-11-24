@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiError } from '../api/api-error';
-import { ContactsApi, type PartnerActivity } from '../api/contacts.api';
+import { ContactsApi, type NewUser, type PartnerActivity } from '../api/contacts.api';
 import type { Contact, ContactLookups, PartnerDraft, ResPartner, ResUser } from '@erp/shared/contracts';
 import { newId } from '@erp/shared/utils';
 import { MockDb, copy } from './mock-db';
@@ -73,6 +73,39 @@ export class MockContactsApi extends ContactsApi {
     this.db.users = this.db.users.map(x => (x.id === user.id ? copy(user) : x));
     this.db.touch();
     return copy(user);
+  }
+
+  /** Keeps the parts of a user the backend does not store yet (access groups, employee, logins) next to it by id. */
+  upsertUserExtras(user: ResUser): void {
+    const stored = copy(user);
+    this.db.users = this.db.users.some(x => x.id === user.id) ? this.db.users.map(x => (x.id === user.id ? stored : x)) : [...this.db.users, stored];
+    this.db.touch();
+  }
+
+  override async createUser(draft: NewUser): Promise<ResUser> {
+    const name = draft.name.trim();
+    const login = draft.login.trim();
+    if (!name) throw ApiError.validation([{ field: 'name', message: 'Name is required.' }]);
+    if (!login) throw ApiError.validation([{ field: 'login', message: 'Login is required.' }]);
+    if (draft.password.length < 8) throw ApiError.validation([{ field: 'password', message: 'Password must be at least 8 characters.' }]);
+    if (this.db.users.some(u => u.login.toLowerCase() === login.toLowerCase())) throw ApiError.businessRule('USER_DUPLICATE_LOGIN', 'Duplicate login', `A user with login "${login}" already exists.`);
+    const id = this.db.users.reduce((m, u) => Math.max(m, u.id), 0) + 1;
+    const partner_id = Math.max(this.db.users.reduce((m, u) => Math.max(m, u.partner_id), 0), this.db.partners.reduce((m, p) => Math.max(m, p.id), 0)) + 1;
+    const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+    const user: ResUser = {
+      id, active: true, login, company_id: draft.company_id, partner_id, share: false, create_date: now, write_date: now,
+      notification_type: 'email', odoobot_state: 'not_initialized', sidebar_type: 'large', chatter_position: 'sided',
+      name, email: draft.email?.trim() || undefined, lang: 'en_US', tz: 'Asia/Riyadh', employee: false, company_ids: [draft.company_id], groups: [],
+    };
+    this.db.users = [...this.db.users, user];
+    this.db.touch();
+    return copy(user);
+  }
+
+  override async changeUserPassword(userId: number, password: string): Promise<void> {
+    if (!this.db.users.some(x => x.id === userId)) throw ApiError.notFound('User');
+    if (password.length < 8) throw ApiError.validation([{ field: 'password', message: 'Password must be at least 8 characters.' }]);
+    // The prototype keeps no credentials; the change is accepted and not stored.
   }
 
   override async partners(): Promise<ResPartner[]> {

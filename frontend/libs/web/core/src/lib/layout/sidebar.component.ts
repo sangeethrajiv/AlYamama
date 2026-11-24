@@ -40,7 +40,25 @@ import { ManifestService } from '../manifest/manifest.service';
                   @if (c.sectionKey) {
                     <div class="px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">{{ c.sectionKey | transloco }}</div>
                   }
-                  @if (c.children) {
+                  @if (c.children && !c.path) {
+                    <button type="button" (click)="toggleSub(c.id)" [attr.aria-expanded]="isSubOpen(c)"
+                      class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 font-bold transition"
+                      [class]="containsActive(c) ? 'text-emerald-400' : 'text-slate-200 hover:bg-slate-800/80 hover:text-white'">
+                      <span class="flex items-center gap-2.5"><erp-icon [name]="c.icon ?? 'layers'" [size]="16" />{{ c.labelKey | transloco }}</span>
+                      <erp-icon name="chevron-down" [size]="13" class="text-slate-400 transition-transform duration-200" [class.rotate-180]="isSubOpen(c)" />
+                    </button>
+                    @if (isSubOpen(c)) {
+                      <div class="ms-3 space-y-0.5 border-s border-slate-800 ps-2">
+                        @for (s of c.children; track s.id) {
+                          @if (s.sectionKey) { <div class="px-3 pb-1 pt-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{{ s.sectionKey | transloco }}</div> }
+                          <a [routerLink]="s.path" (click)="navigated()" [attr.aria-current]="isActive(s) ? 'page' : null"
+                            class="flex w-full items-center justify-between gap-2.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold transition" [class]="isActive(s) ? activeCls : idleCls">
+                            <span class="flex items-center gap-2.5"><erp-icon [name]="s.icon ?? 'file-text'" [size]="14" />{{ s.labelKey | transloco }}</span>
+                          </a>
+                        }
+                      </div>
+                    }
+                  } @else if (c.children) {
                     <a [routerLink]="c.path" [queryParams]="{ category: null }" (click)="navigated()"
                       class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 font-semibold transition"
                       [class]="isActive(c) && !activeCategory() ? activeCls : idleCls">
@@ -103,7 +121,9 @@ export class SidebarComponent {
 
   protected readonly activeCategory = computed(() => new URLSearchParams(this.url().split('?')[1] ?? '').get('category'));
   /** Menu group that holds the current page. */
-  protected readonly activeGroup = computed(() => this.manifest.menu().find(m => m.children?.some(c => this.isActive(c)))?.id ?? null);
+  protected readonly activeGroup = computed(() => this.manifest.menu().find(m => m.children?.some(c => this.containsActive(c)))?.id ?? null);
+  /** Sub-groups the user opened or closed by hand; otherwise the one holding the current page is open. */
+  private readonly manualSub = signal<Record<string, boolean>>({});
   protected readonly openGroup = computed(() => (this.manualOpen() === undefined ? this.activeGroup() : this.manualOpen()));
 
   protected toggle(id: string): void {
@@ -112,6 +132,17 @@ export class SidebarComponent {
   protected navigated(): void {
     this.manualOpen.set(undefined);
     this.closeMobile.emit();
+  }
+  protected toggleSub(id: string): void {
+    const item = this.manifest.menu().flatMap(m => m.children ?? []).find(c => c.id === id);
+    this.manualSub.update(m => ({ ...m, [id]: !(m[id] ?? (item ? this.containsActive(item) : false)) }));
+  }
+  protected isSubOpen(item: ManifestItem): boolean {
+    return this.manualSub()[item.id] ?? this.containsActive(item);
+  }
+  /** The item, or anything inside it, is the current page. */
+  protected containsActive(item: ManifestItem): boolean {
+    return this.isActive(item) || !!item.children?.some(c => this.containsActive(c));
   }
   protected isActive(item: ManifestItem): boolean {
     const path = this.url().split('?')[0];

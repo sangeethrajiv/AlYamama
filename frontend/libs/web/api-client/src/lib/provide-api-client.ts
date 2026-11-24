@@ -12,6 +12,9 @@ import { MockContactsApi } from './mock/mock-contacts.api';
 import { MockAccountingApi } from './mock/mock-accounting.api';
 import { MockCatalogApi } from './mock/mock-catalog.api';
 import { MockProductApi } from './mock/mock-product.api';
+import { HttpContactsApi } from './http/http-contacts.api';
+import { HttpProductApi } from './http/http-product.api';
+import { HttpIdentityApi } from './http/http-identity.api';
 
 /**
  * Wires the feature-specific MOCK adapters. The backend (NestJS `/api/v1`) is not part of this build; when it exists
@@ -25,6 +28,23 @@ export function provideMockApiClient(...extra: Provider[]): EnvironmentProviders
     { provide: AccountingApi, useClass: MockAccountingApi },
     { provide: CatalogApi, useClass: MockCatalogApi },
     { provide: ProductApi, useClass: MockProductApi },
+    ...extra,
+  ]);
+}
+
+/**
+ * Contacts (Contact Master) and Product talk to the Express backend at `/v2`; Identity, System, Accounting and Catalog
+ * stay on the mock adapters until their backend modules exist. Override `BACKEND_CONFIG` to change the URL or headers.
+ */
+export function provideHttpApiClient(...extra: Provider[]): EnvironmentProviders {
+  return makeEnvironmentProviders([
+    { provide: IdentityApi, useClass: HttpIdentityApi },
+    { provide: SystemApi, useClass: MockSystemApi },
+    MockContactsApi,
+    { provide: ContactsApi, useClass: HttpContactsApi },
+    { provide: AccountingApi, useClass: MockAccountingApi },
+    { provide: CatalogApi, useClass: MockCatalogApi },
+    { provide: ProductApi, useClass: HttpProductApi },
     ...extra,
   ]);
 }
