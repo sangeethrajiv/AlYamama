@@ -13,6 +13,7 @@ import { UserAccessRightsComponent } from '../components/user-access-rights.comp
 import { ContactsStore } from '../data/contacts.store';
 import { EMAIL_RE } from '../views/contact.view';
 import { lookupOptions, nameOf } from '../models/options';
+import { tidyUserForm, userFormSeed, type UserRecord } from '../models/user-record';
 import { USER_GENERAL_VIEW, USER_PREFERENCES_VIEW } from '../views/user.view';
 
 type TabId = 'general' | 'access' | 'preferences';
@@ -45,7 +46,7 @@ type TabId = 'general' | 'access' | 'preferences';
             <div class="mt-2 flex flex-wrap gap-1.5">
               <erp-pill [tone]="d().active ? 'green' : 'slate'">{{ (d().active ? 'common.active' : 'common.archived') | transloco }}</erp-pill>
               @if (userType() !== 'internal') { <erp-pill tone="amber">{{ 'contacts.users.type.' + userType() | transloco }}</erp-pill> }
-              @if (departmentName(); as dep) { <erp-pill tone="blue">{{ dep }}</erp-pill> }
+              @for (dep of departmentNames(); track dep) { <erp-pill tone="blue">{{ dep }}</erp-pill> }
               @if (d().is_gcc_user) { <erp-pill tone="blue">GCC</erp-pill> }
               @if (d().company_id) { <erp-pill>{{ companyName(d().company_id) }}</erp-pill> }
             </div>
@@ -129,8 +130,8 @@ export class UserDetailPage implements HasUnsavedChanges {
   private readonly base = signal<ResUser | null>(null);
 
   protected readonly user = computed(() => (this.isNew() ? undefined : this.store.users().find(u => u.id === Number(this.id()))));
-  protected readonly draft = signal<ResUser | null>(null);
-  protected readonly d = computed(() => this.draft() ?? this.user() ?? this.blankUser());
+  protected readonly draft = signal<UserRecord | null>(null);
+  protected readonly d = computed<UserRecord>(() => this.draft() ?? this.user() ?? this.blankUser());
   protected readonly seed = signal<Rec>({});
   protected readonly canWrite = computed(() => this.perms.has(PERM.user.write));
   protected readonly options = computed(() => {
@@ -184,8 +185,8 @@ export class UserDetailPage implements HasUnsavedChanges {
     this.pw.set('');
     this.pw2.set('');
     this.draft.set(structuredClone(u));
-    // The signature is an uploaded image now; older records hold HTML text, which the image field cannot show
-    this.seed.set({ ...structuredClone(u), signature: u.signature?.startsWith('data:image') ? u.signature : undefined } as unknown as Rec);
+    // The Preferences image is `user_signature`; the html `signature` is left alone (see user-record.ts)
+    this.seed.set(userFormSeed(u));
     this.saved.set(false);
     this.error.set('');
     this.resetKey.update(v => v + 1);
@@ -208,7 +209,7 @@ export class UserDetailPage implements HasUnsavedChanges {
       if (!d) return d;
       const next = { ...d } as unknown as Rec;
       for (const k of Object.keys(v)) if (k in (d as unknown as Rec) || v[k] !== null) next[k] = v[k] === null || v[k] === '' ? undefined : v[k];
-      return { ...(next as unknown as ResUser), emp: d.emp, groups: d.groups, company_ids: d.company_ids, company_id: d.company_id, logins: d.logins };
+      return { ...(tidyUserForm(next) as unknown as UserRecord), emp: d.emp, groups: d.groups, company_ids: d.company_ids, company_id: d.company_id, logins: d.logins };
     });
   }
   /** The current company can never be dropped from the allowed list. */
@@ -231,9 +232,10 @@ export class UserDetailPage implements HasUnsavedChanges {
     return !d.share ? 'internal' : d.user_type === 'public' ? 'public' : 'portal';
   });
   protected readonly companyOptions = computed(() => this.store.lookups().companies.map(c => ({ value: c.id, label: c.name })));
-  protected readonly departmentName = computed(() => {
-    const id = this.d().department_id;
-    return id ? nameOf(this.store.lookups().departments, id) : '';
+  protected readonly departmentNames = computed(() => {
+    const d = this.d();
+    const ids = d.user_department_ids ?? (d.department_id ? [d.department_id] : []);
+    return ids.map(id => nameOf(this.store.lookups().departments, id)).filter(Boolean);
   });
   protected companyName = (id: number) => nameOf(this.store.lookups().companies, id);
 

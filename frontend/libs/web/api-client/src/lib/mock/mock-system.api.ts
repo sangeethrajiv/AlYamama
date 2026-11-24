@@ -100,12 +100,7 @@ const MENU: ManifestItem[] = [
     icon: 'users',
     children: [
       item('users-all', 'nav.usersAll', { icon: 'users', path: '/contacts/users', permission: PERM.user.read }),
-      item('users-customers', 'nav.usersCustomers', { icon: 'user-check', path: '/contacts/directory/customers', permission: PERM.contact.read, sectionKey: 'nav.section.partners' }),
-      item('users-vendors', 'nav.usersVendors', { icon: 'truck', path: '/contacts/directory/vendors', permission: PERM.contact.read }),
-      item('users-employees', 'nav.usersEmployees', { icon: 'id-card', path: '/contacts/directory/employees', permission: PERM.contact.read, sectionKey: 'nav.section.people' }),
-      item('users-logins', 'nav.usersLogins', { icon: 'key-round', path: '/contacts/directory/logins', permission: PERM.contact.read }),
-      item('users-other', 'nav.usersOther', { icon: 'landmark', path: '/contacts/directory/other', permission: PERM.contact.read, sectionKey: 'nav.section.other' }),
-      item('users-archived', 'nav.usersArchived', { icon: 'archive', path: '/contacts/directory/archived', permission: PERM.contact.read }),
+      item('users-other', 'nav.usersOther', { icon: 'landmark', path: '/contacts/directory/other', permission: PERM.contact.read }),
     ],
   }),
   item('contact', 'nav.contact', { icon: 'contact', path: '/contacts/master', permission: PERM.contact.read }),

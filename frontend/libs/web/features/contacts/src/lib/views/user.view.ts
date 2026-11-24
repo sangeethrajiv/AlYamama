@@ -13,7 +13,7 @@ export const USER_GENERAL_VIEW: ViewDef = {
       { key: 'new_password', type: 'password', label: 'contacts.users.newPassword', required: true, visible: isNewUser, span: 2 },
       { key: 'confirm_password', type: 'password', label: 'contacts.users.confirmPassword', required: true, visible: isNewUser, span: 2 },
       { key: 'arabic_name', type: 'text', label: 'contacts.user.f.arabicName', rtl: true, span: 2 },
-      { key: 'department_id', type: 'many2one', label: 'contacts.user.e.department', resource: 'departments', span: 2 },
+      { key: 'user_department_ids', type: 'many2many', label: 'contacts.user.e.department', resource: 'departments', span: 2 },
       { key: 'active', type: 'boolean', label: 'contacts.user.f.active', hint: 'contacts.user.hint.active', span: 2 },
       { key: 'employee', type: 'boolean', label: 'contacts.user.f.employee', hint: 'contacts.user.hint.employee', span: 2 },
     ] },
@@ -26,7 +26,7 @@ export const USER_PREFERENCES_VIEW: ViewDef = {
     { id: 'prefs', title: 'contacts.user.section.preferences', fields: [
       { key: 'lang', type: 'many2one', label: 'contacts.user.f.lang', resource: 'languages', emptyOption: false },
       { key: 'tz', type: 'many2one', label: 'contacts.user.f.tz', resource: 'timezones' },
-      { key: 'signature', type: 'image', label: 'contacts.user.f.signature', span: 'full' },
+      { key: 'user_signature', type: 'image', label: 'contacts.user.f.signature', span: 'full' },
     ] },
     { id: 'other', title: 'contacts.user.section.other', fields: [
       { key: 'pseudo_name', type: 'text', label: 'contacts.user.f.pseudoName' },
