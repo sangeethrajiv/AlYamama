@@ -45,7 +45,6 @@ export function userColumns(l: ContactLookups): GridColumn<ResUser>[] {
     { key: 'chatter_position', label: 'contacts.users.c.chatter', group: 'contacts.users.g.preferences', on: false, text: u => labelOf(CHATTER_POSITIONS, u.chatter_position) },
     { key: 'odoobot_state', label: 'contacts.users.c.odoobot', group: 'contacts.users.g.preferences', on: false, text: u => labelOf(ODOOBOT_STATES, u.odoobot_state) },
     { key: 'action_id', label: 'contacts.users.c.homeAction', group: 'contacts.users.g.preferences', on: false, text: u => (u.action_id ? `#${u.action_id}` : '') },
-    { key: 'signature', label: 'contacts.users.c.signature', group: 'contacts.users.g.preferences', on: false, text: u => u.signature },
     { key: 'sale_team_id', label: 'contacts.users.c.saleTeam', group: 'contacts.users.g.sales', on: false, text: u => nameOf(l.salesTeams, u.sale_team_id) },
     { key: 'target_sales_won', label: 'contacts.users.c.targetWon', group: 'contacts.users.g.sales', on: false, right: true, text: u => num(u.target_sales_won) },
     { key: 'target_sales_done', label: 'contacts.users.c.targetDone', group: 'contacts.users.g.sales', on: false, right: true, text: u => num(u.target_sales_done) },

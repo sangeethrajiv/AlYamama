@@ -77,7 +77,7 @@
   "login": {
     "title": "Sign in",
     "subtitle": "Use your work account to continue.",
-    "email": "Email",
+    "email": "Email or login",
     "password": "Password",
     "emailPlaceholder": "you@company.com",
     "show": "Show password",

@@ -51,7 +51,7 @@ export class MockIdentityApi extends IdentityApi {
     return copy(this.db.accounting.companies);
   }
 
-  private info(user: AuthUser): SessionInfo {
+  protected info(user: AuthUser): SessionInfo {
     return {
       user: copy(user),
       permissions: [...ROLE_PERMISSIONS[user.role]],

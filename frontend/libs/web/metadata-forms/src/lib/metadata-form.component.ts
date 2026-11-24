@@ -39,7 +39,7 @@ const SPAN: Record<string, string> = { 1: '', 2: 'sm:col-span-2', 3: 'lg:col-spa
               @if (isVisible(f)) {
                 <div [class]="span(f)">
                   @if (f.type === 'boolean') {
-                    <label class="flex cursor-pointer items-center gap-2 pt-5 text-xs font-bold text-slate-700">
+                    <label class="mt-5 flex h-[34px] cursor-pointer items-center gap-2 text-xs font-bold text-slate-700">
                       <input type="checkbox" class="accent-emerald-600" [formControl]="ctrl(f.key)" />{{ f.label | transloco }}
                     </label>
                   } @else {
@@ -62,6 +62,7 @@ const SPAN: Record<string, string> = { 1: '', 2: 'sm:col-span-2', 3: 'lg:col-spa
                         @case ('money') { <input type="text" inputmode="decimal" class="erp-input text-end font-mono" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" (blur)="normalizeMoney(f)" /> }
                         @case ('number') { <input type="number" class="erp-input" [class.font-mono]="f.mono" [formControl]="ctrl(f.key)" [attr.min]="f.min" [attr.max]="f.max" [placeholder]="ph(f)" /> }
                         @case ('date') { <input type="date" class="erp-input" [formControl]="ctrl(f.key)" /> }
+                        @case ('password') { <input type="password" autocomplete="new-password" class="erp-input" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" /> }
                         @case ('email') { <input type="email" class="erp-input" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" /> }
                         @case ('tel') { <input type="tel" class="erp-input font-mono" dir="ltr" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" /> }
                         @case ('url') { <input type="url" class="erp-input" dir="ltr" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" /> }

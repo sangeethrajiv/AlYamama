@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { SearchService } from '@erp/web/core';
-import { DataGridComponent, KpiComponent, PageHeaderComponent, SearchBoxComponent, SegmentedComponent } from '@erp/web/ui';
-import type { ResUser } from '@erp/shared/contracts';
+import { PermissionService, SearchService } from '@erp/web/core';
+import { DataGridComponent, IconComponent, KpiComponent, PageHeaderComponent, SearchBoxComponent, SegmentedComponent } from '@erp/web/ui';
+import { PERM, type ResUser } from '@erp/shared/contracts';
 import { ContactsStore } from '../data/contacts.store';
 import { nameOf } from '../models/options';
 import { userColumns } from '../models/user-columns';
@@ -13,11 +13,15 @@ type UserFilter = 'active' | 'archived' | 'internal' | 'portal' | 'all';
 /** All Users: every login account with its linked partner record. */
 @Component({
   selector: 'erp-users-list-page',
-  imports: [TranslocoPipe, PageHeaderComponent, KpiComponent, SegmentedComponent, SearchBoxComponent, DataGridComponent],
+  imports: [TranslocoPipe, PageHeaderComponent, IconComponent, KpiComponent, SegmentedComponent, SearchBoxComponent, DataGridComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
-      <erp-page-header [title]="'contacts.users.title' | transloco" [subtitle]="'contacts.users.subtitle' | transloco" />
+      <erp-page-header [title]="'contacts.users.title' | transloco" [subtitle]="'contacts.users.subtitle' | transloco">
+        @if (canWrite()) {
+          <button actions type="button" class="erp-btn-primary" (click)="add()"><erp-icon name="plus" [size]="14" />{{ 'contacts.users.newUser' | transloco }}</button>
+        }
+      </erp-page-header>
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <erp-kpi [label]="'contacts.users.kpi.total' | transloco" [value]="store.users().length" />
         <erp-kpi [label]="'contacts.users.kpi.active' | transloco" [value]="count(isActive)" />
@@ -40,6 +44,8 @@ export class UsersListPage {
   protected readonly store = inject(ContactsStore);
   private readonly search = inject(SearchService);
   private readonly router = inject(Router);
+  private readonly perms = inject(PermissionService);
+  protected readonly canWrite = computed(() => this.perms.has(PERM.user.write));
 
   protected readonly q = signal('');
   protected readonly filter = signal<string>('active');
@@ -71,6 +77,10 @@ export class UsersListPage {
       (!term || [u.name, u.login, u.email, u.phone, u.mobile].some(v => v?.toLowerCase().includes(term))),
     );
   });
+
+  protected add(): void {
+    void this.router.navigate(['/contacts/users', 'new']);
+  }
 
   protected open(u: ResUser): void {
     void this.router.navigate(['/contacts/users', u.id]);

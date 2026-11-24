@@ -57,8 +57,31 @@
       "neverSignedIn": "لم يسجل هذا المستخدم الدخول مطلقاً.",
       "recordAudit": "تدقيق السجل",
       "err": {
-        "nameLogin": "الاسم والدخول مطلوبان."
-      }
+        "nameLogin": "الاسم والدخول مطلوبان.",
+        "passwordShort": "يجب ألا تقل كلمة المرور عن {{n}} أحرف.",
+        "passwordMismatch": "كلمتا المرور غير متطابقتين.",
+        "nameEmail": "الاسم والبريد الإلكتروني الصحيح مطلوبان.",
+        "company": "اختر الشركة الحالية."
+      },
+      "changePassword": "تغيير كلمة المرور",
+      "newPassword": "كلمة المرور الجديدة",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "passwordHint": "{{n}} أحرف على الأقل. لا يُطلب من المستخدم كلمة المرور القديمة.",
+      "passwordChanged": "تم تغيير كلمة المرور.",
+      "newUser": "مستخدم جديد",
+      "passwordSection": "كلمة مرور الدخول",
+      "noDepartment": "بدون قسم",
+      "multiCompanies": "الشركات المتعددة",
+      "allowedCompaniesLabel": "الشركات المسموح بها",
+      "currentCompany": "الشركة الحالية",
+      "userType": "نوع المستخدم",
+      "type": {
+        "internal": "مستخدم داخلي",
+        "portal": "البوابة",
+        "public": "عام"
+      },
+      "selectCompany": "اختر الشركة",
+      "selectCompanies": "اختر الشركات"
     },
     "user": {
       "section": {
@@ -83,13 +106,14 @@
         "tz": "المنطقة الزمنية",
         "vat": "الرقم الضريبي",
         "comment": "ملاحظات داخلية",
-        "signature": "توقيع البريد",
+        "signature": "التوقيع",
         "function": "المسمى الوظيفي",
         "country": "الدولة",
         "state": "المنطقة",
         "city": "المدينة",
         "zip": "الرمز البريدي",
-        "street": "الشارع"
+        "street": "الشارع",
+        "emailLogin": "البريد الإلكتروني (لتسجيل الدخول)"
       },
       "e": {
         "name": "اسم الموظف",

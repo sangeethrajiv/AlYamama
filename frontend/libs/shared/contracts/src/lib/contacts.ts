@@ -167,6 +167,10 @@ export interface ResUser {
   id: number;
   active: boolean;
   login: string;
+  /** Internal, Portal or Public. Only `share` is stored in the database; Portal and Public both count as shared. */
+  user_type?: 'internal' | 'portal' | 'public';
+  /** Department the user belongs to (hr.department id). Kept with the user's extras until the backend has departments. */
+  department_id?: number;
   company_id: number;
   partner_id: number;
   share?: boolean;
