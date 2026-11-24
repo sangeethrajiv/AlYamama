@@ -9,10 +9,10 @@ interface Col { key: string; label: string; right?: boolean; mono?: boolean }
 interface Table { title?: string; columns: Col[]; rows: Row[]; totals?: Row }
 
 /** Which filters each report takes, and its title. The list of reports comes from the backend; this is the presentation. */
-const REPORTS: { key: string; name: string; filters: ('range' | 'asOf' | 'moves' | 'account' | 'partner' | 'journal' | 'kind')[]; help: string }[] = [
+const REPORTS: { key: string; name: string; filters: ('range' | 'asOf' | 'moves' | 'account' | 'partner' | 'journal' | 'kind' | 'detail')[]; help: string }[] = [
   { key: 'trial-balance', name: 'Trial Balance', filters: ['range', 'moves'], help: 'Opening, period movement and closing balance per account.' },
   { key: 'general-ledger', name: 'General Ledger', filters: ['range', 'moves', 'account', 'journal'], help: 'Every posted line per account with a running balance.' },
-  { key: 'partner-ledger', name: 'Partner Ledger', filters: ['range', 'moves', 'kind'], help: 'Receivable and payable balances per partner.' },
+  { key: 'partner-ledger', name: 'Partner Ledger', filters: ['range', 'moves', 'kind', 'partner', 'detail'], help: 'Receivable and payable per partner; choose a partner or "with lines" to see every line, its matching number and a running balance.' },
   { key: 'aged-receivable', name: 'Aged Receivable', filters: ['asOf'], help: 'What customers owe, by how late it is.' },
   { key: 'aged-payable', name: 'Aged Payable', filters: ['asOf'], help: 'What you owe vendors, by how late it is.' },
   { key: 'profit-loss', name: 'Profit and Loss', filters: ['range', 'moves'], help: 'Income less expenses for the period.' },
@@ -37,6 +37,13 @@ function toTables(key: string, d: Row): Table[] {
         rows: rows(a['lines']).map(l => ({ ...l, date: String(l['date']).slice(0, 10) })), totals: { label: 'Total', debit: a['debit'], credit: a['credit'], balance: a['ending'] },
       }));
     case 'partner-ledger':
+      if (rows(d['partners']).some(x => Array.isArray(x['lines']))) {
+        return rows(d['partners']).map(x => ({
+          title: `${x['name']}  ·  initial ${x['initial']}  ·  ending ${x['ending']}`,
+          columns: [{ key: 'date', label: 'Date' }, { key: 'move', label: 'Entry', mono: true }, { key: 'journal', label: 'Journal' }, { key: 'label', label: 'Label' }, { key: 'due', label: 'Due' }, { key: 'debit', label: 'Debit', right: true, mono: true }, { key: 'credit', label: 'Credit', right: true, mono: true }, { key: 'balance', label: 'Balance', right: true, mono: true }, { key: 'matching', label: 'Matching' }],
+          rows: rows(x['lines']), totals: { label: 'Total', debit: x['debit'], credit: x['credit'], balance: x['ending'] },
+        }));
+      }
       return [{ columns: [{ key: 'name', label: 'Partner' }, { key: 'initial', label: 'Initial', right: true, mono: true }, { key: 'debit', label: 'Debit', right: true, mono: true }, { key: 'credit', label: 'Credit', right: true, mono: true }, { key: 'ending', label: 'Balance', right: true, mono: true }], rows: rows(d['partners']) }];
     case 'aged-receivable': case 'aged-payable': {
       const cols: Col[] = [{ key: 'name', label: 'Partner' }, ...['not_due', '1-30', '31-60', '61-90', '91-120', 'older'].map(b => ({ key: b, label: b === 'not_due' ? 'Not Due' : b === 'older' ? 'Older' : b + ' days', right: true, mono: true })), { key: 'total', label: 'Total', right: true, mono: true }];
@@ -82,11 +89,13 @@ const today = () => new Date().toISOString().slice(0, 10);
       <button actions type="button" class="erp-btn-ghost no-print" (click)="print()">Print</button>
     </erp-page-header>
     <div class="no-print flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-3">
-      <label class="text-[11px] font-bold text-slate-600">Report<select class="erp-input mt-1" [value]="report()" (change)="go($any($event.target).value)">@for (r of reports; track r.key) { <option [value]="r.key">{{ r.name }}</option> }</select></label>
+      <label class="text-[11px] font-bold text-slate-600">Report<select class="erp-input mt-1" [value]="report()" (change)="go($any($event.target).value)">@for (r of reports; track r.key) { <option [value]="r.key" [selected]="r.key === report()">{{ r.name }}</option> }</select></label>
       @if (has('range')) { <label class="text-[11px] font-bold text-slate-600">From<input type="date" class="erp-input mt-1" [value]="from()" (input)="from.set($any($event.target).value)" /></label> }
       @if (has('range') || has('asOf')) { <label class="text-[11px] font-bold text-slate-600">{{ has('asOf') ? 'As of' : 'To' }}<input type="date" class="erp-input mt-1" [value]="to()" (input)="to.set($any($event.target).value)" /></label> }
       @if (has('moves')) { <label class="text-[11px] font-bold text-slate-600">Entries<select class="erp-input mt-1" [value]="moves()" (change)="moves.set($any($event.target).value)"><option value="posted">All posted entries</option><option value="all">All entries (incl. draft)</option></select></label> }
       @if (has('kind')) { <label class="text-[11px] font-bold text-slate-600">Partners<select class="erp-input mt-1" [value]="kind()" (change)="kind.set($any($event.target).value)"><option value="both">Receivable and payable</option><option value="receivable">Customers</option><option value="payable">Vendors</option></select></label> }
+      @if (has('partner')) { <label class="w-56 text-[11px] font-bold text-slate-600">Partner<erp-select class="mt-1" [ngModel]="partner()" (ngModelChange)="partner.set($event)" [search]="partners" placeholder="All partners" /></label> }
+      @if (has('detail')) { <label class="text-[11px] font-bold text-slate-600">Show<select class="erp-input mt-1" [value]="detail()" (change)="detail.set($any($event.target).value)"><option value="0">Totals per partner</option><option value="1">With lines</option></select></label> }
       @if (has('account')) { <label class="w-56 text-[11px] font-bold text-slate-600">Account<erp-select class="mt-1" [ngModel]="account()" (ngModelChange)="account.set($event)" [search]="accounts" placeholder="All accounts" /></label> }
       @if (has('journal')) { <label class="w-56 text-[11px] font-bold text-slate-600">Journal<erp-select class="mt-1" [ngModel]="journal()" (ngModelChange)="journal.set($event)" [search]="journals" placeholder="All journals" /></label> }
       <button type="button" class="erp-btn-primary" [disabled]="loading()" (click)="run()">{{ loading() ? 'Running…' : 'Run report' }}</button>
@@ -117,6 +126,9 @@ export class AccountingReportsPage {
   protected readonly meta = computed(() => REPORTS.find(r => r.key === this.report()) ?? REPORTS[0]);
   protected readonly accounts = this.ab.lookup('accounts');
   protected readonly journals = this.ab.lookup('journals');
+  protected readonly partners = this.ab.lookup('partners');
+  protected readonly partner = signal<number | null>(null);
+  protected readonly detail = signal('0');
   protected readonly from = signal(monthStart());
   protected readonly to = signal(today());
   protected readonly moves = signal('posted');
@@ -130,7 +142,7 @@ export class AccountingReportsPage {
 
   constructor() { effect(() => { this.report(); this.ab.companyKey(); untracked(() => void this.run()); }); }
 
-  protected has = (f: 'range' | 'asOf' | 'moves' | 'account' | 'partner' | 'journal' | 'kind') => this.meta().filters.includes(f);
+  protected has = (f: 'range' | 'asOf' | 'moves' | 'account' | 'partner' | 'journal' | 'kind' | 'detail') => this.meta().filters.includes(f);
   protected go(key: string): void { void this.router.navigate(['/accounting', 'report', key]); }
   protected print(): void { window.print(); }
 
@@ -141,6 +153,7 @@ export class AccountingReportsPage {
       const d = await this.ab.get<Row>(`/accounting/reports/${m.key}`, {
         date_from: this.has('range') ? this.from() : undefined, date_to: this.has('range') || this.has('asOf') ? this.to() : undefined,
         target_move: this.has('moves') ? this.moves() : undefined, kind: this.has('kind') ? this.kind() : undefined,
+        partner_id: this.has('partner') ? this.partner() ?? undefined : undefined, detail: this.has('detail') && this.detail() === '1' ? 1 : undefined,
         account_id: this.has('account') ? this.account() ?? undefined : undefined, journal_id: this.has('journal') ? this.journal() ?? undefined : undefined,
       });
       this.tables.set(toTables(m.key, d)); this.ran.set(true);

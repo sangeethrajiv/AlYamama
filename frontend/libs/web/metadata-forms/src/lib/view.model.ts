@@ -52,9 +52,10 @@ export interface FieldDef {
   suggestions?: string;
   /**
    * Async option source for many2one / many2many on big tables (partners, accounts, products).
-   * Called with the typed text, or with `ids` to get the labels of values already chosen.
+   * Called with the typed text, or with `ids` to get the labels of values already chosen, and the record being
+   * edited (so a list can follow another field, e.g. the invoices of the chosen partner).
    */
-  search?: (query: string, ids?: Primitive[]) => Promise<Option[]>;
+  search?: (query: string, ids?: Primitive[], record?: Rec) => Promise<Option[]>;
   /** Key into the `lookups` input for select / many2one / many2many. */
   resource?: string;
   /** Option labels are translation keys. */

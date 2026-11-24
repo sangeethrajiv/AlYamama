@@ -10,7 +10,7 @@ import { q } from './crud'
  *
  * Aged reports use today's residual per open item (not a past "as of" replay).
  */
-export interface Filter { companyIds: number[]; date_from?: string; date_to?: string; target_move?: string; account_id?: number; partner_id?: number; journal_id?: number }
+export interface Filter { detail?: boolean; companyIds: number[]; date_from?: string; date_to?: string; target_move?: string; account_id?: number; partner_id?: number; journal_id?: number }
 const D = (v: unknown) => new Decimal((v ?? 0) as Decimal.Value)
 
 function base(f: Filter, alias = 'l') {
@@ -84,7 +84,23 @@ async function partnerLedgerRaw(f: Filter, kind: 'receivable' | 'payable' | 'bot
        COALESCE(sum(l.debit) FILTER (WHERE l.date >= :from), 0) debit, COALESCE(sum(l.credit) FILTER (WHERE l.date >= :from), 0) credit, COALESCE(sum(l.balance), 0) ending
      ${FROM} JOIN res_partner p ON p.id = l.partner_id WHERE ${w.join(' AND ')} AND t.type IN (:types) AND l.date <= :to GROUP BY p.id, p.name HAVING sum(l.balance) <> 0 OR sum(l.debit) FILTER (WHERE l.date >= :from) <> 0 ORDER BY p.name`,
     { ...r, from, to, types })
-  return { date_from: from === '1900-01-01' ? null : from, date_to: to, partners: rows.map(x => ({ partner_id: Number(x.id), name: x.name, initial: x.initial, debit: x.debit, credit: x.credit, ending: x.ending })) }
+  // one partner (or `detail`): every line with a running balance, so the ledger can be read like Odoo's partner ledger
+  const partners: Record<string, unknown>[] = []
+  for (const x of rows) {
+    const out: Record<string, unknown> = { partner_id: Number(x.id), name: x.name, initial: x.initial, debit: x.debit, credit: x.credit, ending: x.ending }
+    if (f.detail) {
+      const items = await q<Record<string, any>>(
+        `SELECT l.date, m.name move, j.code journal, a.code account, l.name label, l.ref, l.date_maturity due, l.debit, l.credit, l.amount_residual residual, l.full_reconcile_id
+           FROM account_move_line l JOIN account_move m ON m.id = l.move_id JOIN account_journal j ON j.id = l.journal_id
+           JOIN account_account a ON a.id = l.account_id JOIN account_account_type t ON t.id = a.user_type_id
+          WHERE l.partner_id = :pid AND t.type IN (:types) AND l.date >= :from AND l.date <= :to AND ${w.filter(c => !c.includes('pid')).join(' AND ')}
+          ORDER BY l.date, l.id`, { ...r, pid: x.id, from, to, types })
+      let run = D(x.initial)
+      out['lines'] = items.map(i => { run = run.plus(i.debit).minus(i.credit); return { ...i, date: String(i.date).slice(0, 10), due: i.due ? String(i.due).slice(0, 10) : null, matching: i.full_reconcile_id ? `A${i.full_reconcile_id}` : '', balance: run.toString() } })
+    }
+    partners.push(out)
+  }
+  return { date_from: from === '1900-01-01' ? null : from, date_to: to, partners }
 }
 
 async function agedBalanceRaw(f: Filter, kind: 'receivable' | 'payable') {

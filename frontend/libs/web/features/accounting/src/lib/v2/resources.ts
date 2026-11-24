@@ -244,11 +244,14 @@ export function makeSpecs(ab: AccountingBackend): Record<string, ResourceSpec> {
         columns: [{ key: 'name', label: 'Number', mono: true }, { key: 'payment_date', label: 'Payment Date' }, { key: 'partner_id', label: inbound ? 'Customer' : 'Vendor' }, { key: 'communication', label: 'Memo' }, { key: 'amount', label: 'Amount', right: true, mono: true }, { key: 'state', label: 'Status', pill: true }],
         filters: [{ key: 'state', label: 'Status', options: [{ value: 'draft', label: 'Draft' }, { value: 'posted', label: 'Posted' }, { value: 'reconciled', label: 'Reconciled' }, { value: 'cancelled', label: 'Cancelled' }] }],
         fields: [sel('payment_type', 'Payment Type', opts(['inbound', 'Receive Money'], ['outbound', 'Send Money'])), m2o('partner_id', inbound ? 'Customer' : 'Vendor', 'partners', { required: true }),
-          m2o('journal_id', 'Payment Journal', 'journals', { required: true }), num('amount', 'Payment Amount', { required: true }), date('payment_date', 'Payment Date', { required: true }),
-          text('communication', 'Memo'), m2m('invoice_ids', inbound ? 'Invoices to Settle' : 'Bills to Settle', 'invoices')],
+          m2o('journal_id', 'Payment Journal', 'journals', { required: true }, { type: 'bank,cash' }), num('amount', 'Payment Amount', { hint: 'Leave empty to pay the total due of the selected documents. A bigger amount leaves a credit to match later.' }), date('payment_date', 'Payment Date', { required: true }),
+          text('communication', 'Memo'),
+          // the unpaid documents of the chosen partner only, so one payment can settle several of them
+          m2m('invoice_ids', inbound ? 'Invoices to Settle' : 'Bills to Settle', 'invoices', { hint: 'Choose the partner first. Pick several to pay them with this one payment.', search: async (text, ids, rec) => (rec?.['partner_id'] || ids?.length ? L('invoices', { partner_id: String(rec?.['partner_id'] ?? ''), unpaid: '1', move_type: inbound ? 'out_invoice' : 'in_invoice' })(text, ids) : []) })],
         actions: [{ id: 'post', label: 'Confirm', kind: 'primary', when: r => r['state'] === 'draft' }, { id: 'cancel', label: 'Cancel', kind: 'danger', when: r => ['posted', 'reconciled', 'draft'].includes(String(r['state'])), confirm: 'Cancel this payment? Settled invoices become open again.' },
           { id: 'draft', label: 'Reset to Draft', when: r => r['state'] === 'cancelled' }],
-        lockedWhen: r => r['state'] !== 'draft',
+        // a saved payment is confirmed or cancelled, not edited (there is no update call for it)
+        lockedWhen: () => true,
         blank: () => ({ payment_type: inbound ? 'inbound' : 'outbound', payment_date: new Date().toISOString().slice(0, 10) }),
       };
     }),

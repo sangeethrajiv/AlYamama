@@ -242,7 +242,8 @@ async function buildInvoiceLines(m: Required<Pick<MoveInput, 'move_type' | 'date
 
   // counterpart line(s): receivable / payable, split by the payment term
   const invDate = m.invoice_date ?? m.date
-  const termId = m.invoice_payment_term_id ?? (sale ? p.pt : p.spt)
+  // the partner's default payment term applies only when no due date was typed; a term chosen on the document always applies
+  const termId = m.invoice_payment_term_id ?? (m.invoice_date_due ? null : (sale ? p.pt : p.spt))
   const parts = termId && !isRefund(type) ? await termSplit(termId, totalForeign, invDate, cur, t) : [{ date: m.invoice_date_due ?? invDate, amount: totalForeign }]
   let allocated = D(0)
   parts.forEach((part, i) => {
@@ -329,6 +330,13 @@ export async function previewTotals(input: { currency_id?: number | null; lines?
   return { amount_untaxed: untaxed.toString(), amount_tax: tax.toString(), amount_total: untaxed.plus(tax).toString(), taxes: [...byTax.values()].map(x => ({ name: x.name, amount: x.amount.toString() })) }
 }
 
+/** With no due date typed, the document's due date is the last maturity the payment term gave its receivable / payable lines. */
+async function syncDueDate(moveId: number, typed: string | null | undefined, built: Built[], t: Transaction) {
+  if (typed) return
+  const last = built.map(b => b.date_maturity).filter((d): d is string => !!d).sort().pop()
+  if (last) await exec('UPDATE account_move SET invoice_date_due = :d WHERE id = :id', { d: last, id: moveId }, t)
+}
+
 // ---------------------------------------------------------------- operations ---
 export async function createMove(input: MoveInput, env: RequestEnv): Promise<number> {
   return sequelize.transaction(async t => {
@@ -349,6 +357,7 @@ export async function createMove(input: MoveInput, env: RequestEnv): Promise<num
     if (extra.is_progressive) extra.invoice_category = 'progressive'
     if (Object.keys(extra).length) await exec(`UPDATE account_move SET ${Object.keys(extra).map(k => `${k} = :${k}`).join(', ')} WHERE id = :id`, { ...extra, id: row.id }, t)
     await writeLines(row.id, m.journal_id, m.company_id, m.date, m.companyCurId, m.built, env.uid, t)
+    await syncDueDate(row.id, input.invoice_date_due, m.built, t)
     await refreshTotals(row.id, t)
     return row.id
   })
@@ -402,6 +411,7 @@ export async function updateMove(id: number, input: MoveInput, env: RequestEnv):
     if (extra.is_progressive) extra.invoice_category = 'progressive'
     if (Object.keys(extra).length) await exec(`UPDATE account_move SET ${Object.keys(extra).map(k => `${k} = :${k}`).join(', ')} WHERE id = :id`, { ...extra, id }, t)
     await writeLines(id, m.journal_id, m.company_id, m.date, m.companyCurId, m.built, env.uid, t)
+    await syncDueDate(id, input.invoice_date_due, m.built, t)
     await refreshTotals(id, t)
   })
 }
@@ -607,8 +617,11 @@ export async function reconcileLines(lineIds: number[], env: RequestEnv): Promis
     // The amounts are then matched in that currency; what is left in company currency is the exchange difference.
     const foreignMode = foreignId !== null && lines.every(l => foreignOf(l) === foreignId && !D(l.amount_residual_currency).isZero() && D(l.amount_residual_currency).isNegative() === D(l.amount_residual).isNegative())
     const mk = (l: Record<string, any>): Side => ({ id: l.id, res: D(l.amount_residual), resCur: D(l.amount_residual_currency), left: D(l.amount_residual).abs(), leftCur: D(l.amount_residual_currency).abs(), currency: foreignOf(l) })
-    const debits = lines.filter(l => D(l.amount_residual).gt(0)).map(mk)
-    const credits = lines.filter(l => D(l.amount_residual).lt(0)).map(mk)
+    // oldest due first, as Odoo matches (a payment smaller than the total pays the earliest invoices first)
+    const due = (id: number) => { const l = lines.find(x => x.id === id)!; return `${dstr(l.date_maturity ?? l.date)}#${String(id).padStart(12, '0')}` }
+    const byDue = (a: Side, b: Side) => due(a.id).localeCompare(due(b.id))
+    const debits = lines.filter(l => D(l.amount_residual).gt(0)).map(mk).sort(byDue)
+    const credits = lines.filter(l => D(l.amount_residual).lt(0)).map(mk).sort(byDue)
     if (!debits.length || !credits.length) throw new AppError('Nothing to reconcile: you need both debit and credit items with a residual.')
 
     const partialIds: number[] = []

@@ -96,6 +96,40 @@ const n = (v: unknown) => Number(v) || 0;
         }
       }
 
+      @if (credits().length && canPay()) {
+        <section class="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+          <h3 class="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Outstanding {{ creditWord() }}</h3>
+          <p class="text-[11px] text-slate-500">Payments and credit notes of this partner that are not matched yet. Add one to settle this {{ isSale() ? 'invoice' : 'bill' }}.</p>
+          <table class="erp-table w-full">
+            <thead><tr><th>Entry</th><th>Date</th><th>Label</th><th class="text-end">Open</th><th></th></tr></thead>
+            <tbody>
+              @for (c of credits(); track c['id']) {
+                <tr><td class="font-mono font-bold">{{ c['move_name'] }}</td><td>{{ str(c['date']).slice(0, 10) }}</td><td>{{ c['name'] ?? '' }}</td><td class="text-end font-mono">{{ abs(c['amount_residual']) }}</td>
+                  <td class="text-end"><button type="button" class="erp-btn-primary erp-btn-sm" [disabled]="busy()" (click)="addCredit(c)">Add</button></td></tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+
+      @if (doc()['state'] === 'posted' && entryLines().length) {
+        <section class="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+          <h3 class="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Journal Items · {{ str(doc()['name']) }}</h3>
+          <div class="overflow-x-auto"><table class="erp-table w-full">
+            <thead><tr><th>Account</th><th>Partner</th><th>Label</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Open</th><th>Matching</th></tr></thead>
+            <tbody>
+              @for (l of entryLines(); track l['id']) {
+                <tr><td class="font-mono">{{ nameOf(l['account_id']) }}</td><td>{{ nameOf(l['partner_id']) }}</td><td>{{ l['name'] ?? '' }}</td>
+                  <td class="text-end font-mono">{{ money(l['debit']) }}</td><td class="text-end font-mono">{{ money(l['credit']) }}</td>
+                  <td class="text-end font-mono">{{ l['exclude_from_invoice_tab'] && !l['tax_line_id'] ? money(l['amount_residual']) : '' }}</td>
+                  <td>@if (l['full_reconcile_id']) { <erp-pill tone="green">A{{ l['full_reconcile_id'] }}</erp-pill> } @else if (l['exclude_from_invoice_tab'] && !l['tax_line_id'] && num(l['amount_residual']) !== num(l['balance'])) { <erp-pill tone="amber">partial</erp-pill> }</td></tr>
+              }
+            </tbody>
+            <tfoot><tr class="bg-slate-50 font-bold"><td colspan="3">Total</td><td class="text-end font-mono">{{ sumOf('debit') }}</td><td class="text-end font-mono">{{ sumOf('credit') }}</td><td colspan="2"></td></tr></tfoot>
+          </table></div>
+        </section>
+      }
+
       @if (!isNew() && ready()) { <erp-record-extras model="account.move" [recordId]="docId()" [canWrite]="canWrite()" /> }
 
       @if (!locked() && ready()) {
@@ -127,6 +161,10 @@ export class DocumentFormPage {
   protected readonly lines = signal<Row[]>([]);
   protected readonly dirtyLines = signal(false);
   protected readonly settled = signal<Row[]>([]);
+  /** Every line of the saved entry (the Journal Items table) and the open credits that could settle this document. */
+  protected readonly entryLines = signal<Row[]>([]);
+  protected readonly credits = signal<Row[]>([]);
+  private ownLineIds: number[] = [];
   protected readonly ready = signal(false);
   protected readonly busy = signal(false);
   protected readonly error = signal('');
@@ -151,6 +189,7 @@ export class DocumentFormPage {
   private readonly writePerm = computed(() => (this.isSale() ? PERM.invoice.write : PERM.bill.write));
   protected readonly canWrite = computed(() => this.perms.has(this.writePerm()));
   private readonly ok = (p: string) => this.perms.has(p as never);
+  protected readonly canPay = computed(() => this.perms.has(PERM.payment.write));
   protected readonly canPost = computed(() => this.perms.has(this.isSale() ? PERM.invoice.validate : PERM.bill.write));
   protected readonly docId = computed(() => Number(this.id()) || 0);
 
@@ -175,6 +214,11 @@ export class DocumentFormPage {
   protected pretty = pillText;
   protected str = (v: unknown) => String(v ?? '');
   protected num = n;
+  protected abs = (v: unknown) => Math.abs(n(v)).toFixed(2);
+  protected money = (v: unknown) => n(v).toFixed(2);
+  protected nameOf = (v: unknown) => (v && typeof v === 'object' ? String((v as { name?: string }).name ?? '') : '');
+  protected sumOf = (k: string) => this.entryLines().reduce((t, l) => t + n(l[k]), 0).toFixed(2);
+  protected readonly creditWord = computed(() => (this.isSale() ? (isRefundType(this.k().moveType) ? 'debits' : 'credits') : (isRefundType(this.k().moveType) ? 'credits' : 'debits')));
 
   protected readonly view = computed<ViewDef>(() => ({ entity: 'document', type: 'form', sections: [
     { id: 'left', column: 1, columns: 1, fields: this.leftFields() }, { id: 'right', column: 2, columns: 1, fields: this.rightFields() },
@@ -310,6 +354,9 @@ export class DocumentFormPage {
     const rec = toForm(raw, ['lines']);
     this.doc.set(rec); this.form.set(rec); this.draft.set(rec);
     this.settled.set((raw['reconciled_items'] as Row[]) ?? []);
+    const all = (raw['lines'] as Row[]) ?? [];
+    this.entryLines.set(all.filter(l => !l['display_type']));
+    await this.loadCredits(raw, all);
     const productLines = ((raw['lines'] as Row[]) ?? []).filter(l => !l['tax_line_id'] && !l['exclude_from_invoice_tab'] && !l['display_type']);
     this.lines.set(productLines.map(l => {
       const acc = l['account_id'] as { id: number; name: string } | null;
@@ -325,6 +372,25 @@ export class DocumentFormPage {
       const lines = rows.map(l => ({ quantity: l['quantity'] || '1', price_unit: l['price_unit'] || '0', discount: l['discount'] || '0', tax_ids: l['tax_ids'] ?? [] }));
       this.preview.set(await this.ab.create<Row>('/accounting/moves/preview', { currency_id: currency, lines }));
     } catch { this.preview.set(null); }
+  }
+
+  /** The partner's unmatched payments / credit notes of the opposite side, offered as "Outstanding credits". */
+  private async loadCredits(raw: Row, all: Row[]): Promise<void> {
+    this.credits.set([]); this.ownLineIds = [];
+    const partner = (raw['partner_id'] as { id: number } | null)?.id;
+    const own = all.filter(l => l['exclude_from_invoice_tab'] && !l['tax_line_id'] && n(l['amount_residual']) !== 0);
+    if (raw['state'] !== 'posted' || !partner || !own.length) return;
+    this.ownLineIds = own.map(l => Number(l['id']));
+    const mySide = Math.sign(own.reduce((t, l) => t + n(l['amount_residual']), 0));
+    try {
+      const d = await this.ab.list('/accounting/move-lines', { unreconciled_only: 1, partner_id: partner, account_type: this.isSale() ? 'receivable' : 'payable', exclude_move: raw['id'] as number, limit: 100 });
+      this.credits.set(d.records.filter(r => Math.sign(n(r['amount_residual'])) === -mySide));
+    } catch { /* the block is optional */ }
+  }
+  protected async addCredit(c: Row): Promise<void> {
+    this.busy.set(true); this.error.set('');
+    try { await this.ab.action('/accounting/move-lines/reconcile', { line_ids: [...this.ownLineIds, Number(c['id'])] }); this.toast.success('Matched'); await this.loadDoc(this.id() as string); }
+    catch (e) { this.error.set(msg(e, 'Could not match it.')); } finally { this.busy.set(false); }
   }
 
   // ------------------------------------------------------------------ lines

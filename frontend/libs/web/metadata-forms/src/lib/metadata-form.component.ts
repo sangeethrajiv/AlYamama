@@ -54,10 +54,10 @@ const SPAN: Record<string, string> = { 1: '', 2: 'sm:col-span-2', 3: 'lg:col-spa
                           </select>
                         }
                         @case ('many2one') {
-                          <erp-select [formControl]="ctrl(f.key)" [options]="optionsOf(f)" [search]="f.search" [labelHint]="labelHint(f)" [clearable]="f.emptyOption !== false" [placeholder]="ph(f)" />
+                          <erp-select [formControl]="ctrl(f.key)" [options]="optionsOf(f)" [search]="searchOf(f)" [labelHint]="labelHint(f)" [clearable]="f.emptyOption !== false" [placeholder]="ph(f)" />
                         }
                         @case ('many2many') {
-                          <erp-multi-select [formControl]="ctrl(f.key)" [options]="optionsOf(f)" [search]="f.search" [placeholder]="ph(f)" />
+                          <erp-multi-select [formControl]="ctrl(f.key)" [options]="optionsOf(f)" [search]="searchOf(f)" [placeholder]="ph(f)" />
                         }
                         @case ('money') { <input type="text" inputmode="decimal" class="erp-input text-end font-mono" [formControl]="ctrl(f.key)" [placeholder]="ph(f)" (blur)="normalizeMoney(f)" /> }
                         @case ('number') { <input type="number" class="erp-input" [class.font-mono]="f.mono" [formControl]="ctrl(f.key)" [attr.min]="f.min" [attr.max]="f.max" [placeholder]="ph(f)" /> }
@@ -229,6 +229,14 @@ export class MetadataFormComponent {
   protected optionsOf(f: FieldDef): Option[] {
     const o = f.options ?? (f.resource ? this.lookups()[f.resource] : undefined) ?? [];
     return typeof o === 'function' ? o(this.snapshot(), this.lookups()) : o;
+  }
+  private readonly searches = new Map<string, NonNullable<FieldDef['search']>>();
+  /** The field's async search, given the record as it is being edited. One function per field, so the dropdown is not rebuilt. */
+  protected searchOf(f: FieldDef): NonNullable<FieldDef['search']> | undefined {
+    if (!f.search) return undefined;
+    let fn = this.searches.get(f.key);
+    if (!fn) { const src = f.search; fn = (q, ids) => src(q, ids, this.snapshot()); this.searches.set(f.key, fn); }
+    return fn;
   }
   /** The name that came with a many2one record (`<key>_label`), shown until the async source returns the label. */
   protected labelHint(f: FieldDef): string {

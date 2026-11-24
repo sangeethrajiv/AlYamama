@@ -49,6 +49,7 @@ moves.get('/', handle(async (req: Request, res: Response) => {
   if (f.move_type) { where.push('m.move_type = :mt'); rep.mt = f.move_type }
   if (f.kind === 'invoices') where.push("m.move_type <> 'entry'")
   if (f.payment_state) { where.push('m.payment_state = :ps'); rep.ps = f.payment_state }
+  if (f.unpaid === '1') where.push("m.state = 'posted' AND m.payment_state IN ('not_paid', 'partial') AND m.amount_residual > 0")
   if (f.invoice_category) { where.push('m.invoice_category = :ic'); rep.ic = f.invoice_category }
   if (f.request_status) { where.push('m.request_status = :rs'); rep.rs = f.request_status }
   if (f.date_from) { where.push('m.date >= :df'); rep.df = f.date_from }
@@ -94,6 +95,8 @@ items.get('/', handle(async (req: Request, res: Response) => {
   if (f.journal_id) { where.push('l.journal_id = :j'); rep.j = f.journal_id }
   if (f.reconciled !== undefined) { where.push('l.reconciled = :r'); rep.r = f.reconciled === 'true' }
   if (f.unreconciled_only === '1') where.push('l.reconciled = false AND l.amount_residual <> 0 AND a.reconcile')
+  if (f.account_type) { where.push('a.internal_type = :at'); rep.at = f.account_type }
+  if (f.exclude_move) { where.push('l.move_id <> :xm'); rep.xm = f.exclude_move }
   if (f.date_from) { where.push('l.date >= :df'); rep.df = f.date_from }
   if (f.date_to) { where.push('l.date <= :dt'); rep.dt = f.date_to }
   const cids = req.env.allowedCompanyIds.length ? req.env.allowedCompanyIds : req.env.companyId ? [req.env.companyId] : []
@@ -129,7 +132,7 @@ settings.put('/', handle(async (req: Request, res: Response) => {
 // ---------------------------------------------------------------- payments ---
 const paymentSchema = z.object({
   payment_type: z.enum(['inbound', 'outbound']).optional(), partner_type: z.enum(['customer', 'supplier']).optional(), partner_id: z.coerce.number().int().optional(),
-  amount: z.union([z.string(), z.number()]).optional(), payment_date: z.string().optional(), communication: z.string().nullish(), journal_id: z.coerce.number().int().optional(),
+  amount: z.union([z.string(), z.number()]).nullish(), payment_date: z.string().nullish(), communication: z.string().nullish(), journal_id: z.coerce.number().int().optional(),
   payment_method_code: z.string().optional(), destination_account_id: z.coerce.number().int().nullish(), invoice_ids: z.array(z.coerce.number().int()).optional(),
 }).strip()
 const readPayment = async (id: number) => {
@@ -137,7 +140,13 @@ const readPayment = async (id: number) => {
   if (!p) throw notFound('Payment')
   const invs = await q<{ id: number; name: string; amount_residual: string; payment_state: string }>('SELECT m.id, m.name, m.amount_residual, m.payment_state FROM account_invoice_payment_rel r JOIN account_move m ON m.id = r.invoice_id WHERE r.payment_id = :id', { id })
   const { partner_name, journal_name, ...rest } = p
-  return { ...rest, partner_id: p.partner_id ? { id: p.partner_id, name: partner_name } : null, journal_id: { id: p.journal_id, name: journal_name }, invoice_ids: invs }
+  // the payment's own journal entry and every document it ended up reconciled with (also matches made later, in Journal Items)
+  const entry = p.move_id ? await readMove(p.move_id) : null
+  return {
+    ...rest, partner_id: p.partner_id ? { id: p.partner_id, name: partner_name } : null, journal_id: { id: p.journal_id, name: journal_name }, invoice_ids: invs,
+    move_id: entry ? { id: entry.id, name: entry.name } : null,
+    entry_lines: entry?.lines ?? [], reconciled_items: entry?.reconciled_items ?? [],
+  }
 }
 const payments = Router()
 payments.param('id', (_r, _s, next, v) => next(/^\d+$/.test(String(v)) ? undefined : notFound('Payment')))
@@ -214,7 +223,7 @@ const filt = (req: Request): rep.Filter => {
 reports.get('/', handle(async (_req: Request, res: Response) => ok(res, rep.REPORT_CATALOG)))
 reports.get('/trial-balance', handle(async (req: Request, res: Response) => ok(res, await rep.trialBalance(filt(req)))))
 reports.get('/general-ledger', handle(async (req: Request, res: Response) => ok(res, await rep.generalLedger(filt(req), Number(req.query.page) || 1, Math.min(Number(req.query.limit) || 200, 1000)))))
-reports.get('/partner-ledger', handle(async (req: Request, res: Response) => ok(res, await rep.partnerLedger(filt(req), (['receivable', 'payable'].includes(String(req.query.kind)) ? req.query.kind : 'both') as never))))
+reports.get('/partner-ledger', handle(async (req: Request, res: Response) => ok(res, await rep.partnerLedger({ ...filt(req), detail: req.query.detail === '1' || !!req.query.partner_id }, (['receivable', 'payable'].includes(String(req.query.kind)) ? req.query.kind : 'both') as never))))
 reports.get('/aged-receivable', handle(async (req: Request, res: Response) => ok(res, await rep.agedBalance(filt(req), 'receivable'))))
 reports.get('/aged-payable', handle(async (req: Request, res: Response) => ok(res, await rep.agedBalance(filt(req), 'payable'))))
 reports.get('/profit-loss', handle(async (req: Request, res: Response) => ok(res, await rep.profitAndLoss(filt(req)))))

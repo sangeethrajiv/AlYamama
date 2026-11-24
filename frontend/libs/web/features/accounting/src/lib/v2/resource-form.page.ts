@@ -47,6 +47,24 @@ import { pillText, pillTone, toBody, toForm, type ActionSpec } from './resource-
         }
       }
 
+      @if (ready() && rec()['move_id']) {
+        <p class="text-xs">Journal entry <a class="font-mono font-bold text-emerald-700 hover:underline" [routerLink]="['/accounting/journal-entries', rec()['move_id']]">{{ rec()['move_id_label'] }}</a></p>
+      }
+      @if (ready() && settledRows().length) {
+        <section class="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+          <h3 class="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Reconciled With</h3>
+          <table class="erp-table w-full"><thead><tr><th>Document</th><th>Journal</th><th>Date</th><th class="text-end">Matched amount</th></tr></thead>
+            <tbody>@for (s of settledRows(); track s['reconcile_id']) { <tr><td class="font-mono font-bold">{{ s['move_name'] }}</td><td>{{ s['journal_name'] }}</td><td>{{ str(s['date']).slice(0, 10) }}</td><td class="text-end font-mono">{{ s['amount'] }}</td></tr> }</tbody></table>
+        </section>
+      }
+      @if (ready() && entryRows().length) {
+        <section class="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+          <h3 class="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Journal Items</h3>
+          <table class="erp-table w-full"><thead><tr><th>Account</th><th>Partner</th><th>Label</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th>Matching</th></tr></thead>
+            <tbody>@for (l of entryRows(); track l['id']) { <tr><td class="font-mono">{{ l['account_id_label'] }}</td><td>{{ l['partner_id_label'] }}</td><td>{{ l['name'] ?? '' }}</td><td class="text-end font-mono">{{ l['debit'] }}</td><td class="text-end font-mono">{{ l['credit'] }}</td><td>@if (l['full_reconcile_id']) { <erp-pill tone="green">A{{ l['full_reconcile_id'] }}</erp-pill> }</td></tr> }</tbody></table>
+        </section>
+      }
+
       @if (!isNew() && ready() && spec().model) { <erp-record-extras [model]="spec().model!" [recordId]="recordId()" [canWrite]="canWrite()" /> }
 
       @if (!locked() && spec().fields.length) {
@@ -86,6 +104,9 @@ export class ResourceFormPage {
   protected readonly locked = computed(() => (!this.isNew() && !!this.spec().lockedWhen?.(this.rec())) || !this.canWrite());
   protected readonly recordId = computed(() => Number(this.id()) || 0);
   protected readonly view = computed<ViewDef>(() => ({ entity: this.spec().key, type: 'form', sections: [{ id: 'main', columns: 2, fields: this.spec().fields }] }));
+  protected readonly settledRows = computed(() => ((this.rec()['reconciled_items'] as Row[]) ?? []));
+  /** Only a payment returns its own entry lines; journal entries already show theirs in the form. */
+  protected readonly entryRows = computed(() => (this.spec().lines?.some(l => l.key === 'lines') ? [] : ((this.rec()['entry_lines'] as Row[]) ?? [])));
   protected tone = pillTone;
   protected pretty = pillText;
   protected str = (v: unknown) => String(v ?? '');
@@ -109,7 +130,7 @@ export class ResourceFormPage {
     const s = this.spec();
     try {
       const raw = id === 'new' ? (s.blank?.() ?? {}) : await this.ab.get(`${s.api}/${id}`);
-      const rec = id === 'new' ? raw : toForm(raw, (s.lines ?? []).map(l => l.key));
+      const rec = id === 'new' ? raw : toForm(raw, [...(s.lines ?? []).map(l => l.key), 'entry_lines', 'reconciled_items']);
       this.rec.set(rec); this.form.set(rec); this.draft.set(rec);
       this.ready.set(true);
     } catch (e) { this.error.set(e instanceof Error ? e.message : 'Could not open the record.'); }

@@ -28,7 +28,7 @@ const LOOKUPS = {
   currencies: { path: '/accounting/currency-list', label: r => s(r['name']), query: { active: 'all' } },
   assetTypes: { company: true, path: '/accounting/asset-types', label: r => s(r['name']) },
   incoterms: { path: '/accounting/incoterms', label: r => `${s(r['code'])} ${s(r['name'])}` },
-  invoices: { path: '/accounting/moves', label: r => s(r['name']), query: { kind: 'invoices', state: 'posted' } },
+  invoices: { path: '/accounting/moves', label: r => s(r['name']), hint: r => (Number(r['amount_residual']) ? `due ${r['amount_residual']}` : ''), query: { kind: 'invoices', state: 'posted' } },
   users: { path: '/users', label: r => s(r['name'] ?? r['login']) },
   uoms: { path: '/uoms', label: r => s(r['name']) },
 } satisfies Record<string, LookupDef>;
