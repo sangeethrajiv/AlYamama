@@ -270,6 +270,8 @@ export class UserDetailPage implements HasUnsavedChanges {
     const made = await this.store.createUser({ name: d.name.trim(), login: d.login.trim(), email: d.email?.trim() || undefined, company_id: d.company_id, password: this.pw() });
     await this.store.saveUser({ ...d, id: made.id, partner_id: made.partner_id, create_date: made.create_date, write_date: made.write_date, name: made.name, login: made.login });
     this.toast.success(this.i18n.tr('common.saved'));
+    // Stored now: reset the blank form (and its passwords) so the unsaved-changes guard lets the page move on
+    this.load(this.blankUser());
     await this.router.navigate(['/contacts/users', made.id], { replaceUrl: true });
   }
 
