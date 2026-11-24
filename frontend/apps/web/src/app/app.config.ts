@@ -1,11 +1,15 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling, withRouterConfig } from '@angular/router';
 import { provideHttpApiClient, provideMockApiClient } from '@erp/web/api-client';
 import { provideCore } from '@erp/web/core';
 import { appRoutes } from './app.routes';
 
-/** true: Contacts and Product use the Express backend (`/v2`). false: everything runs on the in-memory mocks. */
-const USE_BACKEND = true;
+/**
+ * true: Contacts, Product and Accounting use the Express backend (`/v2`). false: everything runs on the in-memory sample data.
+ * `nx serve` (development) talks to the backend on localhost. The production build, which is what Vercel deploys, has no
+ * backend to reach, so it runs on the sample data.
+ */
+const USE_BACKEND = isDevMode();
 
 export const appConfig: ApplicationConfig = {
   providers: [
