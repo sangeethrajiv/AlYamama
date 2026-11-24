@@ -1,4 +1,4 @@
-import type { Bill, Contact, ContactLookups, Invoice, PartnerDraft, ResPartner, ResUser } from '@erp/shared/contracts';
+import type { Bill, CompanyDraft, Contact, ContactLookups, Invoice, LookupOption, PartnerDraft, ResCompany, ResCompanyRow, ResPartner, ResUser } from '@erp/shared/contracts';
 
 /** Customer/vendor documents shown on a contact (documents are matched to contacts by exact name in the prototype). */
 export interface PartnerActivity {
@@ -35,6 +35,14 @@ export abstract class ContactsApi {
   abstract createUser(draft: NewUser): Promise<ResUser>;
   /** Sets a new password for a user (admin reset). */
   abstract changeUserPassword(userId: number, password: string): Promise<void>;
+
+  // Companies (res.company)
+  abstract companyList(): Promise<ResCompanyRow[]>;
+  abstract company(id: number): Promise<ResCompany>;
+  abstract createCompany(draft: CompanyDraft): Promise<ResCompany>;
+  /** Only the fields present in `changes` are updated; an empty value clears a field. */
+  abstract updateCompany(id: number, changes: Partial<CompanyDraft>): Promise<ResCompany>;
+  abstract currencies(): Promise<LookupOption[]>;
 
   // Contact master (res.partner)
   abstract partners(): Promise<ResPartner[]>;

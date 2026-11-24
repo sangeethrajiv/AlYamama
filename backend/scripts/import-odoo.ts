@@ -124,20 +124,29 @@ const PARTNER_NUMERIC = ['credit_limit', 'discount', 'customer_discount']
 const SCHEMES = new Set(['TIN', 'CRN', 'MOM', 'MLS', '700', 'SAG', 'NAT', 'GCC', 'IQA', 'PAS', 'OTH'])
 const TYPES = new Set(['contact', 'invoice', 'delivery', 'other', 'private', 'child_company', 'manager'])
 
-async function importImages(odoo: Client, target: Client, partnerIds: Set<number>) {
+async function importImages(odoo: Client, target: Client, partnerIds: Set<number>, companyIds: Set<number>) {
   if (!fs.existsSync(FILESTORE)) {
     log(`images: filestore not found at ${FILESTORE}; skipped`)
     return
   }
-  const { rows } = await odoo.query<{ res_id: number; res_field: string; store_fname: string | null; db_datas: Buffer | null }>(
-    `SELECT res_id, res_field, store_fname, db_datas FROM ir_attachment
-      WHERE res_model = 'res.partner' AND res_field IN ('image', 'image_sign', 'image_seal')`,
+  // Odoo attachment field -> [target table, target column, ids that exist in the target]
+  const targets: Record<string, [string, string, Set<number>]> = {
+    'res.partner:image': ['res_partner', 'image', partnerIds],
+    'res.partner:image_sign': ['res_partner', 'image_sign', partnerIds],
+    'res.partner:image_seal': ['res_partner', 'image_seal', partnerIds],
+    'res.company:company_header_boxed': ['res_company', 'company_header_boxed', companyIds],
+    'res.company:company_footer_boxed': ['res_company', 'company_footer_boxed', companyIds],
+  }
+  const { rows } = await odoo.query<{ res_model: string; res_id: number; res_field: string; store_fname: string | null; db_datas: Buffer | null }>(
+    `SELECT res_model, res_id, res_field, store_fname, db_datas FROM ir_attachment
+      WHERE (res_model = 'res.partner' AND res_field IN ('image', 'image_sign', 'image_seal'))
+         OR (res_model = 'res.company' AND res_field IN ('company_header_boxed', 'company_footer_boxed'))`,
   )
-  const field = (f: string) => (f === 'image' ? 'image' : f === 'image_sign' ? 'image_sign' : 'image_seal')
   let written = 0
   let missing = 0
   for (const r of rows) {
-    if (!partnerIds.has(r.res_id)) continue
+    const t = targets[`${r.res_model}:${r.res_field}`]
+    if (!t || !t[2].has(r.res_id)) continue
     let bytes: Buffer | null = r.db_datas ? Buffer.from(r.db_datas.toString(), 'base64') : null
     if (!bytes && r.store_fname) {
       const file = path.join(FILESTORE, r.store_fname)
@@ -145,7 +154,7 @@ async function importImages(odoo: Client, target: Client, partnerIds: Set<number
       else { missing++; continue }
     }
     if (!bytes) continue
-    await target.query(`UPDATE res_partner SET ${field(r.res_field)} = $1 WHERE id = $2`, [bytes, r.res_id])
+    await target.query(`UPDATE ${t[0]} SET ${t[1]} = $1 WHERE id = $2`, [bytes, r.res_id])
     written++
   }
   log(`images: ${written} written${missing ? `, ${missing} file(s) missing from the filestore` : ''}`)
@@ -168,7 +177,7 @@ async function run() {
 
     if (flag('truncate')) {
       await target.query(`TRUNCATE res_partner_res_partner_category_rel, res_partner_bank, res_company_users_rel,
-        res_users, res_company, res_partner, res_partner_category, res_partner_industry, res_partner_title,
+        department_user_rel, hr_department, res_users, res_company, res_partner, res_partner_category, res_partner_industry, res_partner_title,
         res_bank, res_country_state, res_country, res_currency, ir_model_data RESTART IDENTITY CASCADE`)
       log('target tables truncated')
     }
@@ -219,10 +228,16 @@ async function run() {
 
       const { rows: companies } = await odoo.query<Row>(
         `SELECT id, name, parent_id, partner_id, currency_id, sequence, email, phone,
-                company_registry, default_user_tz, l10n_sa_registered_name
+                company_registry, default_user_tz, l10n_sa_registered_name,
+                bank_details_sale_quote, cash_invoice, credit_invoice, division, company_representation, company_seal,
+                due_from_account_id, due_to_account_id, due_fromto_payment_journal_id,
+                social_twitter, social_facebook, social_github, social_linkedin, social_youtube, social_googleplus, social_instagram
            FROM res_company ${COMPANY !== undefined ? `WHERE id = ${COMPANY}` : ''} ORDER BY id`,
       )
-      const companyCols = ['id', 'name', 'parent_id', 'partner_id', 'currency_id', 'sequence', 'email', 'phone', 'company_registry', 'default_user_tz', 'l10n_sa_registered_name']
+      const companyCols = ['id', 'name', 'parent_id', 'partner_id', 'currency_id', 'sequence', 'email', 'phone', 'company_registry', 'default_user_tz', 'l10n_sa_registered_name',
+        'bank_details_sale_quote', 'cash_invoice', 'credit_invoice', 'division', 'company_representation', 'company_seal',
+        'due_from_account_id', 'due_to_account_id', 'due_fromto_payment_journal_id',
+        'social_twitter', 'social_facebook', 'social_github', 'social_linkedin', 'social_youtube', 'social_googleplus', 'social_instagram']
       // A company's partner must exist; skip the company if its partner was filtered out.
       const usableCompanies = companies.filter(c => partnerIds.has(Number(c.partner_id)))
       const nC = await upsert(target, 'res_company', companyCols, usableCompanies)
@@ -238,19 +253,34 @@ async function run() {
       await recordExternalIds(target, 'res.users', usableUsers.map(r => Number(r.id)))
       counts.push(['res_users', users.length, nU])
 
-      // Allowed companies: Odoo 12 gives each user one company.
-      await upsert(
-        target,
-        'res_company_users_rel',
-        ['cid', 'user_id'],
-        usableUsers.map(u => ({ cid: u.company_id, user_id: u.id })),
-        500,
-        ['cid', 'user_id'],
+      // Allowed companies: every row of Odoo's res_company_users_rel (a user can have several), plus the user's own
+      // company, which Odoo always keeps in the list.
+      const userIds = new Set(usableUsers.map(u => Number(u.id)))
+      const { rows: companyRels } = await odoo.query<Row>(`SELECT cid, user_id FROM res_company_users_rel`)
+      const usableCompanyRels = [
+        ...companyRels.filter(r => companyIds.has(Number(r.cid)) && userIds.has(Number(r.user_id))),
+        ...usableUsers.map(u => ({ cid: u.company_id, user_id: u.id })),
+      ]
+      await upsert(target, 'res_company_users_rel', ['cid', 'user_id'], usableCompanyRels, 500, ['cid', 'user_id'])
+      counts.push(['res_company_users_rel', companyRels.length, usableCompanyRels.length])
+
+      // -------------------------------------------- departments (no hr.employee data) ---
+      const { rows: departments } = await odoo.query<Row>(
+        `SELECT id, name, complete_name, active, company_id, parent_id FROM hr_department ORDER BY id`,
       )
+      for (const d of departments) if (!companyIds.has(Number(d.company_id))) d.company_id = null
+      const nD = await upsert(target, 'hr_department', ['id', 'name', 'complete_name', 'active', 'company_id', 'parent_id'], departments)
+      await recordExternalIds(target, 'hr.department', departments.map(r => Number(r.id)))
+      counts.push(['hr_department', departments.length, nD])
+
+      const departmentIds = new Set(departments.map(d => Number(d.id)))
+      const { rows: deptRels } = await odoo.query<Row>(`SELECT user_id, dept_id FROM department_user_rel`)
+      const usableDeptRels = deptRels.filter(r => userIds.has(Number(r.user_id)) && departmentIds.has(Number(r.dept_id)))
+      await upsert(target, 'department_user_rel', ['user_id', 'dept_id'], usableDeptRels, 500, ['user_id', 'dept_id'])
+      counts.push(['department_user_rel', deptRels.length, usableDeptRels.length])
 
       // ----------------------------------------- partners, second pass ---
       // parent_id / commercial_partner_id / user_id now have something to point at.
-      const userIds = new Set(usableUsers.map(u => Number(u.id)))
       let linked = 0
       for (const p of partners) {
         const parent = partnerIds.has(Number(p.parent_id)) ? p.parent_id : null
@@ -298,13 +328,13 @@ async function run() {
       }
       counts.push(['res_partner_..._category_rel', tagRels.length, usableRels.length])
 
-      if (WITH_IMAGES) await importImages(odoo, target, partnerIds)
+      if (WITH_IMAGES) await importImages(odoo, target, partnerIds, companyIds)
       else log('images: skipped (--no-images)')
     })
 
     await resetSequences(target, [
       'res_currency', 'res_country', 'res_country_state', 'res_partner_title', 'res_partner_industry',
-      'res_partner_category', 'res_bank', 'res_partner', 'res_company', 'res_users', 'res_partner_bank', 'ir_model_data',
+      'res_partner_category', 'res_bank', 'res_partner', 'res_company', 'res_users', 'res_partner_bank', 'hr_department', 'ir_model_data',
     ])
 
     await target.query('COMMIT')

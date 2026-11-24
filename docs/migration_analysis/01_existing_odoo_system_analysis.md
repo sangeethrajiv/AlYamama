@@ -16,7 +16,7 @@
 | Standard addons (`odoo_server/addons`, 284 dirs) | **Read** | Incl. `account`, `stock`, `stock_account`, `product`, `uom`, `l10n_sa`, `l10n_ae` |
 | Custom addons — `TY-employee-odoo/custom_addons` (46 dirs) | **Read** | |
 | Custom addons — `hydraulic_workshop_odoo/custom_addons` (44 dirs) | **Read** | Listed first in `addons_path`, so it wins on name clashes |
-| Live PostgreSQL 17.9 on `localhost:5432`, DB `yamama_live_18_09_26` (≈4 GB) | **Read-only** | Every session forced `default_transaction_read_only=on`. Only `SELECT` was issued |
+| Live PostgreSQL 17.9 on `localhost:5432`, DB `yamama_live_191126` (≈4 GB) | **Read-only** | Every session forced `default_transaction_read_only=on`. Only `SELECT` was issued |
 | Dump `yamama_live_18_09_26_backup_before_muk_uninstall.dump` (1.6 GB, created 2026-11-04) | Header only (`pg_restore -l`) | **Not restored.** Not compared against the live DB **[U]** |
 | `yamama.config` (Odoo server config) | **Read** | Credentials exist in plaintext. **Values are not reproduced in any report** |
 | Running Odoo instance / UI | **Not used** | The Odoo server was not started; computed fields, onchanges and views were analysed from source, not executed |

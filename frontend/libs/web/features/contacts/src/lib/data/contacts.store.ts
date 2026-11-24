@@ -1,6 +1,6 @@
 import { Injectable, effect, inject, signal } from '@angular/core';
 import { ContactsApi, DataChanges, type NewUser, type PartnerActivity } from '@erp/web/api-client';
-import type { Contact, ContactLookups, ResPartner, ResUser } from '@erp/shared/contracts';
+import type { CompanyDraft, Contact, ContactLookups, LookupOption, ResCompany, ResCompanyRow, ResPartner, ResUser } from '@erp/shared/contracts';
 
 const EMPTY_LOOKUPS: ContactLookups = {
   countries: [], states: [], titles: [], salesTeams: [], jobs: [], departments: [], employees: [], companies: [],
@@ -47,6 +47,21 @@ export class ContactsStore {
     const u = await this.api.createUser(draft);
     this.users.update(list => (list.some(x => x.id === u.id) ? list : [...list, u]));
     return u;
+  }
+  companyList(): Promise<ResCompanyRow[]> { return this.api.companyList(); }
+  company(id: number): Promise<ResCompany> { return this.api.company(id); }
+  currencies(): Promise<LookupOption[]> { return this.api.currencies(); }
+  /** Creates the company and adds it to the company lists the user forms choose from, without a full reload. */
+  /** Saves the changes and refreshes the company's name and parent in the lists the user forms choose from. */
+  async updateCompany(id: number, changes: Partial<CompanyDraft>): Promise<ResCompany> {
+    const c = await this.api.updateCompany(id, changes);
+    this.lookups.update(l => ({ ...l, companies: l.companies.map(x => (x.id === c.id ? { ...x, name: c.name, parent_id: c.parent_id } : x)) }));
+    return c;
+  }
+  async createCompany(draft: CompanyDraft): Promise<ResCompany> {
+    const c = await this.api.createCompany(draft);
+    this.lookups.update(l => (l.companies.some(x => x.id === c.id) ? l : { ...l, companies: [...l.companies, { id: c.id, name: c.name, parent_id: c.parent_id }] }));
+    return c;
   }
   changeUserPassword(id: number, password: string) { return this.api.changeUserPassword(id, password); }
   /**

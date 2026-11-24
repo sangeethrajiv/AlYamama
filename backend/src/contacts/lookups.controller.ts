@@ -11,6 +11,8 @@ import { CountryState } from '../core/country/state.model'
 import { Company } from '../core/company/company.model'
 import { User } from '../core/user/user.model'
 import { Partner } from './partner/partner.model'
+import { sequelize } from '../orm'
+import { visibleCompanyIds } from '../core/company/company.service'
 import { Currency } from '../core/currency/currency.model'
 
 /**
@@ -60,13 +62,19 @@ export async function states(req: Request, res: Response) {
 
 /** GET /companies - the company switcher and the form's Company field. */
 export async function companies(req: Request, res: Response) {
-  const allowed = req.env.allowedCompanyIds
+  const allowed = await visibleCompanyIds(req.env)
   const rows = await Company.findAll({
     where: allowed.length ? { id: { [Op.in]: allowed } } : {},
     attributes: ['id', 'name', 'parent_id', 'partner_id', 'currency_id', 'sequence'],
     order: [['sequence', 'ASC'], ['name', 'ASC']],
   })
   return ok(res, { records: rows, total: rows.length, current: req.env.companyId })
+}
+
+/** GET /departments - the Departments field of a user (res.users.user_department_ids -> hr.department). Archived ones are kept so an assigned department never shows as a bare id. */
+export async function departments(_req: Request, res: Response) {
+  const [rows] = await sequelize.query('SELECT id, name, complete_name, active, company_id, parent_id FROM hr_department ORDER BY name, id')
+  return ok(res, { records: rows, total: rows.length })
 }
 
 /** GET /users - the Salesperson field. Names come from each user's partner record. */

@@ -3,7 +3,7 @@
 > **Audience:** Node.js backend team (DB mapping) and Angular team (Contact List / Contact form).
 > **Type:** analysis + read-only list query. No Odoo model, database schema, field or data was changed. DB access was read-only.
 > **Odoo version:** **12.0** (`TY-employee-odoo/odoo_server/odoo/release.py` -> `version_info = (12, 0, 0, FINAL, 0, '')`).
-> **Database inspected:** `yamama_live_131126` (`base` 12.0.1.3 installed).
+> **Database inspected:** `yamama_live_191126` (`base` 12.0.1.3 installed).
 > **Files:** `13_contact_master_fields.md` (this), `13_contact_master_fields.csv` (all 56 fields, machine-readable), `13_contact_master_list.sql` (the Contact Master list query).
 > Complements `12_user_management_fields.md` (which covers `res.users`; its section 2 lists the same base partner fields in a user context).
 
@@ -190,7 +190,7 @@ Basis for the default tier: the stock Odoo 12 Contact tree (`view_partner_tree`)
 
 `13_contact_master_list.sql` is the Contact Master list: one `SELECT` over `res_partner` plus base lookup tables only (`res_partner_title`, `res_country`, `res_country_state`, `res_users`, `res_company`, `res_partner_industry`, `res_partner_category`). Aliases are the real field names; relational fields return `<field>` (id) and `<field>__name`; `child_ids` returns `child_ids__count`; `category_id` returns `category_id__names`.
 
-* Verified: runs in a `BEGIN READ ONLY` transaction on `yamama_live_131126`; with the limit lifted it returns **6,291 rows = the active partner count**. A script check confirmed every `p.<column>` it reads is one of the 56 base fields.
+* Verified: runs in a `BEGIN READ ONLY` transaction on `yamama_live_191126`; with the limit lifted it returns **6,291 rows = the active partner count**. A script check confirmed every `p.<column>` it reads is one of the 56 base fields.
 * It creates no view, column or table and changes no data.
 * Mapping for the Node layer: columns that are not physical (`company_type`, `child_ids`, `category_id`, `image*`, `email_formatted`, `contact_address`, `tz_offset`, `parent_name`, `self`, `user_ids`, `bank_ids`) are derived as shown in the CSV `storage` column.
 
@@ -211,5 +211,5 @@ Basis for the default tier: the stock Odoo 12 Contact tree (`view_partner_tree`)
 * `lang` and `tz` selections are dynamic; the live distinct values are reported, not a closed list.
 * `type`: live data only contains `contact` (6,105) and `manager` (259). `child_company` is allowed by the custom modules but unused.
 * One partner (id 1, "Flames of Al Yamama Trading Co") has `supplier` and `employee` NULL, so treat the three flags as nullable booleans.
-* Counts are from the `yamama_live_131126` copy; they change with the data.
+* Counts are from the `yamama_live_191126` copy; they change with the data.
 

@@ -25,7 +25,7 @@ export const env = (over: Partial<RequestEnv> = {}): RequestEnv => ({
 export async function resetTables() {
   await sequelize.query(`TRUNCATE product_product, product_template, stock_picking_type, stock_warehouse,
     stock_location, product_category, uom_uom, uom_category, res_partner_res_partner_category_rel, res_partner_bank,
-    res_company_users_rel, res_users, res_company, res_partner, res_partner_category,
+    res_company_users_rel, department_user_rel, hr_department, res_users, res_company, res_partner, res_partner_category,
     res_partner_industry, res_partner_title, res_bank, res_country_state, res_country,
     res_currency, account_account_type, account_analytic_group, account_analytic_tag, account_tax_group, ir_model_data RESTART IDENTITY CASCADE`)
 }

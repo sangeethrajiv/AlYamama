@@ -1,6 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, TemplateRef, computed, contentChild, input, model, output, signal } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { ColumnPickerComponent } from './column-picker.component';
 import { AvatarComponent } from '../layout/avatar.component';
 import { EmptyStateComponent } from '../layout/empty-state.component';
 import { IconComponent } from '../icon/icon.component';
@@ -36,32 +37,11 @@ export interface GridColumn<T> {
  */
 @Component({
   selector: 'erp-data-grid',
-  imports: [NgTemplateOutlet, TranslocoPipe, IconComponent, PillComponent, AvatarComponent, EmptyStateComponent, PagerComponent],
+  imports: [NgTemplateOutlet, TranslocoPipe, ColumnPickerComponent, IconComponent, PillComponent, AvatarComponent, EmptyStateComponent, PagerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (picker()) {
-      <div class="relative mb-2 flex justify-end">
-        <button type="button" (click)="pickerOpen.set(!pickerOpen())" [attr.aria-expanded]="pickerOpen()" class="erp-btn-ghost">
-          <erp-icon name="columns-3" [size]="14" />{{ 'grid.columns' | transloco: { shown: visible().length, total: columns().length } }}
-        </button>
-        @if (pickerOpen()) {
-          <div class="fixed inset-0 z-20" (click)="pickerOpen.set(false)" aria-hidden="true"></div>
-          <div class="absolute end-0 top-full z-30 mt-1 max-h-[60vh] w-72 space-y-3 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
-            @for (g of groups(); track g.key) {
-              <div>
-                @if (g.key) { <div class="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">{{ g.key | transloco }}</div> }
-                @for (c of g.cols; track c.key) {
-                  <label class="flex cursor-pointer items-center gap-2 py-0.5 text-xs text-slate-700">
-                    <input type="checkbox" class="accent-emerald-600" [checked]="shown().has(c.key)" [disabled]="c.fixed" (change)="toggleCol(c.key)" />
-                    <span class="flex-1">{{ c.label | transloco }}</span>
-                    @if (shown().has(c.key)) { <erp-icon name="check" [size]="12" class="text-emerald-600" /> }
-                  </label>
-                }
-              </div>
-            }
-          </div>
-        }
-      </div>
+      <div class="mb-2 flex justify-end"><erp-column-picker [source]="self" [withLabel]="true" /></div>
     }
     <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
       <table class="erp-table" [attr.aria-busy]="loading()">
@@ -130,19 +110,15 @@ export class DataGridComponent<T> {
   readonly page = model<number>(1);
   readonly rowClick = output<T>();
   protected readonly actions = contentChild<TemplateRef<{ $implicit: T }>>('actions');
-  protected readonly pickerOpen = signal(false);
+  /** The grid is its own column-picker source; a page can also pass a template reference (`#grid`) to a standalone `erp-column-picker`. */
+  protected readonly self = this;
   protected readonly skeleton = [0, 1, 2, 3, 4, 5, 6, 7];
   protected readonly custom = signal<ReadonlySet<string> | null>(null);
 
-  protected readonly shown = computed<ReadonlySet<string>>(
+  readonly shown = computed<ReadonlySet<string>>(
     () => this.custom() ?? new Set(this.columns().filter(c => c.on !== false || c.fixed).map(c => c.key)),
   );
   protected readonly visible = computed(() => this.columns().filter(c => this.shown().has(c.key)));
-  protected readonly groups = computed(() => {
-    const m = new Map<string, GridColumn<T>[]>();
-    for (const c of this.columns()) m.set(c.group ?? '', [...(m.get(c.group ?? '') ?? []), c]);
-    return [...m.entries()].map(([key, cols]) => ({ key, cols }));
-  });
 
   protected readonly sorted = computed(() => {
     const col = this.columns().find(c => c.key === this.sortKey());
@@ -168,7 +144,7 @@ export class DataGridComponent<T> {
     else { this.sortKey.set(key); this.sortDir.set(1); }
     this.page.set(1);
   }
-  protected toggleCol(key: string): void {
+  toggleCol(key: string): void {
     const next = new Set(this.shown());
     if (next.has(key)) next.delete(key);
     else next.add(key);

@@ -169,8 +169,10 @@ export interface ResUser {
   login: string;
   /** Internal, Portal or Public. Only `share` is stored in the database; Portal and Public both count as shared. */
   user_type?: 'internal' | 'portal' | 'public';
-  /** Department the user belongs to (hr.department id). Kept with the user's extras until the backend has departments. */
+  /** Legacy single department of an earlier form; superseded by `user_department_ids` and only read as a fallback. */
   department_id?: number;
+  /** res.users.user_department_ids: every assigned hr.department id (many2many, department_user_rel). */
+  user_department_ids?: number[];
   company_id: number;
   partner_id: number;
   share?: boolean;
@@ -222,6 +224,63 @@ export interface ResUser {
   login_date?: string;
   logins?: string[];
   emp?: Employee;
+}
+
+/** One row of the Company list: res.company with the name of its partner. */
+export interface ResCompanyRow {
+  id: number;
+  name: string;
+  sequence?: number;
+  parent_id: number | null;
+  partner_id: number;
+  partner_name: string;
+}
+
+/** What the New Company form sends: the editable fields of `ResCompany`. */
+export type CompanyDraft = Partial<Omit<ResCompany, 'id' | 'sequence' | 'partner_id' | 'partner_name' | 'parent_name' | 'currency_name' | 'state_name' | 'country_name' | 'country_code' | 'logo' | 'due_from_account_name' | 'due_to_account_name' | 'due_fromto_payment_journal_name'>> & { name: string };
+
+/** The Company form (res.company). Address, website, VAT and ZATCA identification come from the company's partner. */
+export interface ResCompany extends ResCompanyRow {
+  parent_name?: string | null;
+  l10n_sa_registered_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  company_registry?: string | null;
+  currency_id?: number | null;
+  currency_name?: string | null;
+  bank_details_sale_quote?: boolean | null;
+  cash_invoice?: boolean | null;
+  credit_invoice?: boolean | null;
+  division?: string | null;
+  company_representation?: string | null;
+  street?: string | null;
+  street2?: string | null;
+  city?: string | null;
+  zip?: string | null;
+  state_id?: number | null;
+  state_name?: string | null;
+  country_id?: number | null;
+  country_name?: string | null;
+  country_code?: string | null;
+  website?: string | null;
+  vat?: string | null;
+  l10n_sa_edi_building_number?: string | null;
+  l10n_sa_edi_plot_identification?: string | null;
+  l10n_sa_additional_identification_scheme?: string | null;
+  l10n_sa_additional_identification_number?: string | null;
+  /** The partner's image as a data URL. */
+  logo?: string | null;
+  /** res.company images, as data URLs. */
+  company_seal?: string | null;
+  company_header_boxed?: string | null;
+  company_footer_boxed?: string | null;
+  /** Intercompany Payment Configuration: ids, and the names Odoo prints (null while the accounting data is not loaded). */
+  due_from_account_id?: number | null;
+  due_from_account_name?: string | null;
+  due_to_account_id?: number | null;
+  due_to_account_name?: string | null;
+  due_fromto_payment_journal_id?: number | null;
+  due_fromto_payment_journal_name?: string | null;
 }
 
 export interface LookupOption {

@@ -1,10 +1,9 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { IconComponent } from '@erp/web/ui';
 import { AuthService } from '../auth/auth.service';
 import { CompanyContext } from '../company/company-context.service';
-import { SearchService } from './search.service';
 
 type Menu = 'company' | 'user' | 'bell' | null;
 
@@ -19,17 +18,6 @@ type Menu = 'company' | 'user' | 'bell' | null;
           <button type="button" class="-ms-1 rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden" [attr.aria-label]="'shell.openMenu' | transloco" (click)="toggleSidebar.emit()">
             <erp-icon name="menu" [size]="20" />
           </button>
-          <div class="relative w-full">
-            <erp-icon name="search" [size]="17" class="pointer-events-none absolute start-3 top-2 text-slate-400" />
-            <input #searchBox type="text" [value]="search.query()" (input)="search.query.set($any($event.target).value)"
-              [placeholder]="'shell.searchPlaceholder' | transloco"
-              class="w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 pe-8 ps-9 text-xs text-slate-800 placeholder-slate-400 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            @if (search.query()) {
-              <button type="button" class="absolute end-2 top-1.5 rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700" [attr.aria-label]="'shell.clearSearch' | transloco" (click)="search.query.set('')">
-                <erp-icon name="x" [size]="14" />
-              </button>
-            }
-          </div>
         </div>
 
         <div class="flex flex-wrap items-center justify-end gap-2.5">
@@ -99,21 +87,10 @@ type Menu = 'company' | 'user' | 'bell' | null;
 export class HeaderComponent {
   protected readonly auth = inject(AuthService);
   protected readonly company = inject(CompanyContext);
-  protected readonly search = inject(SearchService);
   private readonly router = inject(Router);
 
   readonly toggleSidebar = output<void>();
   protected readonly menu = signal<Menu>(null);
-  private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
-
-  @HostListener('window:keydown', ['$event'])
-  protected onKey(e: KeyboardEvent): void {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-      e.preventDefault();
-      this.searchBox()?.nativeElement.focus();
-      this.searchBox()?.nativeElement.select();
-    }
-  }
 
   protected toggle(m: Exclude<Menu, null>): void {
     this.menu.set(this.menu() === m ? null : m);

@@ -20,6 +20,7 @@ export * from './lib/layout/avatar.component';
 export * from './lib/layout/pager.component';
 export * from './lib/feedback/error-banner.component';
 export * from './lib/data/data-grid.component';
+export * from './lib/data/column-picker.component';
 export * from './lib/data/chatter.component';
 export * from './lib/layout/document-action-bar.component';
 export * from './lib/layout/money-bar.component';
