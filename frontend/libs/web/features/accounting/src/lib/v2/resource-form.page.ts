@@ -114,7 +114,7 @@ export class ResourceFormPage {
   protected readonly items = computed<ActionItem[]>(() => {
     if (this.isNew() || !this.canWrite()) return [];
     const r = this.rec(); const s = this.spec();
-    const out: ActionItem[] = (s.actions ?? []).filter(a => !a.when || a.when(r)).map(a => ({
+    const out: ActionItem[] = (s.actions ?? []).filter(a => (!a.when || a.when(r)) && !(a.notByPreparer && r['prepared_by'] != null && Number(r['prepared_by']) === this.ab.userId())).map(a => ({
       id: a.id, label: a.label, kind: a.kind, disabled: this.busy(), run: () => void this.start(a),
     }));
     if (s.canDelete && (!s.stateKey || ['draft', 'cancelled', 'cancel'].includes(this.state()))) out.push({ id: 'delete', label: 'Delete', kind: 'danger', run: () => void this.remove() });

@@ -1,6 +1,6 @@
 import { AppError, notFound } from '../common.helper'
 import type { RequestEnv } from '../middleware'
-import { exec, q } from './crud'
+import { assertCompany, exec, q } from './crud'
 
 /**
  * Notes and attachments on accounting records (Odoo chatter and ir.attachment), and the accounting overview.
@@ -12,34 +12,36 @@ const TABLES: Record<string, string> = {
 }
 const MAX_FILE = 8 * 1024 * 1024
 
-async function checkRecord(model: string, id: number) {
+async function checkRecord(model: string, id: number, env?: RequestEnv) {
   const table = TABLES[model]
   if (!table) throw new AppError(`Unknown record type "${model}".`)
-  const [r] = await q(`SELECT id FROM ${table} WHERE id = :id`, { id })
+  const [r] = await q<{ company_id: number | null }>(`SELECT company_id FROM ${table} WHERE id = :id`, { id })
   if (!r) throw notFound('Record')
+  if (env) assertCompany(env, r.company_id, 'Record')
 }
 
-export async function listNotes(model: string, id: number) {
-  await checkRecord(model, id)
+export async function listNotes(model: string, id: number, env?: RequestEnv) {
+  await checkRecord(model, id, env)
   return q(`SELECT n.id, n.kind, n.body, n.create_date, n.author_id, u.login author FROM account_note n LEFT JOIN res_users u ON u.id = n.author_id WHERE n.res_model = :m AND n.res_id = :id ORDER BY n.id DESC`, { m: model, id })
 }
 export async function addNote(model: string, id: number, body: string, env: RequestEnv, kind: 'note' | 'log' = 'note') {
-  await checkRecord(model, id)
+  await checkRecord(model, id, env)
   if (!body?.trim()) throw new AppError('The note is empty.')
   const [row] = await q<{ id: number }>('INSERT INTO account_note (res_model, res_id, kind, body, author_id) VALUES (:m, :id, :k, :b, :u) RETURNING id', { m: model, id, k: kind, b: body.trim(), u: env.uid })
   return row.id
 }
-export async function deleteNote(id: number) {
+export async function deleteNote(id: number, env?: RequestEnv) {
+  await checkOwner('account_note', id, env)
   const rows = await q<{ id: number }>("DELETE FROM account_note WHERE id = :id AND kind = 'note' RETURNING id", { id })
   if (!rows.length) throw new AppError('Only a note you typed can be deleted.')
 }
 
-export async function listAttachments(model: string, id: number) {
-  await checkRecord(model, id)
+export async function listAttachments(model: string, id: number, env?: RequestEnv) {
+  await checkRecord(model, id, env)
   return q('SELECT id, name, mimetype, file_size, create_date FROM account_attachment WHERE res_model = :m AND res_id = :id ORDER BY id DESC', { m: model, id })
 }
 export async function addAttachment(model: string, id: number, f: { name?: string; mimetype?: string; content_base64?: string }, env: RequestEnv) {
-  await checkRecord(model, id)
+  await checkRecord(model, id, env)
   if (!f.name?.trim() || !f.content_base64) throw new AppError('A file name and content are required.')
   const data = Buffer.from(f.content_base64, 'base64')
   if (!data.length) throw new AppError('The file is empty.')
@@ -48,14 +50,20 @@ export async function addAttachment(model: string, id: number, f: { name?: strin
     { m: model, id, n: f.name.trim().slice(0, 255), t: f.mimetype ?? 'application/octet-stream', s: data.length, d: data, u: env.uid })
   return row.id
 }
-export async function readAttachment(id: number) {
+/** An attachment or note is visible only with the record it belongs to. */
+async function checkOwner(table: 'account_attachment' | 'account_note', id: number, env?: RequestEnv) {
+  const [o] = await q<{ res_model: string; res_id: number }>(`SELECT res_model, res_id FROM ${table} WHERE id = :id`, { id })
+  if (!o) throw notFound(table === 'account_note' ? 'Note' : 'Attachment')
+  await checkRecord(o.res_model, o.res_id, env)
+}
+export async function readAttachment(id: number, env?: RequestEnv) {
+  await checkOwner('account_attachment', id, env)
   const [a] = await q<{ name: string; mimetype: string; data: Buffer }>('SELECT name, mimetype, data FROM account_attachment WHERE id = :id', { id })
-  if (!a) throw notFound('Attachment')
   return a
 }
-export async function deleteAttachment(id: number) {
-  const rows = await q<{ id: number }>('DELETE FROM account_attachment WHERE id = :id RETURNING id', { id })
-  if (!rows.length) throw notFound('Attachment')
+export async function deleteAttachment(id: number, env?: RequestEnv) {
+  await checkOwner('account_attachment', id, env)
+  await exec('DELETE FROM account_attachment WHERE id = :id', { id })
 }
 
 /** Accounting > Overview: one card per journal, like the Odoo dashboard. */

@@ -2,7 +2,7 @@ import Decimal from 'decimal.js'
 import { sequelize } from '../orm'
 import { AppError, notFound } from '../common.helper'
 import type { RequestEnv } from '../middleware'
-import { exec, q } from './crud'
+import { assertCompany, exec, q } from './crud'
 import { createMove, postMove, readMove } from './move.service'
 import { createPayment, postPayment } from './payment.service'
 
@@ -169,6 +169,7 @@ export async function createInternalVoucher(i: InternalVoucherInput, env: Reques
   const js = await q<{ id: number; type: string; company_id: number; dr: number | null; cr: number | null }>(
     'SELECT id, type, company_id, default_debit_account_id dr, default_credit_account_id cr FROM account_journal WHERE id IN (:a, :b) AND active', { a: i.journal_id, b: i.destination_journal_id })
   if (js.length !== 2) throw new AppError('journal_id: journal not found or archived')
+  js.forEach(j => assertCompany(env, j.company_id, 'journal_id: journal'))
   for (const j of js) {
     if (!['bank', 'cash'].includes(j.type)) throw new AppError('An internal voucher moves money between bank or cash journals only.')
     if (!j.dr || !j.cr) throw new AppError(`The journal ${j.id} has no default debit/credit account.`)
@@ -240,6 +241,7 @@ export async function createPayableVoucher(i: PayableVoucherInput, env: RequestE
   if (!i.payment_journal_id) throw new AppError('payment_journal_id: is required')
   const [j] = await q<{ type: string; company_id: number }>('SELECT type, company_id FROM account_journal WHERE id = :id AND active', { id: i.payment_journal_id })
   if (!j) throw new AppError('payment_journal_id: journal not found')
+  assertCompany(env, j.company_id, 'payment_journal_id: journal')
   if (!['bank', 'cash'].includes(j.type)) throw new AppError('A payable voucher needs a bank or cash journal.')
   let partner = i.partner_id ?? null, amount = i.amount != null ? D(i.amount) : null
   if (i.invoice_id) {

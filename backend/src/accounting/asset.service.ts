@@ -2,7 +2,7 @@ import Decimal from 'decimal.js'
 import { sequelize } from '../orm'
 import { AppError, notFound } from '../common.helper'
 import type { RequestEnv } from '../middleware'
-import { exec, q } from './crud'
+import { assertCompany, exec, q } from './crud'
 import { createMove, postMove } from './move.service'
 
 /**
@@ -52,6 +52,7 @@ export async function createAsset(v: AssetValues, env: RequestEnv): Promise<numb
   if (D(v.salvage_value).gte(value)) throw new AppError('The salvage value must be lower than the gross value.')
   const [cat] = await q<Record<string, any>>('SELECT * FROM account_asset_category WHERE id = :id AND active', { id: v.category_id })
   if (!cat) throw new AppError('category_id: asset type not found or archived')
+  assertCompany(env, cat.company_id, 'category_id: asset type')
   const vals: Record<string, unknown> = {
     name: v.name.trim(), code: v.code ?? null, category_id: v.category_id, company_id: cat.company_id,
     currency_id: v.currency_id ?? null, partner_id: v.partner_id ?? null, product_id: v.product_id ?? null,
@@ -144,7 +145,21 @@ function totalPeriods(a: Record<string, any>): number {
     const months = (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth()) + 1
     return Math.max(1, Math.ceil(months / a.method_period))
   }
-  return a.method_number
+  // Odoo: with prorata temporis (a partial first period) the board has one more line than the number of entries
+  return a.prorata ? a.method_number + 1 : a.method_number
+}
+
+/** Share of the first period that is left after the purchase date, by calendar days (Odoo 12 `_compute_board_amount`). */
+function firstPeriodShare(a: Record<string, any>, base: string): Decimal {
+  const d = new Date(base + 'T00:00:00Z'), y = d.getUTCFullYear(), m = d.getUTCMonth()
+  if (a.method_period % 12 !== 0) {              // monthly, quarterly, half-yearly: the part of the purchase month that is left
+    const monthDays = lastDay(y, m)
+    return D(monthDays - d.getUTCDate() + 1).div(monthDays)
+  }
+  // yearly: the days left until the end of the financial year (the company's year end is not stored here, so 31 Dec)
+  const end = new Date(Date.UTC(y, 11, 31))
+  const days = Math.round((end.getTime() - d.getTime()) / 86400000) + 1
+  return D(days).div(y % 4 ? 365 : 366)
 }
 
 /** One period's depreciation: linear spreads evenly; degressive takes a factor of the remaining value. */
@@ -155,14 +170,10 @@ function periodAmount(a: Record<string, any>, gross: Decimal, remaining: Decimal
     const linear = gross.div(periods)
     return Decimal.max(amount, linear.gt(remaining) ? remaining : linear)   // Odoo switches to linear once it is larger
   }
-  const amount = gross.div(periods)
-  // prorata: the first period only counts the days from the asset date
-  if (a.prorata && i === 0 && seq === 1) {
-    const d = new Date(base + 'T00:00:00Z')
-    const daysInPeriod = a.method_period * 30
-    const used = daysInPeriod - ((d.getUTCDate() - 1) + (a.method_period - 1) * 30)
-    return amount.mul(Math.max(1, used)).div(daysInPeriod)
-  }
+  // an even share per entry; the extra prorata line makes `periods` one more than the entries, so divide by the entries
+  const amount = gross.div(a.method_time === 'number' ? a.method_number : periods)
+  // prorata: the first period only counts the days left after the asset date; the last line takes what remains
+  if (a.prorata && i === 0 && seq === 1) return amount.mul(firstPeriodShare(a, base))
   return amount
 }
 

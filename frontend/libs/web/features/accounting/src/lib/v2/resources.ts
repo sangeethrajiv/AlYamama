@@ -20,7 +20,7 @@ const lockedState = (r: Row) => ['posted', 'cancel', 'cancelled', 'close'].inclu
 /** Approval buttons shared by both voucher types (and bills use their own copy on the document page). */
 const approvalActions = (statusKey = 'request_status'): ActionSpec[] => [
   { id: 'submit', label: 'Send for approval', when: r => r['state'] === 'draft' && ['not_required', 'rejected'].includes(String(r[statusKey])) },
-  { id: 'approve', label: 'Approve', kind: 'primary', when: r => r[statusKey] === 'to_approve' },
+  { id: 'approve', label: 'Approve', kind: 'primary', notByPreparer: true, when: r => r[statusKey] === 'to_approve' },
   { id: 'reject', label: 'Reject', kind: 'danger', reason: 'Reason for rejection', when: r => r[statusKey] === 'to_approve' },
   { id: 'reset', label: 'Reset approval', when: r => r['state'] === 'draft' && r[statusKey] === 'rejected' },
 ];
@@ -227,7 +227,7 @@ export function makeSpecs(ab: AccountingBackend): Record<string, ResourceSpec> {
       columns: [{ key: 'name', label: 'Number', mono: true }, { key: 'date', label: 'Date' }, { key: 'partner_name', label: 'Vendor' }, { key: 'payment_mode', label: 'Mode' }, { key: 'amount', label: 'Amount', right: true, mono: true },
         { key: 'request_status', label: 'Approval', pill: true }, { key: 'state', label: 'Status', pill: true }],
       filters: [{ key: 'request_status', label: 'Approval', options: [{ value: 'to_approve', label: 'To approve' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }] }],
-      fields: [m2o('partner_id', 'Vendor', 'partners', { required: true }), m2o('invoice_id', 'Vendor Bill', 'invoices', { hint: 'Optional. Fills the vendor and the amount due.' }, { move_type: 'in_invoice' }),
+      fields: [m2o('partner_id', 'Vendor', 'partners', { hint: 'Leave empty when you choose a bill: the vendor comes from the bill.' }), m2o('invoice_id', 'Vendor Bill', 'invoices', { hint: 'Optional. Takes the vendor and the amount due from the bill.' }, { move_type: 'in_invoice', unpaid: '1' }),
         m2o('payment_journal_id', 'Payment Journal', 'journals', { required: true }), num('amount', 'Amount'), date('date', 'Date', { required: true }),
         sel('payment_mode', 'Payment Mode', opts(['transfer', 'Bank Transfer'], ['cheque', 'Cheque'])), text('cheque_no', 'Cheque Number', { visible: v => v['payment_mode'] === 'cheque' }),
         text('reference', 'Reference'), text('po_number', 'PO Number'), { key: 'description', type: 'textarea', label: 'Description', span: 'full' }],

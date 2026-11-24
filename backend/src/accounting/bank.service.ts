@@ -2,7 +2,7 @@ import Decimal from 'decimal.js'
 import { sequelize } from '../orm'
 import { AppError, notFound } from '../common.helper'
 import type { RequestEnv } from '../middleware'
-import { exec, q } from './crud'
+import { assertCompany, exec, q } from './crud'
 import { createMove, postMove, reconcileLines, unreconcileLines } from './move.service'
 import { refreshPaymentState } from './payment.service'
 
@@ -25,6 +25,7 @@ export async function createStatement(i: StatementInput, env: RequestEnv): Promi
     if (!i.journal_id) throw new AppError('journal_id: is required')
     const [j] = await q<{ code: string; type: string; company_id: number }>('SELECT code, type, company_id FROM account_journal WHERE id = :id AND active', { id: i.journal_id }, t)
     if (!j) throw new AppError('journal_id: journal not found')
+    assertCompany(env, j.company_id, 'journal_id: journal')
     if (!['bank', 'cash'].includes(j.type)) throw new AppError('A statement needs a bank or cash journal.')
     const date = (i.date ?? new Date().toISOString()).slice(0, 10)
     const [s] = await q<{ id: number }>(

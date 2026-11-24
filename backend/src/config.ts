@@ -1,7 +1,11 @@
+import * as fs from 'fs'
 import * as path from 'path'
 import * as dotenv from 'dotenv'
 
-dotenv.config({ path: path.resolve(__dirname, '..', '.env'), quiet: true })
+// backend/.env, found from source (src/) and from the compiled build (dist/src/). Real environment variables
+// always win, so a deployment can set them in its process manager and have no .env file at all.
+const envFile = [path.resolve(__dirname, '..', '.env'), path.resolve(__dirname, '..', '..', '.env'), path.resolve(process.cwd(), '.env')].find(f => fs.existsSync(f))
+if (envFile) dotenv.config({ path: envFile, quiet: true })
 
 const num = (v: string | undefined, d: number) => (v && !Number.isNaN(Number(v)) ? Number(v) : d)
 

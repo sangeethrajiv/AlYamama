@@ -14,7 +14,8 @@ import * as path from 'path'
 import { config } from '../src/config'
 import { makeClient } from '../src/db'
 
-const DIR = path.resolve(__dirname, '..', 'migrations')
+// migrations/ sits next to scripts/ in the source tree and two levels up from the compiled dist/scripts/
+const DIR = [path.resolve(__dirname, '..', 'migrations'), path.resolve(__dirname, '..', '..', 'migrations')].find(d => fs.existsSync(d)) ?? path.resolve(__dirname, '..', 'migrations')
 
 export async function migrate(database = config.db.database, opts: { status?: boolean; quiet?: boolean } = {}) {
   const log = (...a: unknown[]) => { if (!opts.quiet) console.log(...a) }

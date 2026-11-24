@@ -20,6 +20,8 @@ export interface ActionSpec {
   kind?: 'primary' | 'ghost' | 'danger';
   /** Ask before running. */
   confirm?: string;
+  /** Not offered to the user who prepared the record (the backend refuses self-approval anyway). */
+  notByPreparer?: boolean;
   /** Needs a typed reason (rejections); sent as `{ reason }`. */
   reason?: string;
   /** Extra JSON body. */

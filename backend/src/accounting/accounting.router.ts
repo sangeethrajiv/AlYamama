@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import { Router } from 'express'
 import { z } from 'zod'
 import { AppError, handle, likeEscape, notFound, ok, paging } from '../common.helper'
-import { crudRouter, q } from './crud'
+import { assertCompany, companyParam, crudRouter, q, visibleCompanies } from './crud'
 import * as cfg from './config.entities'
 import * as pay from './payment.service'
 import * as bank from './bank.service'
@@ -36,7 +36,7 @@ const idsSchema = z.object({ line_ids: z.array(z.coerce.number().int()).min(1) }
 const reverseSchema = z.object({ date: z.string().optional(), ref: z.string().optional(), post: z.boolean().optional(), journal_id: z.coerce.number().int().optional() })
 
 const moves = Router()
-moves.param('id', (_r, _s, next, v) => next(/^\d+$/.test(String(v)) ? undefined : notFound('Journal entry')))
+moves.param('id', companyParam('account_move', 'Journal entry'))
 
 moves.get('/', handle(async (req: Request, res: Response) => {
   const { limit, offset, page } = paging(req.query as Record<string, unknown>, 80, 500)
@@ -107,8 +107,14 @@ items.get('/', handle(async (req: Request, res: Response) => {
   const [{ n }] = await q<{ n: string }>(`SELECT count(*) n ${from}`, rep)
   return ok(res, { records: rows, total: Number(n), page, limit })
 }))
-items.post('/reconcile', handle(async (req: Request, res: Response) => ok(res, await reconcileLines(idsSchema.parse(req.body).line_ids, req.env), 'Reconciled')))
-items.post('/unreconcile', handle(async (req: Request, res: Response) => { await unreconcileLines(idsSchema.parse(req.body).line_ids); return ok(res, {}, 'Unreconciled') }))
+/** Journal items of a company the caller cannot see are reported as missing. */
+const checkLines = async (ids: number[], env: Request['env']) => {
+  const vis = visibleCompanies(env); if (!vis.length || !ids.length) return
+  const rows = await q<{ company_id: number | null }>('SELECT company_id FROM account_move_line WHERE id IN (:ids)', { ids })
+  rows.forEach(r => assertCompany(env, r.company_id, 'Journal item'))
+}
+items.post('/reconcile', handle(async (req: Request, res: Response) => { const ids = idsSchema.parse(req.body).line_ids; await checkLines(ids, req.env); return ok(res, await reconcileLines(ids, req.env), 'Reconciled') }))
+items.post('/unreconcile', handle(async (req: Request, res: Response) => { const ids = idsSchema.parse(req.body).line_ids; await checkLines(ids, req.env); await unreconcileLines(ids); return ok(res, {}, 'Unreconciled') }))
 
 // ------------------------------------------------------------ router mount ---
 const lockSchema = z.object({ fiscalyear_lock_date: z.string().nullable().optional(), period_lock_date: z.string().nullable().optional(), tax_lock_date: z.string().nullable().optional() })
@@ -149,7 +155,7 @@ const readPayment = async (id: number) => {
   }
 }
 const payments = Router()
-payments.param('id', (_r, _s, next, v) => next(/^\d+$/.test(String(v)) ? undefined : notFound('Payment')))
+payments.param('id', companyParam('account_payment', 'Payment'))
 payments.get('/', handle(async (req: Request, res: Response) => {
   const { limit, offset, page } = paging(req.query as Record<string, unknown>, 80, 500)
   const f = req.query as Record<string, string>; const where: string[] = []; const rep2: Record<string, unknown> = {}
@@ -182,7 +188,7 @@ const stmtLine = z.object({ date: z.string(), name: z.string().min(1), amount: z
 const stmtSchema = z.object({ name: z.string().optional(), reference: z.string().nullish(), date: z.string().optional(), journal_id: z.coerce.number().int().optional(), balance_start: z.union([z.string(), z.number()]).optional(), balance_end_real: z.union([z.string(), z.number()]).optional(), lines: z.array(stmtLine).optional() })
 const bookSchema = z.object({ move_line_ids: z.array(z.coerce.number().int()).optional(), account_id: z.coerce.number().int().optional(), writeoff: z.object({ account_id: z.coerce.number().int(), name: z.string().optional() }).optional() })
 const statements = Router()
-statements.param('id', (_r, _s, next, v) => next(/^\d+$/.test(String(v)) ? undefined : notFound('Bank statement')))
+statements.param('id', companyParam('account_bank_statement', 'Bank statement'))
 statements.get('/', handle(async (req: Request, res: Response) => {
   const { limit, offset, page } = paging(req.query as Record<string, unknown>, 80, 500)
   const f = req.query as Record<string, string>; const where: string[] = []; const r2: Record<string, unknown> = {}
@@ -206,7 +212,7 @@ statements.post('/:id/reopen', handle(async (req: Request, res: Response) => { a
 statements.delete('/:id', handle(async (req: Request, res: Response) => { await bank.deleteStatement(Number(req.params.id)); return ok(res, { id: Number(req.params.id) }, 'Bank statement deleted') }))
 
 const stmtLines = Router()
-stmtLines.param('id', (_r, _s, next, v) => next(/^\d+$/.test(String(v)) ? undefined : notFound('Statement line')))
+stmtLines.param('id', companyParam('account_bank_statement_line', 'Statement line'))
 stmtLines.post('/:id/reconcile', handle(async (req: Request, res: Response) => ok(res, { move_id: await bank.bookStatementLine(Number(req.params.id), bookSchema.parse(req.body ?? {}), req.env) }, 'Statement line reconciled')))
 stmtLines.post('/:id/unreconcile', handle(async (req: Request, res: Response) => { await bank.unbookStatementLine(Number(req.params.id)); return ok(res, { id: Number(req.params.id) }, 'Statement line unreconciled') }))
 stmtLines.delete('/:id', handle(async (req: Request, res: Response) => { await bank.removeStatementLine(Number(req.params.id)); return ok(res, { id: Number(req.params.id) }, 'Statement line deleted') }))
@@ -246,7 +252,7 @@ const voucherRoutes = (kind: 'internal' | 'payable') => {
   const table = kind === 'internal' ? 'account_internal_voucher' : 'account_payable_voucher'
   const label = kind === 'internal' ? 'Internal voucher' : 'Payable voucher'
   const read = (id: number) => (kind === 'internal' ? inv.readInternalVoucher(id) : inv.readPayableVoucher(id))
-  r.param('id', (_rq, _rs, next, v) => next(/^\d+$/.test(String(v)) ? undefined : notFound(label)))
+  r.param('id', companyParam(table, label))
   r.get('/', handle(async (req: Request, res: Response) => {
     const { limit, offset, page } = paging(req.query as Record<string, unknown>, 80, 500)
     const f = req.query as Record<string, string>; const where: string[] = []; const rp: Record<string, unknown> = {}
@@ -284,7 +290,7 @@ const voucherRoutes = (kind: 'internal' | 'payable') => {
 
 // ------------------------------------------------------------------ assets ---
 const assets = Router()
-assets.param('id', (_r, _s, next, v) => next(/^\d+$/.test(String(v)) ? undefined : notFound('Asset')))
+assets.param('id', companyParam('account_asset_asset', 'Asset'))
 assets.get('/', handle(async (req: Request, res: Response) => {
   const { limit, offset, page } = paging(req.query as Record<string, unknown>, 80, 500)
   const f = req.query as Record<string, string>; const where: string[] = []; const rp: Record<string, unknown> = {}
@@ -352,20 +358,20 @@ statements.post('/import', handle(async (req: Request, res: Response) => ok(res,
 
 const records = Router()
 records.param('id', (_r, _s, next, v) => next(/^\d+$/.test(String(v)) ? undefined : notFound('Record')))
-records.get('/:model/:id/notes', handle(async (req: Request, res: Response) => ok(res, await extras.listNotes(String(req.params.model), Number(req.params.id)))))
+records.get('/:model/:id/notes', handle(async (req: Request, res: Response) => ok(res, await extras.listNotes(String(req.params.model), Number(req.params.id), req.env))))
 records.post('/:model/:id/notes', handle(async (req: Request, res: Response) => ok(res, { id: await extras.addNote(String(req.params.model), Number(req.params.id), String(req.body?.body ?? ''), req.env) }, 'Note added', 201)))
-records.get('/:model/:id/attachments', handle(async (req: Request, res: Response) => ok(res, await extras.listAttachments(String(req.params.model), Number(req.params.id)))))
+records.get('/:model/:id/attachments', handle(async (req: Request, res: Response) => ok(res, await extras.listAttachments(String(req.params.model), Number(req.params.id), req.env))))
 records.post('/:model/:id/attachments', handle(async (req: Request, res: Response) => ok(res, { id: await extras.addAttachment(String(req.params.model), Number(req.params.id), req.body ?? {}, req.env) }, 'File attached', 201)))
 const files = Router()
 files.get('/:id/download', handle(async (req: Request, res: Response) => {
-  const a = await extras.readAttachment(Number(req.params.id))
+  const a = await extras.readAttachment(Number(req.params.id), req.env)
   res.setHeader('Content-Type', a.mimetype || 'application/octet-stream')
   res.setHeader('Content-Disposition', `attachment; filename="${a.name.replace(/[^\w.\- ]/g, '_')}"`)
   res.send(a.data)
 }))
-files.delete('/:id', handle(async (req: Request, res: Response) => { await extras.deleteAttachment(Number(req.params.id)); return ok(res, { id: Number(req.params.id) }, 'Attachment deleted') }))
+files.delete('/:id', handle(async (req: Request, res: Response) => { await extras.deleteAttachment(Number(req.params.id), req.env); return ok(res, { id: Number(req.params.id) }, 'Attachment deleted') }))
 const noteRouter = Router()
-noteRouter.delete('/:id', handle(async (req: Request, res: Response) => { await extras.deleteNote(Number(req.params.id)); return ok(res, { id: Number(req.params.id) }, 'Note deleted') }))
+noteRouter.delete('/:id', handle(async (req: Request, res: Response) => { await extras.deleteNote(Number(req.params.id), req.env); return ok(res, { id: Number(req.params.id) }, 'Note deleted') }))
 
 const accounting = Router()
 accounting.use('/records', records)

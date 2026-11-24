@@ -217,3 +217,43 @@ describe('accounting: invoicing menus, vouchers, assets', () => {
     })
   })
 })
+
+describe('assets: prorata temporis (a partial first year)', () => {
+  it('first year is the share of days left, a closing line takes the rest, and the board adds up', async () => {
+    await resetTables()
+    const sar = await ins("INSERT INTO res_currency (name, symbol) VALUES ('SAR', 'SAR')")
+    const cp = await Partner.create({ name: 'Co', is_company: true, type: 'contact' } as never)
+    const co = (await Company.create({ name: 'Co', partner_id: cp.id, currency_id: sar } as never)).id
+    const ty = (type: string, g: string) => ins('INSERT INTO account_account_type (name, type, internal_group) VALUES (:n, :t, :g)', { n: type + g, t: type, g })
+    const t1 = await ty('other', 'asset'), t2 = await ty('other', 'expense')
+    const acc = (c: string, t: number) => ins('INSERT INTO account_account (code, name, user_type_id, company_id) VALUES (:c, :c, :t, :co)', { c, t, co })
+    const [a, d, x] = [await acc('1500', t1), await acc('1590', t1), await acc('5100', t2)]
+    const j = await ins("INSERT INTO account_journal (name, code, type, company_id) VALUES ('AS', 'AS', 'general', :co)", { co })
+    const cat = await ins("INSERT INTO account_asset_category (name, company_id, journal_id, account_asset_id, account_depreciation_id, account_depreciation_expense_id, method, method_number, method_period, prorata) VALUES ('P', :co, :j, :a, :d, :x, 'linear', 5, 12, true)", { co, j, a, d, x })
+    const id = await asset.createAsset({ name: 'Truck', category_id: cat, value: 12000, salvage_value: 2000, date: '2026-01-15' }, env({ companyId: co, allowedCompanyIds: [co] }))
+    const b = (await asset.readAsset(id)).depreciation_lines as any[]
+    expect(b).to.have.length(6)                                                                  // 5 entries + the prorata line
+    expect(Number(b[0].amount)).to.equal(1923.29)                                                // 2000 x 351 days left / 365
+    expect([1, 2, 3, 4].map(i => Number(b[i].amount))).to.deep.equal([2000, 2000, 2000, 2000])
+    expect(Number(b[5].amount)).to.equal(76.71)                                                  // what is left
+    expect(b.reduce((s, l) => s + Number(l.amount), 0)).to.be.closeTo(10000, 0.001)
+    expect(Number(b[5].remaining_value)).to.equal(0)
+  })
+  it('monthly periods use the days left in the purchase month', async () => {
+    await resetTables()
+    const sar = await ins("INSERT INTO res_currency (name, symbol) VALUES ('SAR', 'SAR')")
+    const cp = await Partner.create({ name: 'Co', is_company: true, type: 'contact' } as never)
+    const co = (await Company.create({ name: 'Co', partner_id: cp.id, currency_id: sar } as never)).id
+    const ty = (type: string, g: string) => ins('INSERT INTO account_account_type (name, type, internal_group) VALUES (:n, :t, :g)', { n: type + g, t: type, g })
+    const t1 = await ty('other', 'asset')
+    const acc = (c: string) => ins('INSERT INTO account_account (code, name, user_type_id, company_id) VALUES (:c, :c, :t, :co)', { c, t: t1, co })
+    const [a, d, x] = [await acc('1'), await acc('2'), await acc('3')]
+    const j = await ins("INSERT INTO account_journal (name, code, type, company_id) VALUES ('AS', 'AS', 'general', :co)", { co })
+    const cat = await ins("INSERT INTO account_asset_category (name, company_id, journal_id, account_asset_id, account_depreciation_id, account_depreciation_expense_id, method, method_number, method_period, prorata) VALUES ('M', :co, :j, :a, :d, :x, 'linear', 12, 1, true)", { co, j, a, d, x })
+    const id = await asset.createAsset({ name: 'Laptop', category_id: cat, value: 1200, date: '2026-01-16' }, env({ companyId: co, allowedCompanyIds: [co] }))
+    const b = (await asset.readAsset(id)).depreciation_lines as any[]
+    expect(b).to.have.length(13)
+    expect(Number(b[0].amount)).to.equal(51.61)                                                  // 100 x 16 days left of 31 (16th to 31st) / 31
+    expect(b.reduce((s, l) => s + Number(l.amount), 0)).to.be.closeTo(1200, 0.001)
+  })
+})

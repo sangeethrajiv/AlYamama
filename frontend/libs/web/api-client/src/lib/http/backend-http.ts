@@ -18,13 +18,21 @@ export interface BackendConfig {
   userIdByRole?: Partial<Record<UserRole, number>>;
 }
 
+/** Settings a deployment can override in `config.js` (see apps/web/public/config.js), without rebuilding. */
+interface RuntimeConfig { apiBase?: string; companyId?: number; allowedCompanyIds?: number[]; userIdByRole?: BackendConfig['userIdByRole'] }
+const runtime = (): RuntimeConfig => (globalThis as { __ERP_CONFIG__?: RuntimeConfig }).__ERP_CONFIG__ ?? {};
+
 export const BACKEND_CONFIG = new InjectionToken<BackendConfig>('BACKEND_CONFIG', {
   providedIn: 'root',
-  factory: () => ({
-    baseUrl: 'http://localhost:3000/v2', userId: 2, companyId: 1, allowedCompanyIds: [1, 5, 6, 7, 9, 12],
-    // res.users ids in the Odoo copy: 2 is admin, 6 to 9 are staff
-    userIdByRole: { 'Accounts Manager': 2, 'Finance Director': 6, 'Senior Accountant': 7, Accountant: 8, Auditor: 9 },
-  }),
+  factory: () => {
+    const r = runtime();
+    return {
+      baseUrl: (r.apiBase ?? 'http://localhost:3000/v2').replace(/\/+$/, ''), userId: 2, companyId: r.companyId ?? 1,
+      allowedCompanyIds: r.allowedCompanyIds ?? [1, 5, 6, 7, 9, 12],
+      // res.users ids in the Odoo copy: 2 is admin, 6 to 9 are staff
+      userIdByRole: r.userIdByRole ?? { 'Accounts Manager': 2, 'Finance Director': 6, 'Senior Accountant': 7, Accountant: 8, Auditor: 9 },
+    };
+  },
 });
 
 type Query = Record<string, string | number | boolean | undefined | null>;
@@ -37,6 +45,9 @@ export class BackendHttp {
   private readonly http = inject(HttpClient);
   private readonly cfg = inject(BACKEND_CONFIG);
   private readonly ctx = inject(RequestContext);
+
+  /** The backend user (res.users id) the signed-in demo role acts as. */
+  currentUserId(): number { return this.cfg.userIdByRole?.[this.ctx.actorRole()] ?? this.cfg.userId; }
 
   /** The backend id of the active company (`co_5` -> 5); falls back to the configured one. */
   activeCompanyId(): number {

@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "ts-node --transpile-only src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js",
+    "start": "node dist/src/server.js",
+    "migrate:prod": "node dist/scripts/migrate.js",
+    "db:create:prod": "node dist/scripts/db-create.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "db:create": "ts-node --transpile-only scripts/db-create.ts",
     "migrate": "ts-node --transpile-only scripts/migrate.ts",

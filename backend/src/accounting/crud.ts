@@ -72,7 +72,7 @@ async function withM2o(e: Entity, rows: Record<string, unknown>[]) {
 
 export function crudRouter(e: Entity): Router {
   const r = Router()
-  r.param('id', (_rq, _rs, next, v) => next(/^\d+$/.test(String(v)) ? undefined : notFound(e.label)))
+  r.param('id', e.company ? companyParam(e.table, e.label) : (_rq, _rs, next, v) => next(/^\d+$/.test(String(v)) ? undefined : notFound(e.label)))
   const cols = ['id', ...Object.keys(e.cols)]
   const order = e.order ?? 'id'
 
@@ -149,6 +149,24 @@ export function crudRouter(e: Entity): Router {
     return ok(res, { id: rows[0].id }, `${e.label} deleted`)
   }))
   return r
+}
+
+/** The companies the caller may see: the allowed list, or just the current one. Empty means no restriction (stub auth without headers). */
+export const visibleCompanies = (env: RequestEnv): number[] => (env.allowedCompanyIds.length ? env.allowedCompanyIds : env.companyId ? [env.companyId] : [])
+
+/** A record of another company is reported as missing, never as forbidden, so ids cannot be probed. */
+export function assertCompany(env: RequestEnv, companyId: number | null | undefined, what: string): void {
+  const ids = visibleCompanies(env)
+  if (ids.length && companyId != null && !ids.includes(companyId)) throw notFound(what)
+}
+
+/** Express `router.param('id')` handler: 404 for a malformed id or a record that belongs to a company the caller cannot see. */
+export const companyParam = (table: string, what: string) => (req: Request, _res: Response, next: (e?: unknown) => void, v: string) => {
+  if (!/^\d+$/.test(String(v))) return next(notFound(what))
+  const ids = visibleCompanies(req.env)
+  if (!ids.length) return next()
+  q<{ company_id: number | null }>(`SELECT company_id FROM ${table} WHERE id = :id`, { id: v })
+    .then(([r]) => next(r && r.company_id != null && !ids.includes(r.company_id) ? notFound(what) : undefined), next)
 }
 
 export { exec }

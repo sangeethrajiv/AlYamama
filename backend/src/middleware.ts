@@ -43,6 +43,9 @@ export function isAuthenticated(req: Request, _res: Response, next: NextFunction
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
   if (err instanceof AppError) return fail(res, err.status, err.message, err.code)
+  const kind = (err as { type?: string } | null)?.type
+  if (kind === 'entity.parse.failed') return fail(res, 400, 'The request body is not valid JSON.', 'validation_error')
+  if (kind === 'entity.too.large') return fail(res, 413, 'The request body is too large.', 'payload_too_large')
   if (err instanceof ZodError) {
     const msg = err.issues.map(i => `${i.path.join('.') || 'body'}: ${i.message}`).join('; ')
     return fail(res, 400, msg, 'validation_error')

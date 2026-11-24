@@ -2,7 +2,7 @@ import Decimal from 'decimal.js'
 import { sequelize } from '../orm'
 import { AppError, notFound } from '../common.helper'
 import type { RequestEnv } from '../middleware'
-import { exec, q } from './crud'
+import { assertCompany, exec, q } from './crud'
 import { cancelMove, createMove, postMove, reconcileLines, resetToDraft, unreconcileLines } from './move.service'
 
 /**
@@ -26,6 +26,7 @@ export async function createPayment(i: PaymentInput, env: RequestEnv): Promise<n
     if (!i.journal_id) throw new AppError('journal_id: is required')
     const [j] = await q<{ type: string; company_id: number }>('SELECT type, company_id FROM account_journal WHERE id = :id AND active', { id: i.journal_id }, t)
     if (!j) throw new AppError('journal_id: journal not found')
+    assertCompany(env, j.company_id, 'journal_id: journal')
     if (!['bank', 'cash'].includes(j.type)) throw new AppError('A payment needs a bank or cash journal.')
     let type = i.payment_type, ptype = i.partner_type, partner = i.partner_id ?? null
     const invs = [...new Set(i.invoice_ids ?? [])]

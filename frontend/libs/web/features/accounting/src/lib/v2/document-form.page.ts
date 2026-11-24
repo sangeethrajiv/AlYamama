@@ -281,7 +281,8 @@ export class DocumentFormPage {
       if (this.canWrite() && category(d) === 'proforma' && sale) out.push({ id: 'convert', label: 'Convert to Tax Invoice', kind: 'primary', disabled: b, run: () => void this.convertProforma() });
       if (this.canWrite() && !sale && !isRefundType(this.k().moveType)) {
         if (['not_required', 'rejected'].includes(status)) out.push({ id: 'submit', label: 'Send for Approval', disabled: b, run: () => void this.approval('submit-approval', 'Sent for approval') });
-        if (status === 'to_approve' && this.ok(PERM.bill.approveL1)) {
+        // the person who prepared the bill is not offered Approve (the backend refuses self-approval anyway)
+        if (status === 'to_approve' && this.ok(PERM.bill.approveL1) && Number(d['prepared_by']) !== this.ab.userId()) {
           out.push({ id: 'approve', label: 'Approve', kind: 'primary', disabled: b, run: () => void this.approval('approve', 'Approved', { post: false }) });
           out.push({ id: 'approve-post', label: 'Approve and Post', disabled: b, run: () => void this.approval('approve', 'Approved and posted', { post: true }) });
           out.push({ id: 'reject', label: 'Reject', disabled: b, run: () => { this.reason.set(''); this.panel.set('reject'); } });

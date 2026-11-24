@@ -74,4 +74,51 @@ describe('accounting over HTTP', () => {
     expect(ok.status).to.equal(201); expect(ok.body.data.imported).to.equal(2)
     expect((await call('POST', '/bank-statements/import', { journal_id: jBank, filename: 'x.csv', content })).status).to.equal(400)
   })
+
+  describe('company isolation and bad input', () => {
+    let other: number, jOther: number
+    const as = async (company: number, method: string, path: string, body?: unknown) => {
+      const r = await fetch(`${base}/v2/accounting${path}`, { method, headers: { 'content-type': 'application/json', 'x-user-id': '1', 'x-company-id': String(company), 'x-allowed-company-ids': String(company) }, body: body ? JSON.stringify(body) : undefined })
+      return { status: r.status, body: (await r.json()) as { success: boolean; data: any; message?: string } }
+    }
+    before(async () => {
+      const cp = await Partner.create({ name: 'Other Co', is_company: true, type: 'contact' } as never)
+      other = (await Company.create({ name: 'Other Co', partner_id: cp.id } as never)).id
+      jOther = await ins("INSERT INTO account_journal (name, code, type, company_id) VALUES ('OINV', 'OINV', 'sale', :co)", { co: other })
+      await q('INSERT INTO res_users (id, login, partner_id, company_id) VALUES (1, \'tester\', :p, :c)', { p: cp.id, c: other })   // notes record their author
+    })
+    it('another company cannot read, act on or list a record by its id', async () => {
+      const mine = (await call('POST', '/moves', invoice())).body.data.id
+      expect((await as(other, 'GET', `/moves/${mine}`)).status).to.equal(404)
+      expect((await as(other, 'POST', `/moves/${mine}/cancel`)).status).to.equal(404)
+      expect((await as(other, 'GET', `/accounts/${income}`)).status).to.equal(404)
+      expect((await as(other, 'GET', '/moves')).body.data.records.every((r: any) => r.id !== mine)).to.equal(true)
+      expect((await call('GET', `/moves/${mine}`)).status).to.equal(200)
+    })
+    it('a journal of another company cannot be used to post, pay or import', async () => {
+      const r = await as(other, 'POST', '/moves', invoice())            // journal jSale belongs to the first company
+      expect(r.status).to.equal(404); expect(r.body.message).to.contain('journal')
+      expect((await as(other, 'POST', '/payments', { payment_type: 'inbound', partner_id: customer, amount: 5, journal_id: jBank })).status).to.equal(404)
+      expect((await as(other, 'POST', '/bank-statements/import', { journal_id: jBank, content: 'date,amount\n2026-01-01,5' })).status).to.equal(404)
+      void jOther
+    })
+    it('reconciling items of another company is refused', async () => {
+      const a = (await call('POST', '/moves', invoice())).body.data.id; await call('POST', `/moves/${a}/post`)
+      const line = (await call('GET', `/moves/${a}`)).body.data.lines.find((l: any) => l.exclude_from_invoice_tab && !l.tax_line_id).id
+      expect((await as(other, 'POST', '/move-lines/reconcile', { line_ids: [line, line + 1] })).status).to.equal(404)
+      expect((await as(other, 'POST', '/move-lines/unreconcile', { line_ids: [line] })).status).to.equal(404)
+    })
+    it('notes and attachments follow the record', async () => {
+      const mine = (await call('POST', '/moves', invoice())).body.data.id
+      await call('POST', `/records/account.move/${mine}/notes`, { body: 'private' })
+      expect((await as(other, 'GET', `/records/account.move/${mine}/notes`)).status).to.equal(404)
+      expect((await call('GET', `/records/account.move/${mine}/notes`)).body.data).to.have.length(1)
+    })
+    it('answers invalid JSON with a 400 and an oversized body with a 413, not a 500', async () => {
+      const bad = await fetch(`${base}/v2/accounting/moves`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-user-id': '1' }, body: '{not json' })
+      expect(bad.status).to.equal(400)
+      const big = await fetch(`${base}/v2/accounting/records/account.move/1/attachments`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-user-id': '1' }, body: JSON.stringify({ name: 'x', content_base64: 'A'.repeat(13 * 1024 * 1024) }) })
+      expect(big.status).to.equal(413)
+    })
+  })
 })

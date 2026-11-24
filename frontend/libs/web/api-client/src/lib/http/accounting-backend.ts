@@ -44,6 +44,8 @@ export class AccountingBackend {
   private readonly ctx = inject(RequestContext);
   /** Changes when the user switches company; list pages read it so they reload. */
   readonly companyKey = this.ctx.companyId;
+  /** The backend user acting now (to hide "Approve" from the person who prepared the document). */
+  userId(): number { return this.http.currentUserId(); }
 
   list<T = Rec>(path: string, query: Query = {}): Promise<ListResult<T>> { return this.http.get<ListResult<T>>(path, { limit: 80, ...query }); }
   /** Every row, for small config tables. */

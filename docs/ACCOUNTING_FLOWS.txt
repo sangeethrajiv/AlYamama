@@ -1,0 +1,285 @@
+=====================================================================================================
+ AL-YAMAMA ERP  -  ACCOUNTING MODULE
+ The flows that are built, how each one works, how it was checked, and what to do before going live
+=====================================================================================================
+ Project folder : /home/amaldev/ARJUN/odoo/accounting_26/AlYamama      Branch: feature/merge/angular_ui
+ Run guide      : /home/amaldev/ARJUN/odoo/accounting_26/CONF.conf
+ This file      : also kept as AlYamama/docs/ACCOUNTING_FLOWS.txt
+ Out of scope   : subscription invoicing, vehicles/GPS, ZATCA e-invoicing, approval-level routing,
+                  payment providers, asset rental (the columns exist, nothing runs on them).
+ Not built      : budgets (not installed in your Odoo), PDF / print of an invoice, Arabic text on the
+                  accounting screens, importing old invoices / entries / payments from Odoo.
+
+
+1. WHAT YOU GET, IN ONE PAGE
+-----------------------------------------------------------------------------------------------------
+ Backend   Node 20 + Express 5 + TypeScript + PostgreSQL. API under /v2/accounting.
+           Money is exact (decimal strings, never floating point). Every posting runs in one database
+           transaction, so an entry is either fully there or not at all.
+ Frontend  Angular. Sidebar:  Accounting > Customers | Vendors | Accounting | Reporting | Configuration.
+ Data      Configuration is copied from your Odoo 12 (chart of accounts, journals, taxes, payment terms,
+           analytic accounts, asset types, defaults). Transactions start empty and are created in the app.
+ Checks    178 backend tests, 13 frontend test projects, a 147-point API check of every flow below, a
+           browser run of the screens, and a production-build run. Details in section 5.
+
+
+2. MENU MAP
+-----------------------------------------------------------------------------------------------------
+ Customers      Invoices (all) | Cash Invoices | Credit Invoices | Proforma Invoices | Progressive Invoices |
+                Credit Notes | Internal Voucher | Payments | Products | Customers
+ Vendors        Bills | To Approve Bill | Approved Bill | Refund | Payable Voucher | Payments | Products | Vendors
+ Accounting     Overview (one card per journal) | Journal Entries | Journal Items | Analytic Items |
+                Assets | Asset Rental (external app) | Reconciliation | Bank Statements | Tax Adjustments |
+                Generate Assets Entries
+ Reporting      Trial Balance | General Ledger | Partner Ledger | Aged Receivable | Aged Payable |
+                Profit and Loss | Balance Sheet | Tax Report | Journals Audit
+ Configuration  Settings | Currencies | Currency Rates | Chart of Accounts | Account Types | Account Groups |
+                Taxes | Tax Groups | Fiscal Positions | Fiscal Year | Journals | Incoterms |
+                Reconciliation Models | Payment Terms | Asset Types | Analytic Accounts |
+                Analytic Account Groups | Payment Acquirers (external app) | Account Reports
+
+
+3. THE FLOWS
+-----------------------------------------------------------------------------------------------------
+ Notation:  Dr = debit, Cr = credit.  "Entry" = journal entry.  Every posted entry is balanced (Dr = Cr).
+
+ 3.1  CUSTOMER INVOICE  (Customers > Invoices / Cash Invoices / Credit Invoices)
+      Screen   New > pick the customer (searchable dropdown), lines (product, account, analytic, quantity,
+               price, discount %, taxes), dates, payment terms. Tax and total update as you type.
+      Steps    Save as draft  ->  Validate (posts).
+      Rules    A draft can be edited and deleted. Posting gives the number from the journal's sequence
+               (INV/2026/0001), checks the lock dates, the journal's allowed accounts, the entry balance and
+               that no account is deprecated. A posted invoice cannot be edited or deleted; it can be
+               reset to draft or cancelled if the journal allows it and nothing is reconciled.
+      Category The journal's default (Cash Invoices journal = cash) unless you choose credit / cash / proforma.
+      Due date A due date you type wins. If you leave it empty it follows the payment term (the partner's
+               default term applies only when you typed nothing).
+      Entry    Dr Receivable (total, split by the payment term)   Cr Revenue (per line)   Cr Tax payable.
+      Screen shows after posting: payment status, Journal Items table (account, debit, credit, matching),
+      what it was reconciled with, notes and attachments.
+
+ 3.2  PROFORMA INVOICE  (Customers > Proforma Invoices)
+      Steps    Save as draft  ->  Convert to Tax Invoice  ->  Validate the new invoice  ->  payment.
+      Rules    A proforma can never be posted and has no accounting. Converting copies its lines into a
+               real customer invoice (draft, category credit, linked to the proforma) and CANCELS the
+               proforma, so it cannot be converted twice. Only a proforma can be converted.
+               "Convert and post" is also available through the API (post:true).
+
+ 3.3  PROGRESSIVE INVOICE  (Customers > Progressive Invoices)
+      Idea     Billing by milestones against a contract amount.
+      Steps    New: enter the contract amount and the first milestone line -> Validate.
+               Then "Next Progressive Invoice": enter "Billed to date %" (and optionally a retainage %).
+      Rules    The next invoice bills  contract x % - what is already billed (posted invoices of the chain);
+               a retainage % holds a part of it back. Nothing left to bill, or a % over 100, is refused.
+               Example (tested): contract 10,000. First 3,000. 50% -> 2,000. Then 100% with 10% retainage ->
+               5,000 - 500 = 4,500. All of them are paid by one batch payment (10,925 with 15% VAT).
+
+ 3.4  CREDIT NOTE  (invoice > Add Credit Note;  Customers > Credit Notes)
+      Steps    Add Credit Note (draft, same lines, opposite sides) -> Validate -> settle it against the invoice
+               with "Outstanding credits > Add" (or Journal Items > Reconcile).
+      Rules    An invoice can be reversed once. Reconciling the two gives a full match and both show paid.
+               Unreconcile reopens both.
+
+ 3.5  VENDOR BILL, APPROVAL, REFUND  (Vendors)
+      Steps    New bill -> Save -> Send for Approval -> (second person) Approve / Approve and Post / Reject
+               -> Post -> pay.
+      Rules    A bill waiting for approval cannot be posted. The person who prepared it cannot approve it
+               (the Approve button is not shown to them and the server refuses it). Rejecting needs a reason;
+               a rejected bill cannot be posted until the approval is reset. Approval applies to vendor
+               bills only. Roles: Finance Director and Accounts Manager can approve.
+      Refund   Add Refund on a posted bill -> Validate -> reconcile with the bill.
+      Entry    Dr Expense (per line)  Dr Tax recoverable  Cr Payable.
+
+ 3.6  PAYMENTS  (Customers > Payments, Vendors > Payments, or Register Payment on a document)
+      Created from  a) the Payments form: choose the partner, journal, date, then the unpaid invoices/bills
+                       of that partner (the list follows the partner); amount is optional.
+                    b) Register Payment on one invoice or bill;
+                    c) the invoice/bill list: tick several documents of ONE partner -> Register Payment ->
+                       ONE payment for all of them (batch payment).
+      Rules    Amount empty = total due of the selected documents. Matching goes OLDEST DUE FIRST. An amount
+               smaller than the total pays the earliest documents and leaves the last ones open (partial).
+               A bigger amount leaves a CREDIT on the payment. A payment with no document is a payment on
+               account. Invoices and bills cannot be paid together; documents must be posted and unpaid.
+      Later    "Outstanding credits" block on an open invoice/bill lists the partner's unmatched payments
+               and credit notes; Add reconciles them. Journal Items > Reconciliation does the same by hand.
+      Cancel   Cancelling a posted payment (journal must allow it) reopens what it settled. A draft or
+               cancelled payment can be deleted.
+      Entry    Customer payment: Dr Bank/Cash  Cr Receivable.   Vendor payment: Dr Payable  Cr Bank/Cash.
+      Tested   single payment, partial 1,000 of 2,300, one payment over 3 invoices (2,975), short batch
+               (1,000 over three: first due paid, second partly, third untouched), overpayment (2,000 on 1,300:
+               700 credit matched later to another invoice), payment on account (500), same for bills.
+
+ 3.7  RECONCILIATION  (Accounting > Reconciliation, Journal Items)
+      Steps    Tick the items that settle each other (same account, same partner) -> Reconcile. Unreconcile
+               on ticked items. The table shows debit, credit, open amount and the matching number (A12).
+      Rules    Partial matches keep the rest open; when everything is settled all items get one matching
+               number. Unreconciling one item removes only its matches and dissolves the matching number.
+               Invoice payment status, amount due and payment state follow automatically.
+      Foreign currency   Items in one foreign currency are matched in that currency; the difference in company
+               currency is posted in the Exchange Difference journal (loss to its debit account, gain to its
+               credit account) and closes the match. Unreconciling removes that entry.
+      Cash-basis tax     A tax set "based on payment" sits on a transition account until paid; each match moves the
+               paid share to the real tax account in the Cash Basis Tax Journal and the tax report counts it
+               only then. Unreconciling removes that entry.
+
+ 3.8  VOUCHERS  (Customers > Internal Voucher, Vendors > Payable Voucher)
+      Internal voucher   Money between two of your bank/cash journals. Draft -> Send for approval -> a second
+               person approves -> Post -> one balanced entry (Dr destination, Cr source). Cancel removes it.
+      Payable voucher    A vendor payment request, by transfer or cheque (a cheque needs its number). Optionally
+               tied to one posted bill (amount defaults to its amount due). Posting creates a real payment and
+               reconciles the bill. Same approval steps.
+
+ 3.9  JOURNAL ENTRIES  (Accounting > Journal Entries)
+      Steps    New: journal, date, lines (account, partner, label, debit, credit) -> Create -> Post.
+      Rules    An unbalanced entry cannot be posted; a line cannot have both debit and credit. Add Reversing
+               Entry posts the opposite entry (once). Reset to draft / cancel only if the journal allows.
+      Lock dates  Configuration > Settings: lock date for non-advisers and for all users. Nothing on or before
+               the date can be posted, changed or cancelled; a later date posts normally.
+
+ 3.10 BANK STATEMENTS  (Accounting > Bank Statements)
+      Steps    New statement with transactions, or Import (CSV / OFX). Per line: Reconcile -> choose the open
+               invoices/bills it settles (and a write-off account for a difference), or book it straight to
+               an account. Validate Statement when every line is reconciled and the computed ending balance
+               equals the bank's.
+      Rules    A line without a partner takes the partner of the items it settles. Importing the same file
+               twice adds nothing. A confirmed statement takes no new lines; reopen to change.
+      Write-off  Bank got 2,000 for a 2,300 invoice -> 300 goes to the chosen account, the invoice is paid.
+      Entry    Money in: Dr Bank  Cr Receivable (+ write-off line).  Money out: Cr Bank  Dr Payable / account.
+
+ 3.11 ASSETS  (Accounting > Assets, Configuration > Asset Types, Accounting > Generate Assets Entries)
+      Steps    Asset type (journal, three accounts, method, number of entries, period) -> New asset (value,
+               salvage, date; the board is computed) -> Confirm -> Generate Assets Entries up to a date.
+      Rules    Linear or degressive. With "prorata temporis" the first line is the share of the first period
+               left after the purchase date (calendar days) and the board has one extra closing line, as Odoo.
+               Generating posts every due line of running assets once. Settings lock after the first posted
+               entry. Sell/Dispose closes the asset and drops the unposted lines. A deferred-revenue type
+               reverses the entry sides.
+      Entry    Dr Depreciation expense  Cr Accumulated depreciation.
+
+ 3.12 TAX ADJUSTMENT, ANALYTIC  (Accounting)
+      Tax adjustment   Posts an entry tagged with the tax so the Tax Report moves (a debit on a sales tax account
+               lowers the output tax).
+      Analytic         A journal item with an analytic account creates an analytic line on posting (amount =
+               credit - debit); cancelling removes it.
+
+ 3.13 NOTES AND ATTACHMENTS  - on every document, payment, voucher, statement and asset (files up to 8 MB).
+
+ 3.14 REPORTS  (Reporting; all take dates, "posted only / include drafts", and the active company)
+      Trial Balance    opening, debit, credit, ending per account; totals must tie (debit = credit).
+      General Ledger   every line per account with a running balance (filter account / journal).
+      Partner Ledger   per partner; choose a partner or "With lines" for every line, matching number and
+                       running balance.
+      Aged Receivable / Aged Payable   open items per partner by days late (not due, 1-30, ... older).
+      Profit and Loss  income less expenses.   Balance Sheet  assets = liabilities + equity (+ earnings).
+      Tax Report       output / input tax and bases, net payable. Cash-basis tax counted when paid.
+      Journals Audit   entries, debit, credit per journal.
+
+ 3.15 CONFIGURATION  - all screens create / edit / delete with the Odoo rules: group tax needs children,
+      a payment term needs exactly one balance line, a bank/cash journal needs default accounts, fiscal
+      years cannot overlap, an account with journal items cannot be deleted, a type of an account with
+      entries cannot change. Settings: lock dates, default accounts and taxes, exchange and cash-basis journals.
+
+ 3.16 COMPANIES  - the company switcher lists your six real companies. Every accounting screen, list, report
+      and lookup shows only the active company. A record of another company is reported as "not found",
+      even when its id is typed in the address; creating into another company's journal is refused.
+
+
+4. HOW THE NUMBERS TIE OUT  (checked on Team Yamama, company 7)
+-----------------------------------------------------------------------------------------------------
+ Scenario: 2 customers (Nabatat Contracting, Specialized Industrial Services), 3 vendors (ALSAIF, AL BRAIDY,
+ STC). 10 invoices (VAT 15% and 5%), 5 bills, single / partial / batch / overpayment / payment-on-account
+ payments, credit note, then every report. Results:
+   - Trial balance: debit = credit (24,905 / 24,905), ending 0.
+   - Receivable account -50 = Nabatat -40 + Specialized -10 = aged receivable total = partner ledger totals.
+   - Payable -345 = the one bill left open = aged payable.
+   - Revenue 7,500 (sales net of the credit note), VAT output 1,075, purchases 2,500, VAT input 375.
+   - Bank + cash = money received less money paid (6,095). Balance sheet balanced. All 25 posted entries balanced.
+   - Partner ledger of Nabatat: 5,585 debit, 5,625 credit, ending -40, running balance of the last line = ending.
+
+
+5. HOW IT WAS TESTED
+-----------------------------------------------------------------------------------------------------
+ backend    npm test            178 tests: every rule above, through the services and through real HTTP.
+ api check  147 checks          proforma, progressive, cash / credit invoices, credit notes, refunds, bill approval
+                                (incl. self-approval refused), vouchers, payments, journal entries, lock dates,
+                                bank statements, assets, tax adjustment, analytic, all 20 configuration screens,
+                                all 9 reports, company isolation, SQL text in search, bad JSON, oversized input.
+ browser    Chrome, scripted    proforma -> convert -> pay, progressive, bill approval by a second user, rejection,
+                                vouchers, journal entry + reversal, bank statement import and reconcile, assets,
+                                70 screens opened with no errors, production build clicked through.
+ frontend   npx nx run-many -t test   13 projects.
+ Found and fixed while testing (so you know the checks bite): extra invoice fields were dropped by the API
+ schema; matching ignored due-date order; a payment with a company filter crashed asset generation; the Create
+ button was missing on new vouchers / payments / entries; dropdowns could pick a stale result; prorata first
+ year was computed on 30-day months; other companies' records could be opened by id; bad JSON returned 500; the
+ production build could not find .env or the migration files; the Approve button was shown to the preparer.
+
+
+6. DEPLOYMENT
+-----------------------------------------------------------------------------------------------------
+ 6.1 What runs where
+     PostgreSQL 14+   the ERP database (read-write). The Odoo copy is only needed for the one-off imports.
+     Backend          node dist/src/server.js   port from PORT (default 3000), API under /v2, health at /health.
+     Frontend         static files (dist/apps/web/browser) served by nginx or any web server.
+     Reverse proxy    nginx: serve the static files, forward /v2 to the backend, add HTTPS.
+
+ 6.2 Build
+     cd AlYamama/backend   && npm ci && npm run build        # creates dist/
+     cd AlYamama/frontend  && npm ci && npx nx build web --configuration=production
+                                                              # creates dist/apps/web/browser
+
+ 6.3 Configure
+     backend/.env  (or real environment variables; they win over the file)
+        PORT=3000
+        CORS_ORIGINS=https://erp.example.com            (the address people open; no wildcard)
+        PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE PG_POOL_MAX
+        ODOO_PG*  only on the machine that runs the one-off imports
+     frontend  dist/apps/web/browser/config.js   (edit on the server, no rebuild)
+        window.__ERP_CONFIG__ = { apiBase: '/v2' };      <- when nginx forwards /v2 to the backend
+     nginx example:
+        server { listen 443 ssl; server_name erp.example.com;
+                 root /srv/erp/browser;
+                 location / { try_files $uri /index.html; }
+                 location /v2/ { proxy_pass http://127.0.0.1:3000; client_max_body_size 12m; } }
+
+ 6.4 First install
+     createdb the ERP database, then from backend/ :
+        npm run db:create:prod        # only if the database does not exist
+        npm run migrate:prod          # schema, migrations 001-009 (safe to repeat)
+        npm run import:odoo           # contacts, companies, users          (needs the Odoo copy, read-only)
+        npm run import:inventory      # units, categories, products
+        npm run import:accounting     # accounting configuration only
+     (the import scripts run with ts-node, so run them where the dev dependencies are installed)
+     start:  npm start    (use systemd or pm2 to keep it running and restart it after a reboot)
+
+ 6.5 Upgrade
+     git pull, npm ci, npm run build, npm run migrate:prod, restart the backend, replace the static files.
+     Migrations only add; an applied migration is never edited (009 shows how a fix is shipped).
+
+ 6.6 Backups and checks
+     pg_dump the ERP database nightly and test a restore. Watch /health. Logs go to the process output.
+
+ 6.7 Local run (development)         see CONF.conf       npm run dev  /  npm start  (ports 3000 / 4200)
+
+
+7. BEFORE GOING LIVE  -  read this
+-----------------------------------------------------------------------------------------------------
+ The accounting flows are complete and checked. These are NOT accounting gaps but platform items that
+ decide where it can be exposed:
+ 1. SIGN-IN IS A DEMO. There is no real login on the API yet: it believes the X-User-Id / X-Company-Id headers
+    the browser sends, and the demo users in the login page are built into the app. Anyone who can reach the API
+    can act as any user. Until JWT (or SSO) login is added, run it ONLY on a private network / VPN, never
+    on the open internet. This is the one item that must be done before any public exposure.
+ 2. ROLES ARE ON THE BUTTONS ONLY. Hiding a button is not security; the API does not check roles yet
+    (it does check company, balance, lock dates, approval rules). Same fix as item 1.
+ 3. NO AUDIT TRAIL OF EDITS. Posted entries are immutable and every record keeps who created / last changed it
+    and when; there is no field-by-field change history screen.
+ 4. NO PDF / PRINT of invoices, no e-mailing, no Arabic text on the accounting screens.
+ 5. HISTORY IS NOT IMPORTED. Opening balances and old invoices from Odoo are not loaded. Decide the cut-over:
+    post opening balances as a journal entry on the cut-over date, then lock the earlier period (Settings).
+ 6. NUMBERING. Two journals of a company may share a code (your Odoo has two "INV" in company 12); their
+    numbers then look alike, but each journal has its own counter.
+ 7. CASH BASIS / FOREIGN CURRENCY are built and tested but your Odoo data has no cash-basis tax and no foreign
+    currency invoices; try them with a test company first.
+ 8. THE API IS STATELESS and one process handles the load of a normal finance team. For more, run several
+    processes behind the proxy (the database is the only state).

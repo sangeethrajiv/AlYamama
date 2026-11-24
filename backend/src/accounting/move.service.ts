@@ -3,7 +3,7 @@ import type { Transaction } from 'sequelize'
 import { sequelize } from '../orm'
 import { AppError, notFound } from '../common.helper'
 import type { RequestEnv } from '../middleware'
-import { exec, q } from './crud'
+import { assertCompany, exec, q } from './crud'
 
 /**
  * Journal entries and invoices (Odoo 12 account.move / account.move.line, with
@@ -371,6 +371,7 @@ async function normalize(input: MoveInput, env: RequestEnv, t: Transaction, exis
   if (!journalId) throw new AppError('journal_id: is required')
   const [j] = await q<{ type: string; company_id: number; currency_id: number | null }>('SELECT type, company_id, currency_id FROM account_journal WHERE id = :id AND active', { id: journalId }, t)
   if (!j) throw new AppError('journal_id: journal not found or archived')
+  if (env.companyId || env.allowedCompanyIds.length) assertCompany(env, j.company_id, 'journal_id: journal')
   if (isInvoice(type) && !['sale', 'purchase'].includes(j.type)) throw new AppError('Invoices need a sale or purchase journal.')
   if (isInvoice(type) && (isSale(type) ? 'sale' : 'purchase') !== j.type) throw new AppError(`A ${type} must use a ${isSale(type) ? 'sale' : 'purchase'} journal.`)
   const date = dstr(input.date ?? existing?.date ?? '')
