@@ -1,19 +1,22 @@
 import type { GridColumn } from '@erp/web/ui';
 import type { ContactLookups, ResUser } from '@erp/shared/contracts';
+import type { UserRecord } from './user-record';
 import { CHATTER_POSITIONS, NOTIFICATION_TYPES, ODOOBOT_STATES, SIDEBAR_TYPES, labelOf, nameOf } from './options';
 
 const yes = (v?: boolean) => (v ? 'Yes' : '');
 const num = (v?: number) => (v === undefined ? '' : v);
 
 /** Every res.users column the source list could show, grouped for the column picker. */
-export function userColumns(l: ContactLookups): GridColumn<ResUser>[] {
-  const user = (id?: number) => (id ? (l.employees.find(e => e.id === id)?.name ?? '') : '');
+export function userColumns(l: ContactLookups, users: ResUser[]): GridColumn<ResUser>[] {
+  // create_uid / write_uid are res.users ids, so they are resolved against the users themselves
+  const user = (id?: number) => (id ? (users.find(u => u.id === id)?.name ?? '') : '');
   return [
     { key: 'id', label: 'contacts.users.c.id', group: 'contacts.users.g.identity', right: true, text: u => u.id, on: false },
     { key: 'name', label: 'contacts.users.c.name', group: 'contacts.users.g.identity', kind: 'name', fixed: true, text: u => u.name, avatar: u => ({ name: u.name, round: true }) },
     { key: 'login', label: 'contacts.users.c.login', group: 'contacts.users.g.identity', text: u => u.login },
     { key: 'active', label: 'contacts.users.c.status', group: 'contacts.users.g.identity', kind: 'active', text: u => u.active },
     { key: 'share', label: 'contacts.users.c.userType', group: 'contacts.users.g.identity', kind: 'pill', text: u => (u.share ? 'Portal / Public' : 'Internal'), tone: u => (u.share ? 'amber' : 'blue') },
+    { key: 'user_department_ids', label: 'contacts.users.c.userDepartment', group: 'contacts.users.g.identity', on: false, text: u => ((u as UserRecord).user_department_ids ?? (u.department_id ? [u.department_id] : [])).map(d => nameOf(l.departments, d)).join(', ') },
     { key: 'company_id', label: 'contacts.users.c.company', group: 'contacts.users.g.company', text: u => nameOf(l.companies, u.company_id) },
     { key: 'company_ids', label: 'contacts.users.c.allowedCompanies', group: 'contacts.users.g.company', on: false, text: u => u.company_ids.map(c => nameOf(l.companies, c)).join(', ') },
     { key: 'parent_id', label: 'contacts.users.c.relatedCompany', group: 'contacts.users.g.company', on: false, text: u => (u.parent_id ? `#${u.parent_id}` : '') },
@@ -45,7 +48,6 @@ export function userColumns(l: ContactLookups): GridColumn<ResUser>[] {
     { key: 'chatter_position', label: 'contacts.users.c.chatter', group: 'contacts.users.g.preferences', on: false, text: u => labelOf(CHATTER_POSITIONS, u.chatter_position) },
     { key: 'odoobot_state', label: 'contacts.users.c.odoobot', group: 'contacts.users.g.preferences', on: false, text: u => labelOf(ODOOBOT_STATES, u.odoobot_state) },
     { key: 'action_id', label: 'contacts.users.c.homeAction', group: 'contacts.users.g.preferences', on: false, text: u => (u.action_id ? `#${u.action_id}` : '') },
-    { key: 'signature', label: 'contacts.users.c.signature', group: 'contacts.users.g.preferences', on: false, text: u => u.signature },
     { key: 'sale_team_id', label: 'contacts.users.c.saleTeam', group: 'contacts.users.g.sales', on: false, text: u => nameOf(l.salesTeams, u.sale_team_id) },
     { key: 'target_sales_won', label: 'contacts.users.c.targetWon', group: 'contacts.users.g.sales', on: false, right: true, text: u => num(u.target_sales_won) },
     { key: 'target_sales_done', label: 'contacts.users.c.targetDone', group: 'contacts.users.g.sales', on: false, right: true, text: u => num(u.target_sales_done) },

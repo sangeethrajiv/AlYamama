@@ -6,7 +6,7 @@ import type { Decimal } from '@erp/shared/utils';
  */
 export type FieldType =
   | 'text' | 'textarea' | 'email' | 'tel' | 'url' | 'number' | 'money' | 'date' | 'boolean'
-  | 'select' | 'many2one' | 'many2many' | 'image' | 'one2many' | 'readonly';
+  | 'select' | 'many2one' | 'many2many' | 'image' | 'one2many' | 'readonly' | 'password';
 
 export type Primitive = string | number | boolean | null;
 export type Rec = Record<string, unknown>;

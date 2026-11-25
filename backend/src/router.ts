@@ -8,6 +8,8 @@ import ProductRouter from './inventory/product/product.router'
 import ProductCategoryRouter from './inventory/category/product-category.controller'
 import { uomCategoryRouter, uomRouter } from './inventory/uom/uom.controller'
 import accountingRouter from './accounting/accounting.router'
+import { authRouter, userRouter } from './core/user/user.router'
+import { companyRouter } from './core/company/company.router'
 import { locationRouter, operationTypeRouter, warehouseRouter } from './inventory/warehouse/warehouse.controller'
 
 /**
@@ -15,6 +17,10 @@ import { locationRouter, operationTypeRouter, warehouseRouter } from './inventor
  * router (docs/api-service-architecture-handover.md section 5).
  */
 const router = Router()
+
+router.use('/auth', authRouter)
+router.use('/res-users', isAuthenticated, userRouter)
+router.use('/res-companies', isAuthenticated, companyRouter)
 
 router.use('/contacts', isAuthenticated, PartnerRouter)
 router.use('/partner-banks', isAuthenticated, PartnerBankRouter)
@@ -50,6 +56,7 @@ router.get('/states', isAuthenticated, handle(lookups.allStates))
 router.get('/countries/:id/states', isAuthenticated, handle(lookups.states))
 router.get('/currencies', isAuthenticated, handle(lookups.currencies))
 router.get('/companies', isAuthenticated, handle(lookups.companies))
+router.get('/departments', isAuthenticated, handle(lookups.departments))
 router.get('/users', isAuthenticated, handle(lookups.users))
 
 export default router

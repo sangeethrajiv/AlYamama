@@ -3,7 +3,7 @@
 > **Audience:** Node.js backend team (DB mapping) and Angular team (User Management screens).
 > **Type:** analysis only. No source code, database, API or UI was changed. DB access was read-only.
 > **Odoo version:** 12.0 (`odoo/release.py` -> `version_info = (12, 0, 0, FINAL, 0, '')`), source `TY-employee-odoo/odoo_server`.
-> **Database inspected:** `yamama_live_131126` (latest live copy; `base` 12.0.1.3, `contacts` 12.0.1.0 installed).
+> **Database inspected:** `yamama_live_191126` (latest live copy; `base` 12.0.1.3, `contacts` 12.0.1.0 installed).
 
 ## 0. How this was verified
 

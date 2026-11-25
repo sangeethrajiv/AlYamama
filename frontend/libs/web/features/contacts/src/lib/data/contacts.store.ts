@@ -1,6 +1,6 @@
 import { Injectable, effect, inject, signal } from '@angular/core';
-import { ContactsApi, DataChanges, type PartnerActivity } from '@erp/web/api-client';
-import type { Contact, ContactLookups, ResPartner, ResUser } from '@erp/shared/contracts';
+import { ContactsApi, DataChanges, type NewUser, type PartnerActivity } from '@erp/web/api-client';
+import type { CompanyDraft, Contact, ContactLookups, LookupOption, ResCompany, ResCompanyRow, ResPartner, ResUser } from '@erp/shared/contracts';
 
 const EMPTY_LOOKUPS: ContactLookups = {
   countries: [], states: [], titles: [], salesTeams: [], jobs: [], departments: [], employees: [], companies: [],
@@ -42,7 +42,42 @@ export class ContactsStore {
   saveContact(c: Contact) { return this.api.saveContact(c); }
   archiveContact(id: string, active: boolean) { return this.api.archiveContact(id, active); }
   saveUser(u: ResUser) { return this.api.saveUser(u); }
-  createPartner(d: Parameters<ContactsApi['createPartner']>[0]) { return this.api.createPartner(d); }
-  updatePartner(id: number, d: Parameters<ContactsApi['updatePartner']>[1]) { return this.api.updatePartner(id, d); }
-  setPartnerActive(id: number, active: boolean) { return this.api.setPartnerActive(id, active); }
+  /** Puts the new user into the local list straight away so its detail page can open before the reload lands. */
+  async createUser(draft: NewUser): Promise<ResUser> {
+    const u = await this.api.createUser(draft);
+    this.users.update(list => (list.some(x => x.id === u.id) ? list : [...list, u]));
+    return u;
+  }
+  companyList(): Promise<ResCompanyRow[]> { return this.api.companyList(); }
+  company(id: number): Promise<ResCompany> { return this.api.company(id); }
+  currencies(): Promise<LookupOption[]> { return this.api.currencies(); }
+  /** Creates the company and adds it to the company lists the user forms choose from, without a full reload. */
+  /** Saves the changes and refreshes the company's name and parent in the lists the user forms choose from. */
+  async updateCompany(id: number, changes: Partial<CompanyDraft>): Promise<ResCompany> {
+    const c = await this.api.updateCompany(id, changes);
+    this.lookups.update(l => ({ ...l, companies: l.companies.map(x => (x.id === c.id ? { ...x, name: c.name, parent_id: c.parent_id } : x)) }));
+    return c;
+  }
+  async createCompany(draft: CompanyDraft): Promise<ResCompany> {
+    const c = await this.api.createCompany(draft);
+    this.lookups.update(l => (l.companies.some(x => x.id === c.id) ? l : { ...l, companies: [...l.companies, { id: c.id, name: c.name, parent_id: c.parent_id }] }));
+    return c;
+  }
+  changeUserPassword(id: number, password: string) { return this.api.changeUserPassword(id, password); }
+  /**
+   * The HTTP adapter does not signal DataChanges, and reloading every partner is 13+ requests,
+   * so a saved partner is put into the local list here. Without this the detail page opened
+   * right after a save cannot find the new contact and shows "Contact not found".
+   */
+  private upsertPartner(p: ResPartner): ResPartner {
+    this.partners.update(list => (list.some(x => x.id === p.id) ? list.map(x => (x.id === p.id ? p : x)) : [...list, p]));
+    return p;
+  }
+
+  async createPartner(d: Parameters<ContactsApi['createPartner']>[0]) { return this.upsertPartner(await this.api.createPartner(d)); }
+  async updatePartner(id: number, d: Parameters<ContactsApi['updatePartner']>[1]) { return this.upsertPartner(await this.api.updatePartner(id, d)); }
+  async setPartnerActive(id: number, active: boolean) {
+    await this.api.setPartnerActive(id, active);
+    this.partners.update(list => list.map(x => (x.id === id ? { ...x, active } : x)));
+  }
 }

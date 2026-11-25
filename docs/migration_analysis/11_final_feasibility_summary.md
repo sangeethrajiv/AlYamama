@@ -2,7 +2,7 @@
 
 **Scope:** User Management & Access Control · Accounting · Products & Inventory.
 **Nature:** analysis only — nothing was implemented, modified or migrated; the database was accessed read-only.
-**Basis:** live DB `yamama_live_18_09_26` (PostgreSQL 17.9), Odoo 12.0 source, 62 custom/third-party modules. Tags: **[V]** verified · **[I]** inferred · **[U]** unverified. Details in docs 01–10.
+**Basis:** live DB `yamama_live_191126` (PostgreSQL 17.9), Odoo 12.0 source, 62 custom/third-party modules. Tags: **[V]** verified · **[I]** inferred · **[U]** unverified. Details in docs 01–10.
 
 ---
 
