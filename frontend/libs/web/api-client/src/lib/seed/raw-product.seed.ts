@@ -30,6 +30,12 @@ export function seedProducts(): ProductState {
     { id: 2, name: 'VAT 0% (Zero-rated)', active: true },
     { id: 3, name: 'VAT Exempt', active: true },
   ]
+  // att.product.type, as in the live data
+  const genres = [
+    { id: 1, name: 'Renewal Subscription', active: true },
+    { id: 2, name: 'New Subscription', active: true },
+    { id: 3, name: 'Hardware Sales & Support', active: true },
+  ]
 
   // ---- UoM categories & UoMs ----
   const uom_categories: UomCategory[] = [
@@ -98,7 +104,7 @@ export function seedProducts(): ProductState {
     name: string; ar: string; code: string; short?: string; cat: string; type?: Product['type']; uom: string; po?: string
     price: number; cost: number; internal?: Product['internal_type']; margin?: number; tracking?: Product['tracking']
     weight?: number; volume?: number; sale?: boolean; purchase?: boolean; nodisc?: boolean; resp?: number; company?: number
-    active?: boolean; stock?: number; sdesc?: string; pdesc?: string
+    active?: boolean; stock?: number; sdesc?: string; pdesc?: string; genre?: number; taxes?: number[]
   }
   const addProduct = (p: PSpec) => {
     const id = ++pid
@@ -114,7 +120,7 @@ export function seedProducts(): ProductState {
       description_sale: p.sdesc ?? '', description_purchase: p.pdesc ?? '',
       arabic_name: p.ar, internal_short_code: p.short ?? p.code.replace(/[^A-Z0-9]/g, '').slice(0, 6),
       internal_type: p.internal ?? (type === 'service' ? 'labour' : 'material'), margin_perc: p.margin ?? 20,
-      no_discount: p.nodisc ?? false, product_genre: '', is_teltonika: false, is_vehicle_subscription: false, taxes_id: 1, qty_available: qty,
+      no_discount: p.nodisc ?? false, product_type_id: p.genre ?? null, is_teltonika_product: false, is_vehicle_subscription: false, taxes_id: p.taxes ?? [1], qty_available: qty,
       virtual_available: stored ? Math.max(0, qty + ((id % 5) - 2) * 3) : 0,
     })
   }
@@ -174,12 +180,12 @@ export function seedProducts(): ProductState {
   // Services
   addProduct({ name: 'Workshop Labour', ar: 'أجور عمالة الورشة', code: 'SRV-LAB', cat: 'Labour', type: 'service', uom: 'Hour(s)', price: 120, cost: 65, internal: 'labour', margin: 45, company: 9, nodisc: true })
   addProduct({ name: 'Hose Assembly Crimping', ar: 'كبس وتجميع الخراطيم', code: 'SRV-CRM', cat: 'Labour', type: 'service', uom: 'Unit(s)', price: 15, cost: 6, internal: 'labour', margin: 60, company: 9 })
-  addProduct({ name: 'Hydraulic Pump Overhaul', ar: 'صيانة شاملة لمضخة هيدروليكية', code: 'SRV-POH', cat: 'Repair & Overhaul', type: 'service', uom: 'Unit(s)', price: 950, cost: 540, internal: 'labour', margin: 40, company: 9 })
+  addProduct({ name: 'Hydraulic Pump Overhaul', ar: 'صيانة شاملة لمضخة هيدروليكية', code: 'SRV-POH', cat: 'Repair & Overhaul', type: 'service', uom: 'Unit(s)', price: 950, cost: 540, internal: 'labour', margin: 40, company: 9, genre: 3, taxes: [1, 2] })
   addProduct({ name: 'Cylinder Re-sealing', ar: 'تغيير موانع تسرب الأسطوانة', code: 'SRV-CRS', cat: 'Repair & Overhaul', type: 'service', uom: 'Unit(s)', price: 420, cost: 230, internal: 'labour', margin: 45, company: 9 })
   addProduct({ name: 'Pressure Test & Certification', ar: 'اختبار الضغط والشهادة', code: 'SRV-PTC', cat: 'Repair & Overhaul', type: 'service', uom: 'Unit(s)', price: 180, cost: 70, internal: 'overhead', margin: 55, company: 9 })
   // Archived
   addProduct({ name: 'Hydraulic Hose 1SN 2" (discontinued)', ar: 'خرطوم هيدروليكي 1SN 2 بوصة (متوقف)', code: 'HH1-200', cat: 'Hydraulic Hoses', uom: 'm', price: 140, cost: 98, active: false, stock: 0 })
   addProduct({ name: 'Legacy Gear Pump 12cc', ar: 'مضخة ترسية قديمة 12 سم³', code: 'GRP-012', cat: 'Gear Pumps', uom: 'Unit(s)', price: 520, cost: 400, active: false, stock: 0 })
 
-  return { uom_categories, uoms, categories, products, companies, users, taxes }
+  return { uom_categories, uoms, categories, products, companies, users, taxes, genres }
 }

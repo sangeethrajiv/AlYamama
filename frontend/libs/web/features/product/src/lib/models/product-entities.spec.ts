@@ -36,11 +36,24 @@ describe('product entity configs', () => {
     const fields = ENTITY_BY_KEY.products.sections.flatMap(sec => sec.fields);
     expect(fields.find(f => f.key === 'qty_available')).toMatchObject({ kind: 'readonly', detailOnly: true });
     expect(fields.find(f => f.key === 'virtual_available')).toMatchObject({ kind: 'readonly', detailOnly: true });
-    expect(fields.find(f => f.key === 'taxes_id')).toMatchObject({ kind: 'relation', rel: 'taxes' });
+    expect(fields.find(f => f.key === 'taxes_id')).toMatchObject({ kind: 'relation', rel: 'taxes', multi: true });
+    expect(fields.find(f => f.key === 'product_type_id')).toMatchObject({ kind: 'relation', rel: 'genres' });
     expect(ENTITY_BY_KEY.products.finalize?.({ type: 'service', tracking: 'lot' })).toMatchObject({ tracking: 'none' });
     expect(ENTITY_BY_KEY.products.finalize?.({ type: 'product', tracking: 'lot' })).toMatchObject({ tracking: 'lot' });
     expect(fields.find(f => f.key === 'company_id')).toMatchObject({ kind: 'relation', rel: 'companies' });
     expect(fields.find(f => f.key === 'internal_type')?.options?.map(o => o.value)).toEqual(['material', 'labour', 'overhead']);
+  });
+
+  it('maps Customer Taxes as many2many and Product Genre as many2one', () => {
+    const view = buildView(ENTITY_BY_KEY.products, 'edit', () => ctx);
+    const field = (k: string) => view.sections.flatMap(sec => sec.fields).find(f => f.key === k)!;
+    expect(field('taxes_id').type).toBe('many2many');
+    expect(field('product_type_id').type).toBe('many2one');
+    // every assigned tax is kept as a list, a product without one as []
+    expect(fromForm(ENTITY_BY_KEY.products, { taxes_id: [1, 2] })['taxes_id']).toEqual([1, 2]);
+    expect(fromForm(ENTITY_BY_KEY.products, { taxes_id: undefined })['taxes_id']).toEqual([]);
+    const two = s.products.find(p => p.taxes_id.length > 1)!;
+    expect(two.taxes_id.map(id => s.taxes.find(t => t.id === id)?.name)).toEqual(['VAT 15% (Sales)', 'VAT 0% (Zero-rated)']);
   });
 
   it('applies the product on-change rules', () => {

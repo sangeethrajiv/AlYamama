@@ -5,9 +5,10 @@ import { ApiError } from '@erp/web/api-client';
 import type { HasUnsavedChanges } from '@erp/web/core';
 import { MetadataFormComponent, type Rec as FormRec } from '@erp/web/metadata-forms';
 import { EmptyStateComponent, ErrorBannerComponent, I18n, IconComponent, PageHeaderComponent, ToastService } from '@erp/web/ui';
-import type { Product, ProductCategory, ProductEntityKey, Uom, UomCategory } from '@erp/shared/contracts';
+import type { ProductEntityKey } from '@erp/shared/contracts';
 import { ProductStore } from '../data/product.store';
 import { ProductBreadcrumbComponent, type Crumb } from '../components/product-breadcrumb.component';
+import { ProductLoadStateComponent } from '../components/product-load-state.component';
 import { ENTITY_BY_KEY } from '../models/product-entities';
 import { relRecords } from '../models/product-helpers';
 import { buildView, fromForm, noLookups, toForm } from '../models/product-view';
@@ -24,10 +25,10 @@ const CODE_FIELD: Record<string, string> = { PRODUCT_DUPLICATE_REFERENCE: 'defau
  */
 @Component({
   selector: 'erp-product-form-page',
-  imports: [RouterLink, TranslocoPipe, MetadataFormComponent, ErrorBannerComponent, IconComponent, EmptyStateComponent, PageHeaderComponent, ProductBreadcrumbComponent],
+  imports: [RouterLink, TranslocoPipe, MetadataFormComponent, ErrorBannerComponent, IconComponent, EmptyStateComponent, PageHeaderComponent, ProductBreadcrumbComponent, ProductLoadStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (!store.loaded()) { <p class="py-10 text-center text-sm text-slate-400">{{ 'common.loading' | transloco }}</p> }
+    @if (!store.loaded()) { <erp-product-load-state /> }
     @else if (id() && !existing()) {
       <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
         <erp-empty-state [title]="'product.d.notFound' | transloco: { what: singular() }" [text]="'product.d.notFoundHint' | transloco" icon="inbox">
@@ -77,6 +78,8 @@ export class EntityFormPage implements HasUnsavedChanges {
   protected readonly busy = signal(false);
   private readonly loadedKey = signal('');
   private live: Values = {};
+  /** The picture the record had when the form opened ('' = none); a save only sends the picture when it changed. */
+  private originalImage = '';
   private submitted = false;
   private leaving = false;
 
@@ -106,12 +109,20 @@ export class EntityFormPage implements HasUnsavedChanges {
         if (this.id() && !this.existing()) return;
         if (this.loadedKey() === key) return;
         const cfg = this.cfg(), c = this.store.ctx();
-        const base = this.existing() ?? { id: 0, active: true, ...cfg.defaults(c.s) };
-        const values = toForm(cfg, base as Values, c);
-        this.live = values;
-        this.seed.set({ ...(base as Rec), ...values } as Rec);
-        this.errors.set({}); this.err.set(''); this.submitted = false; this.leaving = false;
-        this.loadedKey.set(key);
+        const existing = this.existing();
+        const load = (image: string | undefined) => {
+          if (this.currentKey() !== key) return;
+          const base = existing ? { ...existing, ...(image === undefined ? {} : { image }) } : { id: 0, active: true, ...cfg.defaults(c.s) };
+          const values = toForm(cfg, base as Values, c);
+          this.originalImage = image ?? '';
+          this.live = values;
+          this.seed.set({ ...(base as Rec), ...values } as Rec);
+          this.errors.set({}); this.err.set(''); this.submitted = false; this.leaving = false;
+          this.loadedKey.set(key);
+        };
+        // The list does not carry the picture: read it before the form opens, so an untouched picture is not lost on save.
+        if (existing && cfg.key === 'products') void this.store.api.productImage(existing.id).then(load, () => load(undefined));
+        else load(undefined);
       });
     });
   }
@@ -160,6 +171,7 @@ export class EntityFormPage implements HasUnsavedChanges {
     const parsed = fromForm(cfg, raw);
     const payload: Values = {};
     for (const sec of cfg.sections) for (const fs of sec.fields) if (isInput(fs) && fs.key in parsed && (!fs.showWhen || fs.showWhen(raw, mode) || mode === 'edit')) payload[fs.key] = parsed[fs.key];
+    if ('image' in payload && (payload['image'] ?? '') === this.originalImage) delete payload['image'];
     const final = cfg.finalize ? cfg.finalize(payload) : payload;
     const existing = this.existing();
     const record = { ...(existing ?? { ...cfg.defaults(c.s) }), ...final } as Values;
@@ -176,15 +188,7 @@ export class EntityFormPage implements HasUnsavedChanges {
     }
   }
 
-  private async persist(r: Values): Promise<number> {
-    const api = this.store.api;
-    switch (this.entity()) {
-      case 'products': return (await api.saveProduct(r as Product)).id;
-      case 'categories': return (await api.saveCategory(r as ProductCategory)).id;
-      case 'uoms': return (await api.saveUom(r as Uom)).id;
-      case 'uomCategories': return (await api.saveUomCategory(r as UomCategory)).id;
-    }
-  }
+  private persist(r: Values): Promise<number> { return this.store.save(this.entity(), r); }
 
   private fail(e: unknown): void {
     if (!(e instanceof ApiError)) { this.err.set(this.i18n.tr('common.errorGeneric')); return; }

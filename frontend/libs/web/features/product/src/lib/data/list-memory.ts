@@ -9,6 +9,8 @@ export interface ListState {
   sort: { key: string; dir: 'asc' | 'desc' };
   page: number;
   pageSize: number;
+  /** Column keys the user switched off in the column picker. */
+  hiddenCols?: string[];
 }
 
 /** Keeps search, filters and sort per list while navigating to a record and back (in memory only). */

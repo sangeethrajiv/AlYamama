@@ -13,6 +13,8 @@ export type ID = number;
 export interface ProductCompany { id: ID; name: string }
 /** res.users (id + name only) */
 export interface ProductUser { id: ID; name: string }
+/** att.product.type (id + name only), the Product Genre choices */
+export interface ProductGenre { id: ID; name: string; active: boolean }
 /** account.tax (id + name only), used for Customer Taxes */
 export interface ProductTax { id: ID; name: string; active: boolean }
 
@@ -82,14 +84,20 @@ export interface Product {
   internal_type: InternalType;
   margin_perc: Decimal;
   no_discount: boolean;
-  product_genre: string;
-  is_teltonika: boolean;
+  /** Product Genre: many2one att.product.type */
+  product_type_id: ID | null;
+  is_teltonika_product: boolean;
   is_vehicle_subscription: boolean;
-  /** Customer tax (account.tax id), or null. */
-  taxes_id: ID | null;
+  /** Customer Taxes: many2many account.tax, every assigned tax id. */
+  taxes_id: ID[];
   // computed by stock in Odoo (read-only in the UI; stored in the mock data only)
   qty_available: Decimal;
   virtual_available: Decimal;
+  /**
+   * The picture as a data URL, or '' for none. The server's product list leaves it out (pictures are large), so read it with
+   * `ProductApi.productImage`; on save, `undefined` keeps the stored picture and '' removes it.
+   */
+  image?: string;
 }
 
 /** Everything the Product master data reads. */
@@ -101,6 +109,7 @@ export interface ProductState {
   companies: ProductCompany[];
   users: ProductUser[];
   taxes: ProductTax[];
+  genres: ProductGenre[];
 }
 
 /** The four managed models. */

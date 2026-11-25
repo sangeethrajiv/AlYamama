@@ -54,6 +54,7 @@ const products: EntityConfig = {
       titleKey: 'product.s.basic',
       fields: [
         { key: 'name', labelKey: f('products', 'name'), kind: 'text', required: true, span: 2, placeholderKey: 'product.ph.productName', maxLength: 255 },
+        { key: 'image', labelKey: f('products', 'image'), kind: 'image', span: 2 },
         { key: 'sale_ok', labelKey: f('products', 'sale_ok'), kind: 'boolean' },
         { key: 'purchase_ok', labelKey: f('products', 'purchase_ok'), kind: 'boolean' },
       ],
@@ -67,16 +68,16 @@ const products: EntityConfig = {
         { key: 'margin_perc', labelKey: f('products', 'margin_perc'), kind: 'number', min: 0, max: 100, suffix: '%', places: 2 },
         { key: 'no_discount', labelKey: f('products', 'no_discount'), kind: 'boolean', helpKey: h('products', 'no_discount') },
         { key: 'type', labelKey: f('products', 'type'), kind: 'select', required: true, options: PRODUCT_TYPE_OPTIONS, helpKey: h('products', 'type'), onChange: v => (v === 'product' ? {} : { tracking: 'none' }) },
-        { key: 'is_teltonika', labelKey: f('products', 'is_teltonika'), kind: 'boolean' },
+        { key: 'is_teltonika_product', labelKey: f('products', 'is_teltonika_product'), kind: 'boolean' },
         { key: 'categ_id', labelKey: f('products', 'categ_id'), kind: 'relation', rel: 'categories', required: true },
-        { key: 'taxes_id', labelKey: f('products', 'taxes_id'), kind: 'relation', rel: 'taxes' },
+        { key: 'taxes_id', labelKey: f('products', 'taxes_id'), kind: 'relation', rel: 'taxes', multi: true },
         { key: 'default_code', labelKey: f('products', 'default_code'), kind: 'text', mono: true, maxLength: 64 },
         { key: 'standard_price', labelKey: f('products', 'standard_price'), kind: 'number', min: 0, suffix: 'SAR', places: 2 },
         { key: 'internal_short_code', labelKey: f('products', 'internal_short_code'), kind: 'text', mono: true, maxLength: 32 },
         { key: 'company_id', labelKey: f('products', 'company_id'), kind: 'relation', rel: 'companies' },
         { key: 'barcode', labelKey: f('products', 'barcode'), kind: 'text', mono: true, maxLength: 64 },
         { key: 'is_vehicle_subscription', labelKey: f('products', 'is_vehicle_subscription'), kind: 'boolean' },
-        { key: 'product_genre', labelKey: f('products', 'product_genre'), kind: 'text', maxLength: 64 },
+        { key: 'product_type_id', labelKey: f('products', 'product_type_id'), kind: 'relation', rel: 'genres' },
         {
           key: 'uom_id', labelKey: f('products', 'uom_id'), kind: 'relation', rel: 'uoms', required: true, helpKey: h('products', 'uom_id'),
           onChange: (v, next, c) => {
@@ -97,7 +98,7 @@ const products: EntityConfig = {
     name: '', default_code: '', barcode: '', type: 'product', categ_id: null, uom_id: byId(s.uoms, 1)?.id ?? null, uom_po_id: byId(s.uoms, 1)?.id ?? null,
     tracking: 'none', active: true, company_id: s.companies[1]?.id ?? null, sale_ok: true, purchase_ok: true, list_price: '0.00', standard_price: '0.00',
     weight: '0.0000', volume: '0.0000', responsible_id: null, description_sale: '', description_purchase: '', arabic_name: '', internal_short_code: '',
-    internal_type: 'material', margin_perc: '0.00', no_discount: false, product_genre: '', is_teltonika: false, is_vehicle_subscription: false, taxes_id: null, qty_available: '0.0000', virtual_available: '0.0000',
+    internal_type: 'material', margin_perc: '0.00', no_discount: false, product_type_id: null, is_teltonika_product: false, is_vehicle_subscription: false, taxes_id: [], qty_available: '0.0000', virtual_available: '0.0000',
   }),
   validate: (v, c, id) => {
     const e: Record<string, string> = {};
@@ -158,7 +159,7 @@ const categories: EntityConfig = {
   },
   related: [
     { titleKey: 'product.rel.products', entity: 'products', items: (r, c) => c.s.products.filter(p => p.categ_id === r.id) as unknown as Rec[], meta: p => p['default_code'] },
-    { titleKey: 'product.rel.subCategories', entity: 'categories', items: (r, c) => c.s.categories.filter(x => x.parent_id === r.id) as unknown as Rec[] },
+    { titleKey: 'product.rel.subCategories', entity: 'categories', all: true, items: (r, c) => c.s.categories.filter(x => x.parent_id === r.id) as unknown as Rec[] },
   ],
 };
 

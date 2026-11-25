@@ -36,13 +36,13 @@ export class ProductActions {
       confirmLabel: this.i18n.tr('product.act.archive'),
     });
     if (!ok) return false;
-    try { await this.store.api.setActive(cfg.key, rec.id, false); } catch (e) { this.fail(cfg, 'archive', e); return false; }
+    try { await this.store.setActive(cfg.key, rec.id, false); } catch (e) { this.fail(cfg, 'archive', e); return false; }
     this.toast.success(this.i18n.tr('product.toast.archived', { what: this.what(cfg), name }));
     return true;
   }
 
   async restore(cfg: EntityConfig, rec: Rec): Promise<boolean> {
-    try { await this.store.api.setActive(cfg.key, rec.id, true); } catch (e) { this.fail(cfg, 'archive', e); return false; }
+    try { await this.store.setActive(cfg.key, rec.id, true); } catch (e) { this.fail(cfg, 'archive', e); return false; }
     this.toast.success(this.i18n.tr('product.toast.restored', { what: this.what(cfg), name: this.name(cfg, rec) }));
     return true;
   }
@@ -58,7 +58,7 @@ export class ProductActions {
       danger: true,
     });
     if (!ok) return false;
-    try { await this.store.api.remove(cfg.key, rec.id); } catch (e) { this.fail(cfg, 'delete', e); return false; }
+    try { await this.store.remove(cfg.key, rec.id); } catch (e) { this.fail(cfg, 'delete', e); return false; }
     this.toast.success(this.i18n.tr('product.toast.deleted', { what: this.what(cfg), name }));
     return true;
   }

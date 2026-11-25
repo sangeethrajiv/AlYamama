@@ -40,6 +40,8 @@ export class MockProductApi extends ProductApi {
   private done<T>(v: T): T { this.db.touch(); return copy(v); }
   private check(errors: Field[]): void { if (errors.length) throw ApiError.validation(errors); }
 
+  override async productImage(id: ID): Promise<string> { return this.s.products.find(p => p.id === id)?.image ?? ''; }
+
   override async saveProduct(p: Draft<Product>): Promise<Product> {
     const e: Field[] = [];
     const name = p.name.trim();
@@ -61,6 +63,8 @@ export class MockProductApi extends ProductApi {
     const storable = p.type === 'product';
     return this.done(this.put<Product>('products', {
       ...p, name, uom_po_id: p.uom_po_id || p.uom_id,
+      // A save that leaves the picture out keeps the stored one, like the server.
+      ...(p.image === undefined && prev?.image !== undefined ? { image: prev.image } : {}),
       qty_available: storable ? (prev?.qty_available ?? '0.0000') : '0.0000',
       virtual_available: storable ? (prev?.virtual_available ?? '0.0000') : '0.0000',
     }));

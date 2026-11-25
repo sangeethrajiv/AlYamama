@@ -24,16 +24,17 @@ function toField(cfg: EntityConfig, f: FieldSpec, mode: Mode, ctx: () => Ctx): F
     case 'textarea': return { ...base, type: 'textarea' };
     case 'number': return { ...base, type: 'number', min: f.min, max: f.max };
     case 'boolean': return { ...base, type: 'boolean' };
+    case 'image': return { ...base, type: 'image' };
     case 'select': return { ...base, type: 'select', options: (f.options ?? []).map(o => ({ value: o.value, label: o.labelKey })), translateOptions: true, emptyOption: !f.required };
     case 'relation': {
       const rel = f.rel, domain = f.domain;
       if (!rel) return base;
       return {
-        ...base, type: 'many2one',
+        ...base, type: f.multi ? 'many2many' : 'many2one',
         options: (value: FormRec): Option[] => {
           const c = ctx();
           const dom = domain ? (r: Rec) => domain(r, value as Values, c) : undefined;
-          return relOptions(c.s, rel, value[f.key] as number | null, dom).map(o => ({ value: o.id, label: o.active ? o.label : `${o.label} (${c.tr('product.archivedTag')})` }));
+          return relOptions(c.s, rel, value[f.key] as number | number[] | null, dom).map(o => ({ value: o.id, label: o.active ? o.label : `${o.label} (${c.tr('product.archivedTag')})` }));
         },
       };
     }
@@ -76,7 +77,7 @@ export function fromForm(cfg: EntityConfig, v: Values): Values {
       const raw = v[f.key];
       if (f.kind === 'number') out[f.key] = raw === null || raw === '' || raw === undefined ? '0' : dec(String(raw), f.places ?? 2);
       else if (f.kind === 'boolean') out[f.key] = !!raw;
-      else if (f.kind === 'relation') out[f.key] = raw ?? null;
+      else if (f.kind === 'relation') out[f.key] = f.multi ? (Array.isArray(raw) ? raw : []) : (raw ?? null);
       else if (f.kind === 'select') out[f.key] = raw ?? '';
       else out[f.key] = typeof raw === 'string' ? raw.trim() : (raw ?? '');
     }

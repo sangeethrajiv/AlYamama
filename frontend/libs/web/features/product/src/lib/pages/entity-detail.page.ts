@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { PermissionService } from '@erp/web/core';
@@ -7,24 +7,25 @@ import { PERM, type ProductEntityKey } from '@erp/shared/contracts';
 import { ProductActions } from '../data/product-actions.service';
 import { ProductStore } from '../data/product.store';
 import { ProductBreadcrumbComponent, type Crumb } from '../components/product-breadcrumb.component';
+import { ProductLoadStateComponent } from '../components/product-load-state.component';
 import { ENTITY_BY_KEY } from '../models/product-entities';
 import { fmtNum, relLabel, relRecords } from '../models/product-helpers';
 import { optLabel } from '../models/product-options';
 import { singularKey, titleKey, type Ctx, type FieldSpec, type Rec } from '../models/product-types';
 
 /** How a field value is shown on the detail screen. */
-interface Shown { kind: 'dash' | 'bool' | 'text' | 'link'; text: string; yes: boolean; mono: boolean; rtl: boolean; pre: boolean; suffix: string; link: (string | number)[] }
-const shown = (kind: Shown['kind'], p: Partial<Shown> = {}): Shown => ({ kind, text: '', yes: false, mono: false, rtl: false, pre: false, suffix: '', link: [], ...p });
+interface Shown { kind: 'dash' | 'bool' | 'text' | 'link' | 'list'; text: string; yes: boolean; mono: boolean; rtl: boolean; pre: boolean; suffix: string; link: (string | number)[]; items: { id: number; text: string }[] }
+const shown = (kind: Shown['kind'], p: Partial<Shown> = {}): Shown => ({ kind, text: '', yes: false, mono: false, rtl: false, pre: false, suffix: '', link: [], items: [], ...p });
 
 const ENTITY_REL = new Set<string>(['products', 'categories', 'uoms', 'uomCategories']);
 
 /** Read-only view of one record: header with actions, key figures, every field grouped as in the form, and related records. */
 @Component({
   selector: 'erp-product-detail-page',
-  imports: [RouterLink, TranslocoPipe, IconComponent, CardComponent, EmptyStateComponent, PillComponent, ProductBreadcrumbComponent],
+  imports: [RouterLink, TranslocoPipe, IconComponent, CardComponent, EmptyStateComponent, PillComponent, ProductBreadcrumbComponent, ProductLoadStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (!store.loaded()) { <p class="py-10 text-center text-sm text-slate-400">{{ 'common.loading' | transloco }}</p> }
+    @if (!store.loaded()) { <erp-product-load-state /> }
     @else {
       <div class="space-y-3">
         <erp-product-breadcrumb [crumbs]="crumbs()" />
@@ -37,7 +38,14 @@ const ENTITY_REL = new Set<string>(['products', 'categories', 'uoms', 'uomCatego
           </section>
         } @else {
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div class="min-w-0">
+            <div class="flex min-w-0 items-start gap-4">
+              @if (hasImage()) {
+                <div class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                  @if (image()) { <img [src]="image()" [alt]="name()" class="h-full w-full object-contain" /> }
+                  @else { <span class="flex flex-col items-center gap-1 text-slate-300" [attr.title]="'product.d.noImage' | transloco"><erp-icon name="camera" [size]="26" /><span class="text-[10px]">{{ 'product.d.noImage' | transloco }}</span></span> }
+                </div>
+              }
+              <div class="min-w-0">
               <a [routerLink]="['/product', cfg().route]" class="mb-1 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900"><erp-icon name="chevron-left" [size]="13" [flip]="true" />{{ title() }}</a>
               <div class="flex flex-wrap items-center gap-2">
                 <h1 class="truncate font-display text-xl font-extrabold tracking-tight text-slate-900">{{ name() }}</h1>
@@ -45,6 +53,7 @@ const ENTITY_REL = new Set<string>(['products', 'categories', 'uoms', 'uomCatego
                 @for (b of badges(); track b.text) { <erp-pill [tone]="b.tone">{{ b.text }}</erp-pill> }
               </div>
               <p class="mt-1 text-xs text-slate-500">ID {{ r.id }}</p>
+              </div>
             </div>
             @if (canWrite()) {
               <div class="flex flex-wrap items-center gap-2">
@@ -85,6 +94,7 @@ const ENTITY_REL = new Set<string>(['products', 'categories', 'uoms', 'uomCatego
                           @switch (v.kind) {
                             @case ('dash') { <span class="text-slate-400">—</span> }
                             @case ('bool') { <erp-pill [tone]="v.yes ? 'green' : 'slate'">{{ (v.yes ? 'product.o.yes' : 'product.o.no') | transloco }}</erp-pill> }
+                            @case ('list') { <span class="flex flex-wrap gap-1">@for (i of v.items; track i.id) { <erp-pill>{{ i.text }}</erp-pill> }</span> }
                             @case ('link') { <a class="text-emerald-700 hover:underline" [routerLink]="v.link">{{ v.text }}</a> }
                             @default { <span [class]="(v.mono ? 'font-mono text-[13px] ' : '') + (v.pre ? 'whitespace-pre-wrap' : '')" [attr.dir]="v.rtl ? 'rtl' : null">{{ v.text }}</span>@if (v.suffix) { <span class="ms-1 text-slate-400">{{ v.suffix }}</span> } }
                           }
@@ -103,7 +113,7 @@ const ENTITY_REL = new Set<string>(['products', 'categories', 'uoms', 'uomCatego
                     @if (rel.items.length === 0) { <p class="px-5 py-6 text-center text-xs text-slate-400">{{ 'product.d.nothing' | transloco }}</p> }
                     @else {
                       <ul class="max-h-80 divide-y divide-slate-100 overflow-y-auto">
-                        @for (it of rel.items.slice(0, 50); track it.rec.id) {
+                        @for (it of (rel.all ? rel.items : rel.items.slice(0, 50)); track it.rec.id) {
                           <li>
                             <a [routerLink]="['/product', rel.route, it.rec.id]" class="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
                               <span class="min-w-0">
@@ -114,7 +124,7 @@ const ENTITY_REL = new Set<string>(['products', 'categories', 'uoms', 'uomCatego
                             </a>
                           </li>
                         }
-                        @if (rel.items.length > 50) { <li class="px-4 py-2 text-[11px] text-slate-400">{{ 'product.d.showingFirst' | transloco: { n: 50, total: rel.items.length } }}</li> }
+                        @if (!rel.all && rel.items.length > 50) { <li class="px-4 py-2 text-[11px] text-slate-400">{{ 'product.d.showingFirst' | transloco: { n: 50, total: rel.items.length } }}</li> }
                       </ul>
                     }
                   </section>
@@ -152,12 +162,18 @@ export class EntityDetailPage {
     { label: this.name() || `#${this.id()}` },
   ]);
 
+  /** The model has a picture field (products): it is shown beside the title, not in the field list. */
+  protected readonly hasImage = computed(() => this.cfg().sections.some(s => s.fields.some(f => f.kind === 'image')));
+  /** The picture as a data URL ('' = none). The product list does not carry it, so it is read from the server per record. */
+  protected readonly image = signal('');
+  private imageFor = 0;
+
   /** Sections with the fields that have something to show (empty "hide when empty" fields are left out). */
   protected readonly sections = computed(() => {
     const r = this.rec();
     if (!r) return [];
     return this.cfg().sections
-      .map(sec => ({ titleKey: sec.titleKey, fields: sec.fields.filter(f => !(f.hideEmpty && (r[f.key] === '' || r[f.key] == null || r[f.key] === false))) }))
+      .map(sec => ({ titleKey: sec.titleKey, fields: sec.fields.filter(f => f.kind !== 'image' && !(f.hideEmpty && (r[f.key] === '' || r[f.key] == null || r[f.key] === false))) }))
       .filter(sec => sec.fields.length > 0);
   });
 
@@ -165,9 +181,20 @@ export class EntityDetailPage {
     const r = this.rec(), c = this.ctx();
     return (r ? this.cfg().related ?? [] : []).map(rel => {
       const target = ENTITY_BY_KEY[rel.entity];
-      return { titleKey: rel.titleKey, route: target.route, items: rel.items(r as Rec, c).map(it => ({ rec: it, name: target.nameOf(it, c), meta: rel.meta?.(it, c) ?? '' })) };
+      return { titleKey: rel.titleKey, route: target.route, all: !!rel.all, items: rel.items(r as Rec, c).map(it => ({ rec: it, name: target.nameOf(it, c), meta: rel.meta?.(it, c) ?? '' })) };
     });
   });
+
+  constructor() {
+    effect(() => {
+      const id = this.rec()?.id;
+      const wants = this.hasImage();
+      this.image.set('');
+      if (id == null || !wants) return;
+      const token = ++this.imageFor;
+      this.store.api.productImage(id).then(v => { if (token === this.imageFor) this.image.set(v); }, () => undefined);
+    });
+  }
 
   protected show(f: FieldSpec, r: Rec): Shown {
     const c: Ctx = this.ctx();
@@ -178,6 +205,11 @@ export class EntityDetailPage {
       case 'number': return v === '' || v == null ? shown('dash') : shown('text', { text: fmtNum(v), suffix: f.suffix ?? '' });
       case 'select': return v ? shown('text', { text: optLabel(f.options ?? [], v, c.tr) }) : shown('dash');
       case 'relation': {
+        if (f.multi) {
+          // many2many: every assigned record, by name
+          const items = (Array.isArray(v) ? (v as number[]) : []).map(x => ({ id: x, text: f.rel ? relLabel(c.s, f.rel, x) || `#${x}` : `#${x}` }));
+          return items.length ? shown('list', { items }) : shown('dash');
+        }
         if (v == null) return shown('dash');
         const rel = f.rel;
         const text = rel ? relLabel(c.s, rel, v) : '';

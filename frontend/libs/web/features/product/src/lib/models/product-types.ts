@@ -10,7 +10,7 @@ export type Tr = (key: string, params?: Record<string, unknown>) => string;
 /** What every config callback may need: the current data and translation. */
 export interface Ctx { s: ProductState; tr: Tr }
 
-export type RelKey = ProductEntityKey | 'companies' | 'users' | 'taxes';
+export type RelKey = ProductEntityKey | 'companies' | 'users' | 'taxes' | 'genres';
 export type PillTone = 'slate' | 'green' | 'amber' | 'red' | 'blue';
 /** Option whose label is a translation key. */
 export interface Opt { value: string; labelKey: string }
@@ -46,7 +46,7 @@ export interface FilterSpec {
   match: (r: Rec, value: string, c: Ctx) => boolean;
 }
 
-export type FieldKind = 'text' | 'textarea' | 'number' | 'select' | 'relation' | 'boolean' | 'readonly';
+export type FieldKind = 'text' | 'textarea' | 'number' | 'select' | 'relation' | 'boolean' | 'image' | 'readonly';
 
 export interface FieldSpec {
   /** Odoo technical field name. */
@@ -59,6 +59,8 @@ export interface FieldSpec {
   options?: Opt[];
   /** Related model for `relation` fields. */
   rel?: RelKey;
+  /** many2many: the value is a list of ids and every one is shown (default: many2one, a single id). */
+  multi?: boolean;
   /** Extra filter for relation options. */
   domain?: (r: Rec, values: Values, c: Ctx) => boolean;
   /** Decimal places kept for `number` fields (decimal strings). */
@@ -93,6 +95,8 @@ export interface RelatedSpec {
   entity: ProductEntityKey;
   items: (r: Rec, c: Ctx) => Rec[];
   meta?: (r: Rec, c: Ctx) => string;
+  /** one2many: show every record (default: the first 50 of a long list). */
+  all?: boolean;
 }
 
 export interface EntityConfig {

@@ -2,11 +2,12 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { PermissionService, SearchService } from '@erp/web/core';
-import { EmptyStateComponent, I18n, IconComponent, PageHeaderComponent, PagerComponent, SegmentedComponent } from '@erp/web/ui';
+import { ColumnPickerComponent, EmptyStateComponent, I18n, IconComponent, PageHeaderComponent, PagerComponent, SegmentedComponent, type ColumnPickerSource } from '@erp/web/ui';
 import { PERM, type ProductEntityKey } from '@erp/shared/contracts';
 import { ProductListMemory, type ListState } from '../data/list-memory';
 import { ProductStore } from '../data/product.store';
 import { ProductBreadcrumbComponent, type Crumb } from '../components/product-breadcrumb.component';
+import { ProductLoadStateComponent } from '../components/product-load-state.component';
 import { ProductCellComponent } from '../components/product-cell.component';
 import { ENTITY_BY_KEY } from '../models/product-entities';
 import { relRecords } from '../models/product-helpers';
@@ -23,7 +24,7 @@ const PAGE_SIZES = [10, 25, 50];
  */
 @Component({
   selector: 'erp-product-list-page',
-  imports: [RouterLink, TranslocoPipe, IconComponent, PageHeaderComponent, SegmentedComponent, PagerComponent, EmptyStateComponent, ProductBreadcrumbComponent, ProductCellComponent],
+  imports: [RouterLink, TranslocoPipe, IconComponent, PageHeaderComponent, SegmentedComponent, PagerComponent, EmptyStateComponent, ColumnPickerComponent, ProductBreadcrumbComponent, ProductLoadStateComponent, ProductCellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-1">
@@ -49,6 +50,7 @@ const PAGE_SIZES = [10, 25, 50];
                   @if (activeFilters() > 0) { <span class="rounded-full bg-emerald-600 px-1.5 text-[10px] text-white">{{ activeFilters() }}</span> }
                 </button>
               }
+              <erp-column-picker [source]="colSource" />
             </div>
             <erp-segmented [options]="segments()" [value]="st().status" (valueChange)="patch({ status: $any($event) })" />
           </div>
@@ -71,7 +73,9 @@ const PAGE_SIZES = [10, 25, 50];
           }
         </div>
 
-        @if (visible().length === 0) {
+        @if (!store.loaded()) {
+          <erp-product-load-state />
+        } @else if (visible().length === 0) {
           <erp-empty-state [title]="emptyTitle()" [text]="hasCriteria() ? ('product.l.emptyTry' | transloco) : ''" [icon]="cfg().icon">
             @if (hasCriteria()) { <button type="button" class="erp-btn-ghost mt-2" (click)="clear()">{{ 'product.l.clear' | transloco }}</button> }
             @else if (st().status === 'active' && canWrite()) { <a class="erp-btn-primary mt-2" [routerLink]="['/product', cfg().route, 'new']"><erp-icon name="plus" [size]="14" />{{ 'product.l.new' | transloco: { what: singular() } }}</a> }
@@ -81,7 +85,7 @@ const PAGE_SIZES = [10, 25, 50];
             <table class="erp-table min-w-[640px]">
               <thead>
                 <tr>
-                  @for (c of cfg().columns; track c.key) {
+                  @for (c of shownCols(); track c.key) {
                     <th scope="col" [class]="(c.right ? '!text-end ' : '') + (c.hide ? hide[c.hide] : '')" [attr.aria-sort]="ariaSort(c.key)">
                       @if (c.sort) {
                         <button type="button" class="inline-flex items-center gap-1 uppercase tracking-wide hover:text-slate-900" [class]="(st().sort.key === c.key ? 'text-slate-900 ' : '') + (c.right ? 'flex-row-reverse' : '')" (click)="toggleSort(c.key)">
@@ -96,7 +100,7 @@ const PAGE_SIZES = [10, 25, 50];
               <tbody>
                 @for (r of visible(); track r.id) {
                   <tr class="group cursor-pointer" [class]="r.active ? '' : 'bg-slate-50/60 text-slate-500'" (click)="open(r)">
-                    @for (c of cfg().columns; track c.key) {
+                    @for (c of shownCols(); track c.key) {
                       <td [class]="(c.primary ? 'min-w-[200px] ' : c.wrap ? '' : 'whitespace-nowrap ') + (c.right ? 'text-end tabular-nums ' : '') + (c.hide ? hide[c.hide] : '')">
                         @if (c.primary) {
                           <a [routerLink]="['/product', cfg().route, r.id]" (click)="$event.stopPropagation()" class="font-bold text-slate-900 hover:text-emerald-700 hover:underline"><erp-product-cell [cell]="c.cell(r, ctx())" /></a>
@@ -123,7 +127,7 @@ const PAGE_SIZES = [10, 25, 50];
     </div>`,
 })
 export class EntityListPage {
-  private readonly store = inject(ProductStore);
+  protected readonly store = inject(ProductStore);
   private readonly memory = inject(ProductListMemory);
   private readonly perms = inject(PermissionService);
   private readonly search = inject(SearchService);
@@ -164,6 +168,19 @@ export class EntityListPage {
       { id: 'all', label: this.i18n.tr('product.l.allRecords'), count: all.length },
     ];
   });
+  protected readonly shownCols = computed(() => {
+    const hidden = this.st().hiddenCols ?? [];
+    return this.cfg().columns.filter(c => c.primary || !hidden.includes(c.key));
+  });
+  /** Feeds the column picker beside the Filters button; the primary (name) column is always shown. */
+  protected readonly colSource: ColumnPickerSource = {
+    columns: () => this.cfg().columns.map(c => ({ key: c.key, label: c.labelKey, fixed: c.primary })),
+    shown: () => new Set(this.shownCols().map(c => c.key)),
+    toggleCol: key => {
+      const hidden = this.st().hiddenCols ?? [];
+      this.patch({ hiddenCols: hidden.includes(key) ? hidden.filter(k => k !== key) : [...hidden, key] }, false);
+    },
+  };
   protected readonly activeFilters = computed(() => this.cfg().filters.filter(f => this.st().filters[f.key]).length);
   protected readonly showFilters = computed(() => this.filtersOpen() ?? (this.cfg().filters.length <= 4 || this.activeFilters() > 0));
   /** The header search box and this list's own search box both narrow the list. */

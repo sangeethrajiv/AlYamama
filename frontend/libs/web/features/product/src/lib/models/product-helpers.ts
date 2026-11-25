@@ -46,6 +46,7 @@ export function relLabel(s: ProductState, rel: RelKey, id: ID | null | undefined
     case 'companies': return s.companies.find(x => x.id === id)?.name ?? '';
     case 'users': return s.users.find(x => x.id === id)?.name ?? '';
     case 'taxes': return s.taxes.find(x => x.id === id)?.name ?? '';
+    case 'genres': return s.genres.find(x => x.id === id)?.name ?? '';
   }
 }
 
@@ -57,9 +58,10 @@ export function relRecords(s: ProductState, rel: RelKey): Rec[] {
 
 export interface RelOption { id: ID; label: string; active: boolean }
 /** Options for a relation select: active records, plus the currently selected one even if archived. */
-export function relOptions(s: ProductState, rel: RelKey, current?: ID | null, domain?: (r: Rec) => boolean): RelOption[] {
+export function relOptions(s: ProductState, rel: RelKey, current?: ID | null | ID[], domain?: (r: Rec) => boolean): RelOption[] {
+  const chosen = new Set(Array.isArray(current) ? current : current == null ? [] : [current]);
   return relRecords(s, rel)
-    .filter(r => (r.active !== false || r.id === current) && (!domain || domain(r) || r.id === current))
+    .filter(r => (r.active !== false || chosen.has(r.id)) && (!domain || domain(r) || chosen.has(r.id)))
     .map(r => ({ id: r.id, label: relLabel(s, rel, r.id), active: r.active !== false }))
     .sort((a, b) => a.label.localeCompare(b.label));
 }

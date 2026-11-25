@@ -102,8 +102,8 @@
         "default_code_col": "Product Code",
         "barcode": "Barcode",
         "internal_short_code": "Internal Ref",
-        "product_genre": "Product Genre",
-        "is_teltonika": "Is Teltonika Product",
+        "product_type_id": "Product Genre",
+        "is_teltonika_product": "Is Teltonika Product",
         "is_vehicle_subscription": "Is Vehicle Subscription Product",
         "taxes_id": "Customer Taxes",
         "type": "Product Type",
@@ -123,6 +123,7 @@
         "qty_available_col": "Quantity On Hand",
         "virtual_available_col": "Forecasted Quantity",
         "virtual_available": "Forecasted Quantity",
+        "image": "Image",
         "sale_ok": "Can be Sold",
         "purchase_ok": "Can be Purchased",
         "no_discount": "No Discount",
@@ -136,25 +137,25 @@
       },
       "categories": {
         "name": "Category Name",
-        "name_col": "Category",
+        "name_col": "Product Category",
         "parent_id": "Parent Category",
-        "parent_id_col": "Parent",
+        "parent_id_col": "Parent Category",
         "sequence_code": "Short Code",
-        "child_id": "Sub-categories",
-        "product_count": "Product Count",
-        "product_count_col": "Products",
+        "child_id": "Child Categories",
+        "product_count": "# Products",
+        "product_count_col": "# Products",
         "complete_name": "Complete Name"
       },
       "uomCategories": {
-        "name": "Category Name",
-        "name_col": "Category",
+        "name": "Unit of Measure Category",
+        "name_col": "Unit of Measure Category",
         "measure_type": "Type of Measure",
         "reference": "Reference Unit",
         "uoms": "Units"
       },
       "uoms": {
         "name": "Unit of Measure",
-        "name_col": "Unit",
+        "name_col": "Unit of Measure",
         "category_id": "Category",
         "uom_type": "Type",
         "ratio_col": "Ratio",
@@ -162,9 +163,9 @@
         "factor_inv": "Bigger Ratio",
         "ratio_ref": "Ratio",
         "rounding": "Rounding Precision",
-        "rounding_col": "Rounding",
+        "rounding_col": "Rounding Precision",
         "view_name": "Display Name",
-        "measure_type": "Type of Measure",
+        "measure_type": "Type of measurement category",
         "used": "Products"
       },
       "backToRecord": "Back to record",
@@ -195,7 +196,7 @@
         "responsible_id": "Responsible"
       },
       "categories": {
-        "parent": "Parent",
+        "parent": "Parent Category",
         "has_products": "Products"
       },
       "uomCategories": {
@@ -292,7 +293,9 @@
       "emptyMatch": "No {{what}} match your search",
       "emptyTry": "Try different keywords or clear the filters.",
       "emptyArchived": "No archived {{what}}",
-      "emptyNone": "No {{what}} yet"
+      "emptyNone": "No {{what}} yet",
+      "loadFailed": "The product data could not be loaded. Check that the server is running, then try again.",
+      "retry": "Try again"
     },
     "act": {
       "view": "View",
@@ -336,6 +339,7 @@
       "backTo": "Back to {{what}}",
       "archivedBanner": "This {{what}} is archived and hidden from selection lists. Restore it to use it again.",
       "nothing": "Nothing here yet.",
+      "noImage": "No image",
       "showingFirst": "Showing first {{n}} of {{total}}."
     },
     "ov": {
