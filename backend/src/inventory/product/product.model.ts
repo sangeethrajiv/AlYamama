@@ -139,9 +139,9 @@ export class ProductTemplate extends Model<ProductTemplate> {
   @Column(DataType.STRING)
   internal_type: string | null
 
-  /** Angular-only field, no Odoo column. */
-  @Column(DataType.STRING)
-  product_genre: string | null
+  /** The product picture (bytes). The list leaves it out; the detail returns it as a data URL. */
+  @Column(DataType.BLOB)
+  image: Buffer | null
 
   @Column(DataType.INTEGER)
   create_uid: number | null

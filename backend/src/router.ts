@@ -5,6 +5,7 @@ import PartnerRouter from './contacts/partner/partner.router'
 import PartnerBankRouter from './contacts/partner-bank/partner-bank.router'
 import * as lookups from './contacts/lookups.controller'
 import ProductRouter from './inventory/product/product.router'
+import { genres } from './inventory/product/product.controller'
 import ProductCategoryRouter from './inventory/category/product-category.controller'
 import { uomCategoryRouter, uomRouter } from './inventory/uom/uom.controller'
 import accountingRouter from './accounting/accounting.router'
@@ -27,6 +28,7 @@ router.use('/partner-banks', isAuthenticated, PartnerBankRouter)
 
 // Inventory basics: products, categories, units of measure, warehouses, locations, operation types.
 router.use('/products', isAuthenticated, ProductRouter)
+router.get('/product-genres', isAuthenticated, handle(genres))
 router.use('/product-categories', isAuthenticated, ProductCategoryRouter)
 router.use('/uom-categories', isAuthenticated, uomCategoryRouter)
 router.use('/uoms', isAuthenticated, uomRouter)

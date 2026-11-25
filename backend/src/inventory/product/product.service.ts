@@ -3,6 +3,7 @@ import { AppError, notFound } from '../../common.helper'
 import type { RequestEnv } from '../../middleware'
 import { Uom } from '../uom/uom.model'
 import { ProductCategory } from '../category/product-category.model'
+import { checkGenre, setTaxes } from './product.relations'
 import { PRODUCT_TYPES, ProductProduct, ProductTemplate, TRACKING_MODES } from './product.model'
 import type { Transaction } from 'sequelize'
 
@@ -53,13 +54,15 @@ export type ProductValues = Partial<{
   standard_price: string | number | null
   margin_perc: string | number | null
   internal_type: string | null
-  product_genre: string | null
   internal_short_code: string | null
   no_discount: boolean
   is_teltonika_product: boolean
   is_vehicle_subscription: boolean
   purchase_request: boolean
   product_type_id: number | null
+  taxes_id: number[]
+  /** Data URL of the picture; '' or null removes it. */
+  image: string | null
 }>
 
 /** Template columns that are copied onto the variant. */
@@ -86,11 +89,24 @@ async function checkUom(uomId: number, uomPoId: number, trx: Transaction) {
   }
 }
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+/** An uploaded picture arrives as a data URL and is stored as bytes. Anything else, or too large, is refused. */
+function imageBytes(value: string | null): Buffer | null {
+  if (value === null || value === '') return null
+  const m = /^data:image\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)$/.exec(value)
+  if (!m) throw new AppError('The product image must be a PNG, JPEG, GIF or WebP file.', 400)
+  const bytes = Buffer.from(m[2], 'base64')
+  if (bytes.length > MAX_IMAGE_BYTES) throw new AppError('The product image is larger than 5 MB.', 400)
+  return bytes.length ? bytes : null
+}
+
 function templateColumns(v: ProductValues): Record<string, unknown> {
-  const { barcode: _barcode, ...rest } = v
+  const { barcode: _barcode, taxes_id: _taxes, ...rest } = v
   const out: Record<string, unknown> = { ...rest }
   for (const k of ['list_price', 'standard_price', 'margin_perc', 'weight', 'volume', 'sale_delay'] as const) if (k in rest) out[k] = num(rest[k])
   if (typeof out.name === 'string') out.name = out.name.trim()
+  if ('image' in rest) out.image = imageBytes(rest.image ?? null)
   return out
 }
 
@@ -102,6 +118,7 @@ export async function createProduct(values: ProductValues, env: RequestEnv): Pro
 
   return sequelize.transaction(async trx => {
     if (!(await ProductCategory.findByPk(values.categ_id!, { transaction: trx }))) throw notFound('Product category')
+    await checkGenre(values.product_type_id, trx)
     // Odoo's default: the purchase unit follows the sales unit.
     const uomPo = values.uom_po_id ?? values.uom_id!
     await checkUom(values.uom_id!, uomPo, trx)
@@ -129,6 +146,7 @@ export async function createProduct(values: ProductValues, env: RequestEnv): Pro
       } as never,
       { transaction: trx },
     )
+    if (values.taxes_id) await setTaxes(tmpl.id, values.taxes_id, trx)
     return tmpl.reload({ transaction: trx })
   })
 }
@@ -142,6 +160,7 @@ export async function updateProduct(id: number, values: ProductValues, env: Requ
     if (values.categ_id !== undefined && !(await ProductCategory.findByPk(values.categ_id, { transaction: trx }))) {
       throw notFound('Product category')
     }
+    await checkGenre(values.product_type_id, trx)
     if (values.uom_id !== undefined || values.uom_po_id !== undefined) {
       await checkUom(values.uom_id ?? tmpl.uom_id, values.uom_po_id ?? tmpl.uom_po_id, trx)
     }
@@ -153,6 +172,7 @@ export async function updateProduct(id: number, values: ProductValues, env: Requ
     for (const k of VARIANT_SYNC) if (k in values) variantPatch[k] = (tmpl as unknown as Record<string, unknown>)[k]
     if ('barcode' in values) variantPatch.barcode = values.barcode || null
     await ProductProduct.update(variantPatch as never, { where: { product_tmpl_id: id }, transaction: trx })
+    if (values.taxes_id) await setTaxes(id, values.taxes_id, trx)
 
     return tmpl.reload({ transaction: trx })
   })

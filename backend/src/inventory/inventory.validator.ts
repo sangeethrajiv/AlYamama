@@ -10,15 +10,16 @@ import { MEASURE_TYPES, UOM_TYPES } from './uom/uom.model'
  */
 
 const str = z.string().trim().max(512)
-const nullableStr = str.nullish().transform(v => (v === '' ? null : v ?? null))
+// A field the client left out stays undefined ("unchanged"); only an explicit '' or null clears it.
+const nullableStr = str.nullish().transform(v => (v === undefined ? undefined : v === '' || v === null ? null : v))
 const id = z.coerce.number().int().positive()
 const nullableId = z.union([id, z.null(), z.literal('')]).transform(v => (v === '' || v === null ? null : (v as number))).nullish()
 const bool = z.coerce.boolean()
 const decimal = z
   .union([z.number(), z.string()])
   .nullish()
-  .transform(v => (v === null || v === undefined || v === '' ? null : String(v)))
-  .refine(v => v === null || /^-?\d+(\.\d+)?$/.test(v), 'must be a number')
+  .transform(v => (v === undefined ? undefined : v === null || v === '' ? null : String(v)))
+  .refine(v => v == null || /^-?\d+(\.\d+)?$/.test(v), 'must be a number')
 const positiveDecimal = z
   .union([z.number(), z.string()])
   .transform(v => String(v))
@@ -37,7 +38,6 @@ export const productSchema = z.object({
   standard_price: decimal,
   margin_perc: decimal,
   internal_type: z.enum(['material', 'labour', 'overhead']).nullish().or(z.literal('').transform(() => null)),
-  product_genre: nullableStr,
   weight: decimal,
   volume: decimal,
   sale_ok: bool.optional(),
@@ -61,6 +61,10 @@ export const productSchema = z.object({
   is_vehicle_subscription: bool.optional(),
   purchase_request: bool.optional(),
   product_type_id: nullableId,
+  /** account.tax ids (Customer Taxes): the product ends up with exactly these. */
+  taxes_id: z.array(id).optional(),
+  /** A data URL (PNG, JPEG, GIF or WebP); '' or null removes the picture. Checked in the service. */
+  image: z.string().nullish(),
 })
 
 export const productListSchema = z.object({

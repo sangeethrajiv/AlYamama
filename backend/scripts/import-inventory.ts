@@ -172,7 +172,7 @@ async function run() {
     await target.query('SET CONSTRAINTS ALL DEFERRED')
 
     if (argvFlag('truncate')) {
-      await target.query(`TRUNCATE product_product, product_template, stock_picking_type, stock_warehouse, stock_location,
+      await target.query(`TRUNCATE product_product, product_template, att_product_type, stock_picking_type, stock_warehouse, stock_location,
         product_category, uom_uom, uom_category RESTART IDENTITY CASCADE`)
       await target.query(`DELETE FROM ir_model_data WHERE model IN ('product.template','product.product','stock.picking.type',
         'stock.warehouse','stock.location','product.category','uom.uom','uom.category')`)
@@ -229,6 +229,11 @@ async function run() {
       report.push(['stock_picking_type', types.length, nT])
 
       // ---------------------------------------------------------- products ---
+      // Product Genre (att.product.type): the whole lookup, so every sampled product's genre exists.
+      const { rows: genres } = await odoo.query<Row>('SELECT id, name, active, create_date, write_date FROM att_product_type ORDER BY id')
+      const nG = await upsert(target, 'att_product_type', ['id', 'name', 'active', 'create_date', 'write_date'], genres)
+      report.push(['att_product_type', genres.length, nG])
+
       const { rows: cands } = await odoo.query<Candidate>(`
         SELECT t.id, t.type, t.tracking, t.categ_id, t.uom_id, u.category_id AS uom_cat,
                coalesce((regexp_split_to_array(c.parent_path, '/'))[1]::int, c.id) AS top_categ,
@@ -275,6 +280,12 @@ async function run() {
       await recordExternalIds(target, 'product.product', variants.map(r => Number(r.id)))
       report.push(['product_product', variants.length, nV])
 
+      // Customer Taxes (product_taxes_rel). A tax that is not in the target yet (accounting config not imported) is skipped.
+      const taxIds = await targetIds(target, 'account_tax')
+      const { rows: rels } = await odoo.query<Row>('SELECT prod_id, tax_id FROM product_taxes_rel WHERE prod_id = ANY($1) ORDER BY prod_id, tax_id', [ids])
+      const nR = await upsert(target, 'product_taxes_rel', ['prod_id', 'tax_id'], rels.filter(r => taxIds.has(Number(r.tax_id))), 500, ['prod_id', 'tax_id'])
+      report.push(['product_taxes_rel', rels.length, nR])
+
       // What the sample covers, so the choice can be checked at a glance.
       const by = (f: (c: Candidate) => string | number | boolean) =>
         [...picked.reduce((m, c) => m.set(String(f(c)), (m.get(String(f(c))) ?? 0) + 1), new Map<string, number>())]
@@ -290,7 +301,7 @@ async function run() {
 
     await resetSequences(target, [
       'uom_category', 'uom_uom', 'product_category', 'stock_location', 'stock_warehouse',
-      'stock_picking_type', 'product_template', 'product_product', 'ir_model_data',
+      'stock_picking_type', 'product_template', 'product_product', 'att_product_type', 'ir_model_data',
     ])
     await target.query('COMMIT')
 

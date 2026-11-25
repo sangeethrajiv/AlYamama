@@ -13,6 +13,8 @@ import { archiveProduct, createProduct, deleteProduct, updateProduct } from './p
 import { createLocation, deleteLocation, updateLocation } from './warehouse/location.service'
 import { updateWarehouse } from './warehouse/warehouse.service'
 import { buildWhere, filterCounts, readGroup } from './product/product.search'
+import * as productApi from './product/product.controller'
+import { categorySchema, productSchema } from './inventory.validator'
 
 /** One test per Odoo 12 behaviour in docs/CLAUDE_main.md section 6 for uom, product and stock. */
 
@@ -31,6 +33,28 @@ describe('inventory', () => {
     const ref = await createUom({ name: `${name} ref`, category_id: cat.id, uom_type: 'reference' }, env())
     return { cat, ref }
   }
+
+  // -------------------------------------------------------- request shapes ---
+  describe('request validation', () => {
+    it('leaves out what the client left out, so a partial update does not blank other fields', () => {
+      expect(productSchema.parse({ name: 'Pump' })).to.deep.equal({ name: 'Pump' })
+      expect(categorySchema.parse({ name: 'Hoses' })).to.deep.equal({ name: 'Hoses' })
+    })
+
+    it('still clears a field that is sent empty or null', () => {
+      expect(productSchema.parse({ default_code: '', list_price: null, weight: '' })).to.deep.equal({ default_code: null, list_price: null, weight: null })
+      expect(productSchema.parse({ list_price: 5 })).to.deep.equal({ list_price: '5' })
+    })
+
+    it('keeps the other fields of a product when only some are updated', async () => {
+      const cat = await createCategory({ name: 'All' }, env())
+      const { ref } = await unitCategory()
+      const t = await createProduct({ name: 'Pump', categ_id: cat.id, uom_id: ref.id, default_code: 'P-9', list_price: '10', description_picking: 'Shelf 4' }, env())
+      await updateProduct(t.id, productSchema.parse({ name: 'Pump 2' }) as never, env())
+      const row = (await ProductTemplate.findByPk(t.id))!
+      expect([row.name, row.default_code, row.list_price, row.description_picking]).to.deep.equal(['Pump 2', 'P-9', '10.0000', 'Shelf 4'])
+    })
+  })
 
   // ---------------------------------------------------------------- uom ---
   describe('uom', () => {
@@ -223,6 +247,78 @@ describe('inventory', () => {
       await createProduct({ name: 'A', categ_id: categId, uom_id: ea.id }, env())
       await createProduct({ name: 'B', categ_id: categId, uom_id: ea.id, barcode: '' }, env())
       expect(await ProductTemplate.count()).to.equal(2)
+    })
+
+    describe('Product Genre and Customer Taxes', () => {
+      const q = async (sql: string, replacements: Record<string, unknown> = {}) => (await sequelize.query(sql, { replacements }))[0] as Array<Record<string, number>>
+      const genre = async (name: string) => (await q('INSERT INTO att_product_type (name) VALUES (:name) RETURNING id', { name }))[0].id
+      const tax = async (name: string) => {
+        const p = await Partner.create({ name: `${name} co`, is_company: true, type: 'contact' } as never)
+        const c = await Company.create({ name: `${name} co`, partner_id: p.id } as never)
+        return (await q("INSERT INTO account_tax (name, type_tax_use, amount_type, amount, company_id) VALUES (:name, 'sale', 'percent', 15, :co) RETURNING id", { name, co: c.id }))[0].id
+      }
+      const rows = (id: number) => q('SELECT tax_id FROM product_taxes_rel WHERE prod_id = :id ORDER BY tax_id', { id }).then(r => r.map(x => x.tax_id))
+
+      it('stores the genre as a many2one to att.product.type', async () => {
+        const g = await genre('Hardware Sales & Support')
+        const t = await createProduct({ name: 'Pump', categ_id: categId, uom_id: ea.id, product_type_id: g }, env())
+        expect(t.product_type_id).to.equal(g)
+        const e = await rejects(() => updateProduct(t.id, { product_type_id: g + 99 }, env()))
+        expect(e.message).to.equal('Product Genre not found.')
+      })
+
+      it('keeps every assigned customer tax, and replaces them as a set', async () => {
+        const [a, b, c] = [await tax('A'), await tax('B'), await tax('C')]
+        const t = await createProduct({ name: 'Pump', categ_id: categId, uom_id: ea.id, taxes_id: [a, b, b] }, env())
+        expect(await rows(t.id)).to.deep.equal([a, b])
+        await updateProduct(t.id, { taxes_id: [b, c] }, env())
+        expect(await rows(t.id)).to.deep.equal([b, c])
+        await updateProduct(t.id, { name: 'Pump 2' }, env())
+        expect(await rows(t.id)).to.deep.equal([b, c])
+        await updateProduct(t.id, { taxes_id: [] }, env())
+        expect(await rows(t.id)).to.deep.equal([])
+      })
+
+      it('refuses a tax that does not exist and leaves the product unchanged', async () => {
+        const a = await tax('A')
+        const t = await createProduct({ name: 'Pump', categ_id: categId, uom_id: ea.id, taxes_id: [a] }, env())
+        const e = await rejects(() => updateProduct(t.id, { taxes_id: [a, a + 99] }, env()))
+        expect(e.message).to.match(/does not exist/)
+        expect(await rows(t.id)).to.deep.equal([a])
+      })
+
+      it('serves the genre as { id, name } and every tax as { id, name }, in the list and the detail', async () => {
+        const g = await genre('New Subscription')
+        const [a, b] = [await tax('A'), await tax('B')]
+        const t = await createProduct({ name: 'Pump', categ_id: categId, uom_id: ea.id, product_type_id: g, taxes_id: [a, b] }, env())
+        const call = async (fn: (req: never, res: never) => Promise<unknown>, req: Record<string, unknown>) => {
+          let body: { data: Record<string, any> } | undefined
+          const res = { status: () => res, json: (v: typeof body) => { body = v } }
+          await fn({ query: {}, params: {}, env: env(), ...req } as never, res as never)
+          return body!.data
+        }
+        const detail = await call(productApi.detail, { params: { id: String(t.id) } })
+        expect(detail.product_type_id).to.deep.equal({ id: g, name: 'New Subscription' })
+        expect(detail.taxes_id.map((x: { id: number }) => x.id)).to.deep.equal([a, b])
+        expect(detail.taxes_id[0]).to.have.property('name', 'A')
+        const list = await call(productApi.list, {})
+        expect(list.records[0].taxes_id).to.have.length(2)
+        expect(list.records[0].product_type_id).to.deep.equal({ id: g, name: 'New Subscription' })
+        expect(list.records[0]).to.not.have.property('product_genre')
+        const none = await createProduct({ name: 'Plain', categ_id: categId, uom_id: ea.id }, env())
+        const plain = await call(productApi.detail, { params: { id: String(none.id) } })
+        expect(plain.taxes_id).to.deep.equal([])
+        expect(plain.product_type_id).to.equal(null)
+        const lookup = await call(productApi.genres, {})
+        expect(lookup.records).to.deep.equal([{ id: g, name: 'New Subscription', active: true }])
+      })
+
+      it('removes the relation rows with the product', async () => {
+        const a = await tax('A')
+        const t = await createProduct({ name: 'Pump', categ_id: categId, uom_id: ea.id, taxes_id: [a] }, env())
+        await deleteProduct(t.id)
+        expect(await rows(t.id)).to.deep.equal([])
+      })
     })
 
     it('updates the variant when the template changes', async () => {

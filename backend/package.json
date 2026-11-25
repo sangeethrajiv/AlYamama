@@ -16,6 +16,7 @@
     "import:odoo": "ts-node --transpile-only scripts/import-odoo.ts",
     "test": "ts-node --transpile-only run_all_tests.ts",
     "import:inventory": "ts-node --transpile-only scripts/import-inventory.ts",
+    "migrate:product-master": "ts-node --transpile-only scripts/migrate-product-master.ts",
     "import:accounting": "ts-node --transpile-only scripts/import-accounting-config.ts"
   },
   "engines": {

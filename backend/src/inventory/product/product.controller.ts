@@ -7,6 +7,7 @@ import { ProductProduct, ProductTemplate } from './product.model'
 import { archiveProduct, createProduct, deleteProduct, updateProduct } from './product.service'
 import { buildOrder, buildWhere, filterCounts, readGroup, searchViewDefinition } from './product.search'
 import { productListSchema, productSchema } from '../inventory.validator'
+import { genreNames, listGenres, taxesFor, type Named } from './product.relations'
 import { companyScope } from '../../contacts/partner/partner.service'
 
 const m2o = (id: number | null | undefined, name: string | null | undefined) =>
@@ -21,7 +22,21 @@ const INCLUDES = [
 /** The arabic_* columns are kept in the database but not exposed for now. */
 const HIDDEN = ['arabic_name', 'create_uid', 'write_uid']
 
-const shape = (t: ProductTemplate, barcode: string | null, variantId: number | null) => {
+/** The picture's bytes as a data URL; the format is read from the file's own header. */
+function dataUrl(bytes: Buffer | null | undefined): string | null {
+  if (!bytes || !bytes.length) return null
+  const mime = bytes[0] === 0x89 ? 'image/png' : bytes[0] === 0xff ? 'image/jpeg' : bytes[0] === 0x47 ? 'image/gif' : bytes.slice(0, 4).toString() === 'RIFF' ? 'image/webp' : 'image/png'
+  return `data:${mime};base64,${bytes.toString('base64')}`
+}
+
+/** Names that live outside product_template: the genre (many2one) and the customer taxes (many2many). */
+interface Related { genres: Map<number, string>; taxes: Map<number, Named[]> }
+const relatedFor = async (rows: ProductTemplate[]): Promise<Related> => ({
+  genres: await genreNames(rows.map(r => r.product_type_id)),
+  taxes: await taxesFor(rows.map(r => r.id)),
+})
+
+const shape = (t: ProductTemplate, barcode: string | null, variantId: number | null, rel: Related) => {
   const j = t.toJSON() as unknown as Record<string, unknown>
   for (const k of HIDDEN) delete j[k]
   return {
@@ -29,8 +44,11 @@ const shape = (t: ProductTemplate, barcode: string | null, variantId: number | n
     categ_id: m2o(t.categ_id, (t.category as ProductCategory | undefined)?.complete_name ?? (t.category as ProductCategory | undefined)?.name),
     uom_id: m2o(t.uom_id, (t.uom as Uom | undefined)?.name),
     uom_po_id: m2o(t.uom_po_id, (t.uomPo as Uom | undefined)?.name),
+    product_type_id: m2o(t.product_type_id, t.product_type_id == null ? null : rel.genres.get(t.product_type_id)),
+    taxes_id: rel.taxes.get(t.id) ?? [],
     barcode,
     product_variant_id: variantId,
+    image: dataUrl(t.image),
     category: undefined, uom: undefined, uomPo: undefined, variants: undefined,
   }
 }
@@ -47,6 +65,7 @@ export async function list(req: Request, res: Response) {
   const { limit, offset, page } = paging(q as Record<string, unknown>)
   const { rows, count } = await ProductTemplate.findAndCountAll({
     where: await buildWhere(q, req.env),
+    attributes: { exclude: ['image'] },
     include: INCLUDES,
     order: buildOrder(q.order),
     limit,
@@ -56,13 +75,20 @@ export async function list(req: Request, res: Response) {
     subQuery: false,
   })
   const variants = await variantsFor(rows.map(r => r.id))
+  const rel = await relatedFor(rows)
   const payload: Record<string, unknown> = {
-    records: rows.map(r => shape(r, variants.get(r.id)?.barcode ?? null, variants.get(r.id)?.id ?? null)),
+    records: rows.map(r => shape(r, variants.get(r.id)?.barcode ?? null, variants.get(r.id)?.id ?? null, rel)),
     total: count, page, limit,
   }
   if (q.counts === '1') payload.counts = await filterCounts(q, req.env)
   if (q.group_by) payload.groups = await readGroup(q.group_by, q, req.env)
   return ok(res, payload)
+}
+
+/** GET /product-genres - att.product.type, the Product Genre choices. */
+export async function genres(_req: Request, res: Response) {
+  const rows = await listGenres()
+  return ok(res, { records: rows, total: rows.length })
 }
 
 export const searchView = async (_req: Request, res: Response) => ok(res, searchViewDefinition())
@@ -91,7 +117,7 @@ export async function detail(req: Request, res: Response) {
   const t = await ProductTemplate.findOne({ where: { id, ...companyScope(req.env) }, include: INCLUDES })
   if (!t) throw notFound('Product')
   const v = await ProductProduct.findOne({ where: { product_tmpl_id: id }, attributes: ['id', 'barcode'] })
-  return ok(res, shape(t, v?.barcode ?? null, v?.id ?? null))
+  return ok(res, shape(t, v?.barcode ?? null, v?.id ?? null, await relatedFor([t])))
 }
 
 export async function create(req: Request, res: Response) {
